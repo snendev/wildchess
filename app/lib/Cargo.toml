@@ -1,0 +1,11 @@
+[package]
+name = "wildchess_app_lib"
+version = "0.1.0"
+authors = ["Sean Sullivan <me@snen.dev>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+wildchess_game = { path = "../../game" }
+bevy = "0.11"
