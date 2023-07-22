@@ -14,7 +14,7 @@ use bevy_egui::{
 use crate::{
     behavior::PatternStep,
     board::{GamePieces, King, Pawn, PieceIdentity},
-    Behavior, MovePieceEvent, Pattern, Promotion, Rank, SearchMode, Square,
+    Behavior, MovePieceEvent, Pattern, Promotion, Rank, SearchMode, Square, TargetMode,
     Team::{self, Black, White},
     Vision,
 };
@@ -65,7 +65,12 @@ fn describe_step(step: &PatternStep) -> String {
 
 fn describe_pattern(pattern: &Pattern) -> egui::RichText {
     egui::RichText::new(format!(
-        "- walk {}{}{}.",
+        "- {} {}{}{}.",
+        match pattern.target_mode {
+            TargetMode::Moving => "move without attacking",
+            TargetMode::Attacking => "move allowing attacks",
+            TargetMode::OnlyAttacking => "move only to attack",
+        },
         pattern.range.map_or("".to_string(), |range| format!(
             "up to {} squares ",
             range.to_string()
@@ -258,7 +263,6 @@ pub fn egui_chessboard(
                         egui::RichText::new(format!("Selected piece: {:?}", square)).size(24.),
                     );
                     ui.label(egui::RichText::new("Piece move patterns:").size(24.));
-                    ui.label(egui::RichText::new("Attack moves:").size(24.));
                     for pattern in behavior.patterns.iter() {
                         ui.label(describe_pattern(pattern));
                     }

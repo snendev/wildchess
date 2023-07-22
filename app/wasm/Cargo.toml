@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [lib]
-name = "wildchess_wasm"
+name = "wildchess_app_wasm"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

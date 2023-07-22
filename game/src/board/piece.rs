@@ -198,11 +198,13 @@ impl PieceBuilder for EliteBuilder {
             // classic queen
             0 => Behavior::builder().radials().can_attack().build(),
             // chancellor
-            1 => Behavior::builder()
-                .orthogonals()
-                .can_attack()
-                .build()
-                .join(Behavior::builder().knight_jumps().can_attack().build()),
+            1 => Behavior::builder().orthogonals().can_attack().build().join(
+                Behavior::builder()
+                    .knight_jumps()
+                    .range(1)
+                    .can_attack()
+                    .build(),
+            ),
             // panther
             2 => Behavior::builder()
                 .orthogonals()
@@ -220,7 +222,13 @@ impl PieceBuilder for EliteBuilder {
                 .range(3)
                 .can_attack()
                 .build()
-                .join(Behavior::builder().knight_jumps().can_attack().build()),
+                .join(
+                    Behavior::builder()
+                        .knight_jumps()
+                        .range(1)
+                        .can_attack()
+                        .build(),
+                ),
         }
     }
 }
@@ -233,14 +241,17 @@ impl PieceBuilder for LegendaryBuilder {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=2) {
             // dragon
-            0 => Behavior::builder()
-                .radials()
-                .can_attack()
-                .build()
-                .join(Behavior::builder().knight_jumps().can_attack().build()),
+            0 => Behavior::builder().radials().can_attack().build().join(
+                Behavior::builder()
+                    .knight_jumps()
+                    .range(1)
+                    .can_attack()
+                    .build(),
+            ),
             // pirate
             _ => Behavior::builder()
                 .knight_jumps()
+                .range(2)
                 .can_attack()
                 .build()
                 .with_pattern(Pattern::forward().jumping().cannot_attack())
