@@ -1,48 +1,27 @@
-use rand::Rng;
+use rand::{thread_rng, Rng};
 
-use bevy::prelude::{Bundle, Component};
+use crate::{behavior::Behavior, pieces::PieceKind, Pattern};
 
-use crate::{
-    behavior::Behavior,
-    board::PieceBuilder,
-    square::{File, Square},
-    team::Team,
-    Pattern, Vision,
-};
-
-// Piece identity described by the starting squares
-#[derive(Clone, Copy, Component, Debug, PartialEq)]
-pub enum PieceIdentity {
-    AH,
-    BG,
-    CF,
-    D,
-}
-
-#[derive(Clone, Bundle)]
-pub struct PieceBundle {
-    pub behavior: Behavior,
-    pub square: Square,
-    pub team: Team,
-    pub vision: Vision,
-}
-
-impl PieceBundle {
-    pub fn new(behavior: Behavior, team: Team, file: File) -> Self {
-        PieceBundle {
-            behavior,
-            square: Square::piece(file, team),
-            team,
-            vision: Vision::default(),
-        }
+impl PieceKind {
+    // TODO figure out a better strategy
+    pub fn generate_piece(max_value: u32, current_value: &mut u32) -> Behavior {
+        let mut rng = thread_rng();
+        let behavior = match rng.gen_range(0u32..(max_value - *current_value)) {
+            0..=9 => InfantryBuilder::generate_wild_behavior(),
+            10..=19 => MinorBuilder::generate_wild_behavior(),
+            20..=29 => AdvancedBuilder::generate_wild_behavior(),
+            30..=39 => MajorBuilder::generate_wild_behavior(),
+            40..=49 => EliteBuilder::generate_wild_behavior(),
+            50..=u32::MAX => LegendaryBuilder::generate_wild_behavior(),
+        };
+        behavior
     }
 }
 
-// "Infantry" class
-pub struct InfantryBuilder;
+struct InfantryBuilder;
 
-impl PieceBuilder for InfantryBuilder {
-    fn generate_wild_behavior(&self) -> Behavior {
+impl InfantryBuilder {
+    fn generate_wild_behavior() -> Behavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // grunt
@@ -91,8 +70,8 @@ impl PieceBuilder for InfantryBuilder {
 // "Minor" class
 pub struct MinorBuilder;
 
-impl PieceBuilder for MinorBuilder {
-    fn generate_wild_behavior(&self) -> Behavior {
+impl MinorBuilder {
+    fn generate_wild_behavior() -> Behavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // classic knight
@@ -120,8 +99,8 @@ impl PieceBuilder for MinorBuilder {
 // "Advanced" class
 pub struct AdvancedBuilder;
 
-impl PieceBuilder for AdvancedBuilder {
-    fn generate_wild_behavior(&self) -> Behavior {
+impl AdvancedBuilder {
+    fn generate_wild_behavior() -> Behavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // jester
@@ -170,8 +149,8 @@ impl PieceBuilder for AdvancedBuilder {
 // "Major" class
 pub struct MajorBuilder;
 
-impl PieceBuilder for MajorBuilder {
-    fn generate_wild_behavior(&self) -> Behavior {
+impl MajorBuilder {
+    fn generate_wild_behavior() -> Behavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=2) {
             // classic rook
@@ -191,8 +170,8 @@ impl PieceBuilder for MajorBuilder {
 // "Elite" class
 pub struct EliteBuilder;
 
-impl PieceBuilder for EliteBuilder {
-    fn generate_wild_behavior(&self) -> Behavior {
+impl EliteBuilder {
+    fn generate_wild_behavior() -> Behavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=2) {
             // classic queen
@@ -236,8 +215,8 @@ impl PieceBuilder for EliteBuilder {
 // "Legendary" class
 pub struct LegendaryBuilder;
 
-impl PieceBuilder for LegendaryBuilder {
-    fn generate_wild_behavior(&self) -> Behavior {
+impl LegendaryBuilder {
+    fn generate_wild_behavior() -> Behavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=2) {
             // dragon

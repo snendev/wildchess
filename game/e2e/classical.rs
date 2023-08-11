@@ -12,7 +12,7 @@ use bevy_egui::{
 use bevy_geppetto::Test;
 
 use wildchess_game::{
-    board::{King, KingBundle, Pawn, PawnBundle, PieceBundle},
+    pieces::{PieceBundle, PieceKind},
     Behavior, File, GameplayPlugin, MovePieceEvent, Pattern, Rank, Square,
     Team::{self, Black, White},
     Vision,
@@ -41,12 +41,12 @@ pub enum PieceIcon {
 }
 
 // no en passent, no "two moves forward" rule
-pub fn pawn(team: Team, file: File, rank: Rank) -> PawnBundle {
-    PawnBundle {
+pub fn pawn(team: Team, file: File, rank: Rank) -> PieceBundle {
+    PieceBundle {
+        kind: PieceKind::Pawn,
         behavior: Behavior::default()
             .with_pattern(Pattern::forward().range(1).cannot_attack())
             .with_pattern(Pattern::diagonal_forward().range(1).can_attack()),
-        pawn: Pawn,
         square: Square::new(file, rank),
         team,
         vision: Vision::default(),
@@ -54,11 +54,11 @@ pub fn pawn(team: Team, file: File, rank: Rank) -> PawnBundle {
 }
 
 // no castling
-fn king(team: Team, file: File, rank: Rank) -> KingBundle {
-    KingBundle {
+fn king(team: Team, rank: Rank) -> PieceBundle {
+    PieceBundle {
         behavior: Behavior::builder().radials().range(1).can_attack().build(),
-        king: King,
-        square: Square::new(file, rank),
+        kind: PieceKind::King,
+        square: Square::new(File::E, rank),
         team,
         vision: Vision::default(),
     }
@@ -66,6 +66,7 @@ fn king(team: Team, file: File, rank: Rank) -> KingBundle {
 
 fn knight(team: Team, file: File, rank: Rank) -> AnyResult<PieceBundle> {
     Ok(PieceBundle {
+        kind: PieceKind::SquareBG,
         behavior: Behavior::builder()
             .knight_jumps()
             .range(1)
@@ -79,6 +80,7 @@ fn knight(team: Team, file: File, rank: Rank) -> AnyResult<PieceBundle> {
 
 fn bishop(team: Team, file: File, rank: Rank) -> PieceBundle {
     PieceBundle {
+        kind: PieceKind::SquareCF,
         behavior: Behavior::builder().diagonals().can_attack().build(),
         square: Square::new(file, rank),
         team,
@@ -88,6 +90,7 @@ fn bishop(team: Team, file: File, rank: Rank) -> PieceBundle {
 
 fn rook(team: Team, file: File, rank: Rank) -> PieceBundle {
     PieceBundle {
+        kind: PieceKind::SquareAH,
         behavior: Behavior::builder().orthogonals().can_attack().build(),
         square: Square::new(file, rank),
         team,
@@ -95,10 +98,11 @@ fn rook(team: Team, file: File, rank: Rank) -> PieceBundle {
     }
 }
 
-fn queen(team: Team, file: File, rank: Rank) -> PieceBundle {
+fn queen(team: Team, rank: Rank) -> PieceBundle {
     PieceBundle {
+        kind: PieceKind::SquareD,
         behavior: Behavior::builder().radials().can_attack().build(),
-        square: Square::new(file, rank),
+        square: Square::new(File::D, rank),
         team,
         vision: Vision::default(),
     }
@@ -133,9 +137,9 @@ pub fn classical_board(mut commands: Commands) {
             ));
         }
         // king
-        commands.spawn((king(team, 'e'.try_into().unwrap(), rank), PieceIcon::King));
+        commands.spawn((king(team, rank), PieceIcon::King));
         // queen
-        commands.spawn((queen(team, 'd'.try_into().unwrap(), rank), PieceIcon::Queen));
+        commands.spawn((queen(team, rank), PieceIcon::Queen));
         // rooks
         for file in vec![0, 7].into_iter() {
             commands.spawn((rook(team, file.try_into().unwrap(), rank), PieceIcon::Rook));

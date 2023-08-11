@@ -17,6 +17,22 @@ pub enum File {
 }
 use File::{A, B, C, D, E, F, G, H};
 
+impl File {
+    pub fn all() -> impl Iterator<Item = Self> {
+        [
+            File::A,
+            File::B,
+            File::C,
+            File::D,
+            File::E,
+            File::F,
+            File::G,
+            File::H,
+        ]
+        .into_iter()
+    }
+}
+
 #[derive(Debug, Error)]
 enum FileParseError {
     #[error("Invalid rank: `{0}`")]
@@ -198,7 +214,7 @@ impl Rank {
     }
 }
 
-#[derive(Clone, Component, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Component, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Square {
     pub file: File,
     pub rank: Rank,

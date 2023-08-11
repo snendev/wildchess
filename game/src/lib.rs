@@ -1,4 +1,5 @@
 pub mod board;
+pub mod pieces;
 
 mod behavior;
 mod moves;

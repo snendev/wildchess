@@ -13,42 +13,26 @@ use bevy_egui::{
 
 use crate::{
     behavior::PatternStep,
-    board::{GamePieces, King, Pawn, PieceIdentity},
+    pieces::{GamePieces, PieceConfiguration, PieceKind},
     Behavior, MovePieceEvent, Pattern, Promotion, Rank, SearchMode, Square, TargetMode,
     Team::{self, Black, White},
     Vision,
 };
 
-fn piece_icon(id: PieceIdentity, team: Team) -> char {
-    match (id, team) {
-        (PieceIdentity::AH, White) => '\u{2661}',
-        (PieceIdentity::AH, Black) => '\u{2665}',
-        (PieceIdentity::BG, White) => '\u{2740}',
-        (PieceIdentity::BG, Black) => '\u{2663}',
-        (PieceIdentity::CF, White) => '\u{26C4}',
-        (PieceIdentity::CF, Black) => '\u{2603}',
-        (PieceIdentity::D, White) => '\u{2606}',
-        (PieceIdentity::D, Black) => '\u{2605}',
-    }
-}
-
-#[derive(Debug, Error)]
-#[error("Piece must be only one of piece, pawn, or king.")]
-struct InvalidPieceError;
-
-fn wild_piece_unicode(
-    (king, pawn, piece): (Option<King>, Option<Pawn>, Option<PieceIdentity>),
-    team: Team,
-) -> AnyResult<char> {
-    match (king, pawn, piece, team) {
-        (Some(King), None, None, White) => Ok('\u{2654}'),
-        (Some(King), None, None, Black) => Ok('\u{265A}'),
-        (None, Some(Pawn), None, White) => Ok('\u{2659}'),
-        (None, Some(Pawn), None, Black) => Ok('\u{265F}'),
-        (None, None, Some(id), team) => Ok(piece_icon(id, team)),
-        (None, None, None, White) => Ok('W'),
-        (None, None, None, Black) => Ok('B'),
-        _ => Err(AnyError::new(InvalidPieceError)),
+fn piece_icon(kind: PieceKind, team: Team) -> char {
+    match (kind, team) {
+        (PieceKind::King, White) => '\u{2654}',
+        (PieceKind::King, Black) => '\u{265A}',
+        (PieceKind::Pawn, White) => '\u{2659}',
+        (PieceKind::Pawn, Black) => '\u{265F}',
+        (PieceKind::SquareAH, White) => '\u{2661}',
+        (PieceKind::SquareAH, Black) => '\u{2665}',
+        (PieceKind::SquareBG, White) => '\u{2740}',
+        (PieceKind::SquareBG, Black) => '\u{2663}',
+        (PieceKind::SquareCF, White) => '\u{26C4}',
+        (PieceKind::SquareCF, Black) => '\u{2603}',
+        (PieceKind::SquareD, White) => '\u{2606}',
+        (PieceKind::SquareD, Black) => '\u{2605}',
     }
 }
 
@@ -91,20 +75,9 @@ pub type PieceQuery<'a> = (
     &'a Square,
     &'a Team,
     &'a Vision,
-    (
-        Option<&'a King>,
-        Option<&'a Pawn>,
-        Option<&'a PieceIdentity>,
-    ),
+    &'a PieceKind,
 );
-pub type PieceTuple = (
-    Entity,
-    Behavior,
-    Square,
-    Team,
-    Vision,
-    (Option<King>, Option<Pawn>, Option<PieceIdentity>),
-);
+pub type PieceTuple = (Entity, Behavior, Square, Team, Vision, PieceKind);
 pub fn egui_chessboard(
     query: Query<PieceQuery>,
     mut contexts: EguiContexts,
@@ -115,21 +88,19 @@ pub fn egui_chessboard(
 ) {
     let pieces: HashMap<Square, PieceTuple> = query
         .iter()
-        .map(
-            |(entity, behavior, square, team, vision, (king, pawn, piece))| {
+        .map(|(entity, behavior, square, team, vision, piece)| {
+            (
+                square.clone(),
                 (
+                    entity,
+                    behavior.clone(),
                     square.clone(),
-                    (
-                        entity,
-                        behavior.clone(),
-                        square.clone(),
-                        *team,
-                        vision.clone(),
-                        (king.map(|k| *k), pawn.map(|p| *p), piece.map(|p| *p)),
-                    ),
-                )
-            },
-        )
+                    *team,
+                    vision.clone(),
+                    *piece,
+                ),
+            )
+        })
         .collect();
 
     let selected_piece_entity = selected_piece.as_ref();
@@ -157,7 +128,7 @@ pub fn egui_chessboard(
                             .unwrap_or_else(|| (false, false));
 
                         let text = if let Some((_, _, _, team, _, piece)) = pieces.get(&square) {
-                            egui::RichText::new(wild_piece_unicode(*piece, *team).unwrap())
+                            egui::RichText::new(piece_icon(*piece, *team))
                                 .color(match *team {
                                     Team::White => Color32::LIGHT_GRAY,
                                     Team::Black => Color32::WHITE,
@@ -183,18 +154,15 @@ pub fn egui_chessboard(
                         if button.clicked() {
                             if let Some((entity, _, _, team, vision, piece)) = selected_piece_data {
                                 if vision.can_target(&square) {
-                                    if piece.1.is_some()
-                                        && match (team, square.rank) {
-                                            (Team::White, Rank::Eight)
-                                            | (Team::Black, Rank::One) => true,
-                                            _ => false,
+                                    match (piece, team, square.rank) {
+                                        (PieceKind::Pawn, Team::White, Rank::Eight)
+                                        | (PieceKind::Pawn, Team::Black, Rank::One) => {
+                                            *intended_promotion = Some((*entity, square, *team));
                                         }
-                                    {
-                                        *intended_promotion = Some((*entity, square, *team));
-                                    } else {
-                                        writer.send(MovePieceEvent(*entity, square, None));
+                                        _ => {
+                                            writer.send(MovePieceEvent(*entity, square, None));
+                                        }
                                     }
-                                    *selected_piece = None;
                                 } else if let Some((current_entity, _, _, _, _, _)) =
                                     pieces.get(&square)
                                 {
@@ -219,21 +187,19 @@ pub fn egui_chessboard(
                     ui.label(egui::RichText::new(format!("Promoting! Choose a piece.")).size(24.));
 
                     ui.horizontal(|ui| {
-                        for (id, _) in game_pieces.0.iter() {
-                            let icon = egui::RichText::new(
-                                wild_piece_unicode((None, None, Some(*id)), *team).unwrap(),
-                            )
-                            .color(match team {
-                                Team::White => Color32::LIGHT_GRAY,
-                                Team::Black => Color32::WHITE,
-                            })
-                            .size(18.);
+                        for PieceConfiguration { kind, behavior, .. } in game_pieces.0.iter() {
+                            let icon = egui::RichText::new(piece_icon(*kind, *team))
+                                .color(match team {
+                                    Team::White => Color32::LIGHT_GRAY,
+                                    Team::Black => Color32::WHITE,
+                                })
+                                .size(18.);
                             let button = ui.add_sized(
                                 [80., 80.],
                                 egui::Button::new(icon).fill(Color32::from_rgb(64, 64, 64)),
                             );
                             if button.clicked() {
-                                promotion_id = Some(*id);
+                                promotion_id = Some(*kind);
                             }
                         }
                     });

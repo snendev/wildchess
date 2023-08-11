@@ -1,13 +1,13 @@
 use bevy::prelude::{Entity, Event};
 
-use crate::{board::PieceIdentity, Square};
+use crate::{pieces::PieceKind, Square};
 
 pub struct Promotion {
-    pub to_piece: PieceIdentity,
+    pub to_piece: PieceKind,
 }
 
 impl Promotion {
-    pub fn to(piece: PieceIdentity) -> Self {
+    pub fn to(piece: PieceKind) -> Self {
         Promotion { to_piece: piece }
     }
 }

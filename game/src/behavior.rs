@@ -318,7 +318,7 @@ impl Pattern {
     ) -> HashSet<Square> {
         let mut squares: HashSet<Square> = HashSet::new();
         for (x, y) in self.get_movement_steps(my_team) {
-            let mut current_square = origin.clone();
+            let mut current_square = *origin;
             let mut current_range = 0;
             let only_allow_capture = match self.target_mode {
                 TargetMode::Moving => false,
@@ -340,7 +340,7 @@ impl Pattern {
 
                 if let Some((_, team)) = pieces.get(&square) {
                     if my_team != *team && allow_capture {
-                        squares.insert(square.clone());
+                        squares.insert(square);
                     }
                     match self.search_mode {
                         SearchMode::Walk => break,
@@ -351,7 +351,7 @@ impl Pattern {
                     }
                 } else {
                     if !only_allow_capture {
-                        squares.insert(square.clone());
+                        squares.insert(square);
                     }
                     current_square = square;
                 }

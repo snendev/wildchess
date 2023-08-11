@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    board::{GamePieces, Pawn},
+    pieces::{GamePieces, PieceConfiguration},
     Behavior, MovePieceEvent, Square, Team, Vision,
 };
 
@@ -54,19 +54,16 @@ pub fn move_pieces(
                 *behavior = game_pieces
                     .0
                     .iter()
-                    .find_map(|(id, piece_behavior)| {
-                        if *id == promotion.to_piece {
-                            Some(piece_behavior)
+                    .find_map(|PieceConfiguration { kind, behavior, .. }| {
+                        if *kind == promotion.to_piece {
+                            Some(behavior)
                         } else {
                             None
                         }
                     })
                     .unwrap()
                     .clone();
-                commands
-                    .entity(*entity)
-                    .remove::<Pawn>()
-                    .insert(promotion.to_piece);
+                commands.entity(*entity).insert(promotion.to_piece);
             }
         }
     }
