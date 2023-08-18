@@ -233,7 +233,7 @@ fn get_button(
                 .get(&(start_position.clone(), *team))
                 .map(|icon| icon)
         })
-        .unwrap_or(&PieceIcon::Character('-'))
+        .unwrap_or(&PieceIcon::Character(' '))
     {
         PieceIcon::Svg(icon) => {
             egui::Button::image_and_text(icon.texture_id(context), Vec2::new(68., 68.), "")

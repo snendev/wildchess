@@ -199,7 +199,7 @@ fn piece_unicode(position: StartPosition, team: Team) -> char {
             },
             Black,
         ) => '\u{265F}',
-        _ => '-',
+        _ => ' ',
     }
 }
 
