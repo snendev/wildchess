@@ -1,239 +1,227 @@
-use anyhow::Result as AnyResult;
+use itertools::Itertools;
 
 use bevy::{
-    prelude::{Commands, Component, Entity, EventWriter, Local, Query, Startup, Update},
+    prelude::{Commands, Startup},
     utils::HashMap,
-};
-use bevy_egui::{
-    egui::{self, Color32},
-    EguiContexts,
 };
 
 use bevy_geppetto::Test;
 
 use wildchess_game::{
-    pieces::{PieceBundle, PieceKind},
-    Behavior, File, GameplayPlugin, MovePieceEvent, Pattern, Rank, Square,
-    Team::{self, Black, White},
-    Vision,
+    components::{
+        Behavior, Pattern, PieceKind, Promotable, StartPosition,
+        Team::{self, Black, White},
+    },
+    File, GamePieces, GameplayPlugin, LocalSquare, PieceConfiguration, Rank,
 };
+
+use wildchess_ui::{EguiBoardUIPlugin, PieceIcon, PieceIcons};
 
 fn main() {
     Test {
         label: "test classical board".to_string(),
         setup: |app| {
-            app.add_plugins(GameplayPlugin)
-                .add_systems(Startup, classical_board)
-                .add_systems(Update, classical_ui);
+            app.add_plugins((GameplayPlugin, EguiBoardUIPlugin))
+                .add_systems(Startup, add_classical_pieces);
         },
     }
     .run()
 }
 
-#[derive(Clone, Copy, Component)]
-pub enum PieceIcon {
-    King,
-    Queen,
-    Rook,
-    Bishop,
-    Knight,
-    Pawn,
-}
-
 // no en passent, no "two moves forward" rule
-pub fn pawn(team: Team, file: File, rank: Rank) -> PieceBundle {
-    PieceBundle {
-        kind: PieceKind::Pawn,
-        behavior: Behavior::default()
-            .with_pattern(Pattern::forward().range(1).cannot_attack())
-            .with_pattern(Pattern::diagonal_forward().range(1).can_attack()),
-        square: Square::new(file, rank),
-        team,
-        vision: Vision::default(),
-    }
+pub fn pawn() -> Behavior {
+    Behavior::default()
+        .with_pattern(Pattern::forward().range(1).cannot_attack())
+        .with_pattern(Pattern::diagonal_forward().range(1).can_attack())
 }
 
 // no castling
-fn king(team: Team, rank: Rank) -> PieceBundle {
-    PieceBundle {
-        behavior: Behavior::builder().radials().range(1).can_attack().build(),
-        kind: PieceKind::King,
-        square: Square::new(File::E, rank),
-        team,
-        vision: Vision::default(),
-    }
+fn king() -> Behavior {
+    Behavior::builder().radials().range(1).can_attack().build()
 }
 
-fn knight(team: Team, file: File, rank: Rank) -> AnyResult<PieceBundle> {
-    Ok(PieceBundle {
-        kind: PieceKind::SquareBG,
-        behavior: Behavior::builder()
-            .knight_jumps()
-            .range(1)
-            .can_attack()
-            .build(),
-        square: Square::new(file, rank),
-        team,
-        vision: Vision::default(),
-    })
+fn knight() -> Behavior {
+    Behavior::builder()
+        .knight_jumps()
+        .range(1)
+        .can_attack()
+        .build()
 }
 
-fn bishop(team: Team, file: File, rank: Rank) -> PieceBundle {
-    PieceBundle {
-        kind: PieceKind::SquareCF,
-        behavior: Behavior::builder().diagonals().can_attack().build(),
-        square: Square::new(file, rank),
-        team,
-        vision: Vision::default(),
-    }
+fn bishop() -> Behavior {
+    Behavior::builder().diagonals().can_attack().build()
 }
 
-fn rook(team: Team, file: File, rank: Rank) -> PieceBundle {
-    PieceBundle {
-        kind: PieceKind::SquareAH,
-        behavior: Behavior::builder().orthogonals().can_attack().build(),
-        square: Square::new(file, rank),
-        team,
-        vision: Vision::default(),
-    }
+fn rook() -> Behavior {
+    Behavior::builder().orthogonals().can_attack().build()
 }
 
-fn queen(team: Team, rank: Rank) -> PieceBundle {
-    PieceBundle {
-        kind: PieceKind::SquareD,
-        behavior: Behavior::builder().radials().can_attack().build(),
-        square: Square::new(File::D, rank),
-        team,
-        vision: Vision::default(),
-    }
+fn queen() -> Behavior {
+    Behavior::builder().radials().can_attack().build()
 }
 
-fn piece_unicode(icon: PieceIcon, team: Team) -> char {
-    match (icon, team) {
-        (PieceIcon::King, White) => '\u{2654}',
-        (PieceIcon::Queen, White) => '\u{2655}',
-        (PieceIcon::Rook, White) => '\u{2656}',
-        (PieceIcon::Bishop, White) => '\u{2657}',
-        (PieceIcon::Knight, White) => '\u{2658}',
-        (PieceIcon::Pawn, White) => '\u{2659}',
-        (PieceIcon::King, Black) => '\u{265A}',
-        (PieceIcon::Queen, Black) => '\u{265B}',
-        (PieceIcon::Rook, Black) => '\u{265C}',
-        (PieceIcon::Bishop, Black) => '\u{265D}',
-        (PieceIcon::Knight, Black) => '\u{265E}',
-        (PieceIcon::Pawn, Black) => '\u{265F}',
-    }
-}
+fn classical_chess_configuration() -> Vec<(PieceConfiguration, Vec<StartPosition>)> {
+    let make_piece_config = |behavior: Behavior| PieceConfiguration {
+        kind: PieceKind::Piece,
+        behavior,
+        promotable: None,
+    };
+    let rank_one_square = |file: File| StartPosition(LocalSquare::new(Rank::One, file));
 
-pub fn classical_board(mut commands: Commands) {
-    for team in vec![White, Black] {
-        let rank: Rank = if team == White { '1' } else { '8' }.try_into().unwrap();
-        let pawn_rank: Rank = if team == White { '2' } else { '7' }.try_into().unwrap();
-        // pawns
-        for file in 0..=7 {
-            commands.spawn((
-                pawn(team, file.try_into().unwrap(), pawn_rank),
-                PieceIcon::Pawn,
-            ));
-        }
+    vec![
+        // pieces
+        (
+            make_piece_config(rook()),
+            vec![rank_one_square(File::A), rank_one_square(File::H)],
+        ),
+        (
+            make_piece_config(knight()),
+            vec![rank_one_square(File::B), rank_one_square(File::G)],
+        ),
+        (
+            make_piece_config(bishop()),
+            vec![rank_one_square(File::C), rank_one_square(File::F)],
+        ),
+        (make_piece_config(queen()), vec![rank_one_square(File::D)]),
         // king
-        commands.spawn((king(team, rank), PieceIcon::King));
+        (
+            PieceConfiguration {
+                kind: PieceKind::King,
+                behavior: king(),
+                promotable: None,
+            },
+            vec![rank_one_square(File::E)],
+        ),
+        // pawns
+        (
+            PieceConfiguration {
+                kind: PieceKind::Pawn,
+                behavior: pawn(),
+                promotable: Some(Promotable {
+                    local_rank: Rank::Eight,
+                    behaviors: vec![queen(), rook(), knight(), bishop()],
+                }),
+            },
+            File::all()
+                .map(|file| StartPosition(LocalSquare::new(Rank::Two, file)))
+                .collect(),
+        ),
+    ]
+}
+
+fn piece_unicode(position: StartPosition, team: Team) -> char {
+    match (position.0, team) {
+        // king
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::E,
+            },
+            White,
+        ) => '\u{2654}',
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::E,
+            },
+            Black,
+        ) => '\u{265A}',
         // queen
-        commands.spawn((queen(team, rank), PieceIcon::Queen));
-        // rooks
-        for file in vec![0, 7].into_iter() {
-            commands.spawn((rook(team, file.try_into().unwrap(), rank), PieceIcon::Rook));
-        }
-        // bishops
-        for file in vec![2, 5].into_iter() {
-            commands.spawn((
-                bishop(team, file.try_into().unwrap(), rank),
-                PieceIcon::Bishop,
-            ));
-        }
-        // knights
-        for file in vec![1, 6].into_iter() {
-            commands.spawn((
-                knight(team, file.try_into().unwrap(), rank).unwrap(),
-                PieceIcon::Knight,
-            ));
-        }
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::D,
+            },
+            White,
+        ) => '\u{2655}',
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::D,
+            },
+            Black,
+        ) => '\u{265B}',
+        // rook
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::A | File::H,
+            },
+            White,
+        ) => '\u{2656}',
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::A | File::H,
+            },
+            Black,
+        ) => '\u{265C}',
+        // bishop
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::C | File::F,
+            },
+            White,
+        ) => '\u{2657}',
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::C | File::F,
+            },
+            Black,
+        ) => '\u{265D}',
+        // knight
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::B | File::G,
+            },
+            White,
+        ) => '\u{2658}',
+        (
+            LocalSquare {
+                rank: Rank::One,
+                file: File::B | File::G,
+            },
+            Black,
+        ) => '\u{265E}',
+        // pawn
+        (
+            LocalSquare {
+                rank: Rank::Two, ..
+            },
+            White,
+        ) => '\u{2659}',
+        (
+            LocalSquare {
+                rank: Rank::Two, ..
+            },
+            Black,
+        ) => '\u{265F}',
+        _ => '-',
     }
 }
 
-pub fn classical_ui(
-    query: Query<(Entity, &Behavior, &Square, &Team, &Vision, &PieceIcon)>,
-    mut writer: EventWriter<MovePieceEvent>,
-    mut contexts: EguiContexts,
-    mut selected_piece: Local<Option<Entity>>,
-) {
-    let pieces: HashMap<Square, (Entity, Square, Team, Vision, PieceIcon)> = query
-        .iter()
-        .map(|(entity, _, square, team, vision, icon)| {
-            (
-                square.clone(),
-                (entity, square.clone(), *team, vision.clone(), *icon),
-            )
-        })
-        .collect();
+fn build_icons(pieces: Vec<(PieceConfiguration, Vec<StartPosition>)>) -> PieceIcons {
+    PieceIcons(
+        pieces
+            .into_iter()
+            .cartesian_product([Team::White, Team::Black])
+            .flat_map(|((_, start_positions), team)| {
+                start_positions.into_iter().map(move |start_position| {
+                    (
+                        (start_position.clone(), team),
+                        PieceIcon::Character(piece_unicode(start_position, team)),
+                    )
+                })
+            })
+            .collect::<HashMap<_, _>>(),
+    )
+}
 
-    let selected_piece_entity = selected_piece.as_ref();
-    let selected_piece_data = selected_piece_entity
-        .map(|entity| {
-            let square = query
-                .get(*entity)
-                .map(|(_, _, square, _, _, _)| square.clone())
-                .ok();
-            square.map(|square| pieces.get(&square)).flatten()
-        })
-        .flatten();
-
-    egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
-        egui::Grid::new("board_grid").show(ui, |ui| {
-            for y in (0..=7).rev() {
-                for x in 0..=7 {
-                    let square = Square::new(x.try_into().unwrap(), y.try_into().unwrap());
-
-                    let is_target_square = selected_piece_data
-                        .map(|(_, _, _, vision, _)| vision.can_target(&square))
-                        .unwrap_or_else(|| false);
-
-                    let text = if let Some(piece) = pieces.get(&square) {
-                        piece_unicode(piece.4, piece.2)
-                    } else if is_target_square {
-                        'X'
-                    } else {
-                        '-'
-                    }
-                    .to_string();
-                    if is_target_square {
-                        ui.style_mut().visuals.code_bg_color = Color32::GOLD;
-                    }
-                    if ui.button(text).clicked() {
-                        if let Some((entity, _, _, vision, _)) = selected_piece_data {
-                            if vision.can_target(&square) {
-                                writer.send(MovePieceEvent(
-                                    *entity,
-                                    square,
-                                    todo!("Implement promotion, or re-use existing board assets"),
-                                ));
-                                *selected_piece = None;
-                            } else if let Some((current_entity, _, _, _, _)) = pieces.get(&square) {
-                                *selected_piece = Some(*current_entity);
-                            } else {
-                                *selected_piece = None;
-                            }
-                        } else if let Some((current_entity, _, _, _, _)) = pieces.get(&square) {
-                            *selected_piece = Some(*current_entity);
-                        }
-                    };
-                }
-                ui.end_row();
-            }
-        });
-        ui.label(format!(
-            "Selected square: {:?}",
-            selected_piece_data.map(|(_, square, _, _, _)| square)
-        ));
-    });
+fn add_classical_pieces(mut commands: Commands) {
+    let pieces = classical_chess_configuration();
+    commands.insert_resource(GamePieces(pieces.clone()));
+    commands.insert_resource(build_icons(pieces))
 }

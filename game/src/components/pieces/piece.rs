@@ -1,6 +1,6 @@
 use rand::{thread_rng, Rng};
 
-use crate::{behavior::Behavior, pieces::PieceKind, Pattern};
+use crate::components::{Behavior, Pattern, PieceKind};
 
 impl PieceKind {
     // TODO figure out a better strategy

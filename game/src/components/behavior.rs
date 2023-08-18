@@ -3,7 +3,7 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 
-use crate::{Square, Team};
+use crate::{components::Team, Square};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TargetMode {
@@ -330,7 +330,7 @@ impl Pattern {
                 TargetMode::Attacking => true,
                 TargetMode::OnlyAttacking => true,
             };
-            while let Some(square) = current_square.checked_add(x, y) {
+            while let Some(square) = current_square.checked_add(y, x) {
                 current_range += 1;
                 if let Some(range) = self.range {
                     if current_range > range {

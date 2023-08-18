@@ -1,9 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "app/*",
-    "game",
-]
+members = ["app/*", "game", "ui"]
 
 [profile.release]
 lto = true

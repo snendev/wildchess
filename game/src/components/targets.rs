@@ -1,27 +1,25 @@
 use bevy::{prelude::Component, utils::HashMap};
 
-use crate::{Square, TargetMode};
+use crate::{components::TargetMode, Square};
 
 #[derive(Clone, Component, Default, Debug)]
-pub struct Vision {
-    targets: HashMap<Square, TargetMode>,
-}
+pub struct Targets(HashMap<Square, TargetMode>);
 
-impl Vision {
+impl Targets {
     pub fn new() -> Self {
         Self::default()
     }
 
     pub fn set(&mut self, targets: HashMap<Square, TargetMode>) {
-        self.targets = targets;
+        self.0 = targets;
     }
 
     pub fn can_target(&self, square: &Square) -> bool {
-        self.targets.get(square).is_some()
+        self.0.get(square).is_some()
     }
 
     pub fn can_attack(&self, square: &Square) -> bool {
-        self.targets
+        self.0
             .get(square)
             .map(|target_mode| match target_mode {
                 TargetMode::Attacking | TargetMode::OnlyAttacking => true,

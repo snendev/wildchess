@@ -8,4 +8,5 @@ publish = false
 
 [dependencies]
 wildchess_game = { path = "../../game" }
+wildchess_ui = { path = "../../ui" }
 bevy = "0.11"

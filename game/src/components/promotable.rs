@@ -1,10 +1,10 @@
 use bevy::prelude::Component;
 
-use crate::{Behavior, Rank};
+use crate::{components::Behavior, Rank};
 
 #[derive(Clone, Debug, Component)]
 pub struct Promotable {
-    // the Rank required to reach promotion r
+    // the Rank required to reach promotion
     // flipped if Team::Black
     pub local_rank: Rank,
     // the upgraded Behaviors to choose from

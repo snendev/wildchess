@@ -1,8 +1,7 @@
 use anyhow::Error as AnyError;
-use bevy::prelude::Component;
 use thiserror::Error;
 
-use crate::Team;
+use crate::components::Team::{self, Black, White};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum File {
@@ -130,6 +129,29 @@ pub enum Rank {
 }
 use Rank::{Eight, Five, Four, One, Seven, Six, Three, Two};
 
+impl Rank {
+    pub fn from_local(&self, team: &Team) -> Rank {
+        match (team, self) {
+            (White, One) => One,
+            (White, Two) => Two,
+            (White, Three) => Three,
+            (White, Four) => Four,
+            (White, Five) => Five,
+            (White, Six) => Six,
+            (White, Seven) => Seven,
+            (White, Eight) => Eight,
+            (Black, One) => Eight,
+            (Black, Two) => Seven,
+            (Black, Three) => Six,
+            (Black, Four) => Five,
+            (Black, Five) => Four,
+            (Black, Six) => Three,
+            (Black, Seven) => Two,
+            (Black, Eight) => One,
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 enum RankParseError {
     #[error("Invalid rank: `{0}`")]
@@ -214,37 +236,15 @@ impl Rank {
     }
 }
 
-#[derive(Clone, Component, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Square {
-    pub file: File,
     pub rank: Rank,
+    pub file: File,
 }
 
 impl Square {
-    pub fn new(file: File, rank: Rank) -> Square {
-        Square { file, rank }
-    }
-
-    pub fn piece(file: File, team: Team) -> Square {
-        Square::new(
-            file,
-            if team == Team::White {
-                Rank::One
-            } else {
-                Rank::Eight
-            },
-        )
-    }
-
-    pub fn pawn(file: File, team: Team) -> Square {
-        Square::new(
-            file,
-            if team == Team::White {
-                Rank::Two
-            } else {
-                Rank::Seven
-            },
-        )
+    pub fn new(rank: Rank, file: File) -> Square {
+        Square { rank, file }
     }
 }
 
@@ -258,7 +258,7 @@ impl TryFrom<(char, char)> for Square {
     type Error = AnyError;
 
     fn try_from((file, rank): (char, char)) -> Result<Self, Self::Error> {
-        Ok(Square::new(file.try_into()?, rank.try_into()?))
+        Ok(Square::new(rank.try_into()?, file.try_into()?))
     }
 }
 
@@ -280,16 +280,32 @@ impl TryFrom<&str> for Square {
 }
 
 impl Square {
-    pub fn checked_add(&self, x: i8, y: i8) -> Option<Square> {
-        self.file
-            .checked_add(x)
-            .zip(self.rank.checked_add(y))
-            .map(|(file, rank)| Square::new(file, rank))
+    pub fn checked_add(&self, y: i8, x: i8) -> Option<Square> {
+        self.rank
+            .checked_add(y)
+            .zip(self.file.checked_add(x))
+            .map(|(rank, file)| Square::new(rank, file))
     }
 }
 
 impl std::fmt::Display for Square {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}{}", char::from(&self.file), char::from(&self.rank))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct LocalSquare {
+    pub rank: Rank,
+    pub file: File,
+}
+
+impl LocalSquare {
+    pub fn new(rank: Rank, file: File) -> Self {
+        LocalSquare { rank, file }
+    }
+
+    pub fn to_square(&self, team: &Team) -> Square {
+        Square::new(self.rank.from_local(team), self.file)
     }
 }

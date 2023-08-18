@@ -1,14 +1,12 @@
 use rand::Rng;
 
 use crate::{
-    behavior::Behavior,
-    behavior::Pattern,
-    pieces::{PieceConfiguration, PieceKind},
-    Square,
+    components::{Behavior, Pattern, PieceKind, Promotable},
+    PieceConfiguration,
 };
 
 impl PieceKind {
-    pub fn generate_pawn(starting_square: Square) -> PieceConfiguration {
+    pub fn generate_pawn(promotable: Promotable) -> PieceConfiguration {
         let mut rng = rand::thread_rng();
         PieceConfiguration {
             kind: Self::Pawn,
@@ -24,7 +22,7 @@ impl PieceKind {
                     .with_pattern(Pattern::sideways().range(1).cannot_attack())
                     .with_pattern(Pattern::diagonal_forward().range(1).must_attack()),
             },
-            starting_square,
+            promotable: Some(promotable),
         }
     }
 }

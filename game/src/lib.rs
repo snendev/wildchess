@@ -1,16 +1,23 @@
-pub mod board;
-pub mod pieces;
+use bevy::prelude::Resource;
 
-mod behavior;
-mod moves;
-mod plugins;
+pub mod components;
+use components::{Behavior, PieceKind, Promotable, StartPosition};
+
+mod events;
+pub use events::{Movement, PieceEvent, Promotion, RequestPromotion};
+
+mod gameplay;
+pub use gameplay::{GameplayPlugin, WildBoardPlugin};
+
 mod square;
-mod team;
-mod vision;
+pub use square::{File, LocalSquare, Rank, Square};
 
-pub use behavior::{Behavior, Pattern, SearchMode, TargetMode};
-pub use moves::{MovePieceEvent, Promotion};
-pub use plugins::{ChessPlugins, EguiBoardUIPlugin, GameplayPlugin, WildBoardPlugin};
-pub use square::{File, Rank, Square};
-pub use team::Team;
-pub use vision::Vision;
+#[derive(Clone, Debug)]
+pub struct PieceConfiguration {
+    pub kind: PieceKind,
+    pub behavior: Behavior,
+    pub promotable: Option<Promotable>,
+}
+
+#[derive(Resource)]
+pub struct GamePieces(pub Vec<(PieceConfiguration, Vec<StartPosition>)>);
