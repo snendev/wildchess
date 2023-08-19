@@ -37,10 +37,9 @@ fn describe_pattern(pattern: &Pattern) -> egui::RichText {
             TargetMode::Attacking => "move allowing attacks",
             TargetMode::OnlyAttacking => "move only to attack",
         },
-        pattern.range.map_or("".to_string(), |range| format!(
-            "up to {} squares ",
-            range.to_string()
-        ),),
+        pattern
+            .range
+            .map_or("".to_string(), |range| format!("up to {} squares ", range),),
         describe_step(&pattern.step),
         if pattern.search_mode == SearchMode::Walk {
             " until a collision"
@@ -81,6 +80,8 @@ pub type PieceTuple = (
     Targets,
     PieceKind,
 );
+
+#[allow(clippy::too_many_arguments)]
 pub fn egui_chessboard(
     query: Query<PieceQuery>,
     mut contexts: EguiContexts,
@@ -113,14 +114,13 @@ pub fn egui_chessboard(
 
     let selected_piece_entity = selected_piece.as_ref();
     let selected_piece_data = selected_piece_entity
-        .map(|entity| {
-            let square = query
+        .and_then(|entity| {
+            query
                 .get(*entity)
                 .map(|(_, _, position, _, _, _, _)| position.0)
-                .ok();
-            square.map(|square| pieces.get(&square)).flatten()
+                .ok()
         })
-        .flatten();
+        .and_then(|square| pieces.get(&square));
 
     let ctx = contexts.ctx_mut();
     egui::CentralPanel::default().show(&*ctx, |ui| {
@@ -227,12 +227,7 @@ fn get_button(
     background_color: Color32,
 ) -> egui::Button {
     match piece
-        .and_then(|(start_position, team)| {
-            piece_icons
-                .0
-                .get(&(start_position.clone(), *team))
-                .map(|icon| icon)
-        })
+        .and_then(|(start_position, team)| piece_icons.0.get(&(start_position.clone(), *team)))
         .unwrap_or(&PieceIcon::Character(' '))
     {
         PieceIcon::Svg(icon) => {
@@ -277,7 +272,7 @@ fn render_promotion_buttons(
     game_pieces: &GamePieces,
     team: &Team,
 ) {
-    ui.label(egui::RichText::new(format!("Promoting! Choose a piece.")).size(24.));
+    ui.label(egui::RichText::new("Promoting! Choose a piece.").size(24.));
 
     ui.horizontal(|ui| {
         for (PieceConfiguration { behavior, .. }, start_positions) in game_pieces.0.iter() {

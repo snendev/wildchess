@@ -35,7 +35,7 @@ impl RequestPromotion {
 pub struct PieceEvent<T>(T);
 
 impl<T> PieceEvent<T> {
-    pub fn get<'a>(&'a self) -> &'a T {
+    pub fn get(&self) -> &T {
         &self.0
     }
 }

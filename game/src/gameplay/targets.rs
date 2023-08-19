@@ -8,9 +8,10 @@ use crate::{
     Square,
 };
 
+type WithUpdatedPiece = Or<(Changed<Position>, Changed<Behavior>)>;
 pub fn calculate_targets(
     mut piece_query: Query<(Entity, &Behavior, &Position, &Team, &mut Targets)>,
-    update_query: Query<Entity, Or<(Changed<Position>, Changed<Behavior>)>>,
+    update_query: Query<Entity, WithUpdatedPiece>,
 ) {
     if update_query.is_empty() {
         return;
@@ -18,7 +19,7 @@ pub fn calculate_targets(
 
     let pieces: HashMap<Square, (Entity, Team)> = piece_query
         .iter()
-        .map(|(entity, _, position, team, _)| (position.0.clone(), (entity, *team)))
+        .map(|(entity, _, position, team, _)| (position.0, (entity, *team)))
         .collect();
 
     for (_, behavior, position, team, mut vision) in piece_query.iter_mut() {
@@ -36,7 +37,7 @@ pub fn _calculate_psychic_targets(
 
     let pieces: HashMap<Square, (Entity, Team)> = piece_query
         .iter()
-        .map(|(entity, _, position, team, _)| (position.0.clone(), (entity, *team)))
+        .map(|(entity, _, position, team, _)| (position.0, (entity, *team)))
         .collect();
 
     for (_, behavior, position, team, mut vision) in piece_query.iter_mut() {

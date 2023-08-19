@@ -6,15 +6,14 @@ impl PieceKind {
     // TODO figure out a better strategy
     pub fn generate_piece(max_value: u32, current_value: &mut u32) -> Behavior {
         let mut rng = thread_rng();
-        let behavior = match rng.gen_range(0u32..(max_value - *current_value)) {
+        match rng.gen_range(0u32..(max_value - *current_value)) {
             0..=9 => InfantryBuilder::generate_wild_behavior(),
             10..=19 => MinorBuilder::generate_wild_behavior(),
             20..=29 => AdvancedBuilder::generate_wild_behavior(),
             30..=39 => MajorBuilder::generate_wild_behavior(),
             40..=49 => EliteBuilder::generate_wild_behavior(),
             50..=u32::MAX => LegendaryBuilder::generate_wild_behavior(),
-        };
-        behavior
+        }
     }
 }
 

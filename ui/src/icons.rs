@@ -128,7 +128,7 @@ pub fn build_icons(pieces: &GamePieces) -> PieceIcons {
                     .unwrap();
                     let svg = PieceIcon::Svg(std::sync::Arc::new(svg));
                     start_positions
-                        .into_iter()
+                        .iter()
                         .map(move |start_position| ((start_position.clone(), team), svg.clone()))
                 },
             )

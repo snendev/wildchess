@@ -111,8 +111,7 @@ impl File {
         let current: u8 = self.into();
         current
             .checked_add_signed(delta)
-            .map(|next| next.try_into().ok())
-            .flatten()
+            .and_then(|next| next.try_into().ok())
     }
 }
 
@@ -231,8 +230,7 @@ impl Rank {
         let current: u8 = self.into();
         current
             .checked_add_signed(delta)
-            .map(|next| next.try_into().ok())
-            .flatten()
+            .and_then(|next| next.try_into().ok())
     }
 }
 
@@ -267,7 +265,7 @@ impl TryFrom<&str> for Square {
 
     fn try_from(text: &str) -> Result<Self, Self::Error> {
         let mut chars = text.chars();
-        Ok((
+        (
             chars.next().ok_or(SquareParseError {
                 text: text.to_string(),
             })?,
@@ -275,7 +273,7 @@ impl TryFrom<&str> for Square {
                 text: text.to_string(),
             })?,
         )
-            .try_into()?)
+            .try_into()
     }
 }
 

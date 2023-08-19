@@ -132,7 +132,7 @@ impl Pattern {
 
     fn get_movement_steps(&self, team: Team) -> Vec<(i8, i8)> {
         let x = self.step.x as i8;
-        let y = self.step.y as i8;
+        let y = self.step.y;
 
         match (team, x) {
             (Team::White, 0) => vec![(x, y)],
@@ -273,15 +273,9 @@ impl BehaviorBuilder {
     }
 }
 
-#[derive(Clone, Debug, Component)]
+#[derive(Clone, Debug, Default, Component)]
 pub struct Behavior {
     pub patterns: Vec<Pattern>,
-}
-
-impl Default for Behavior {
-    fn default() -> Self {
-        Behavior { patterns: vec![] }
-    }
 }
 
 impl From<Vec<Pattern>> for Behavior {
