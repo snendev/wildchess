@@ -1,9 +1,6 @@
 use rand::Rng;
 
-use crate::{
-    components::{Behavior, Pattern, PieceKind, Promotable},
-    PieceConfiguration,
-};
+use crate::components::{Behavior, Pattern, PieceConfiguration, PieceKind, Promotable};
 
 impl PieceKind {
     pub fn generate_pawn(promotable: Promotable) -> PieceConfiguration {

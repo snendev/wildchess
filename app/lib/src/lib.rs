@@ -1,6 +1,6 @@
 use bevy::prelude::{App, DefaultPlugins, PluginGroup, Window, WindowPlugin};
 
-use wildchess_game::{GameplayPlugin, WildBoardPlugin};
+use wildchess_game::{BoardPlugin, GameplayPlugin};
 use wildchess_ui::EguiBoardUIPlugin;
 
 pub fn run_app(canvas: Option<String>) {
@@ -12,6 +12,6 @@ pub fn run_app(canvas: Option<String>) {
             }),
             ..Default::default()
         }))
-        .add_plugins((GameplayPlugin, WildBoardPlugin, EguiBoardUIPlugin))
+        .add_plugins((GameplayPlugin, BoardPlugin, EguiBoardUIPlugin))
         .run();
 }

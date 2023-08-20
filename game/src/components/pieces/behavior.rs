@@ -5,20 +5,20 @@ use bevy::{
 
 use crate::{components::Team, Square};
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TargetMode {
     Moving,
     Attacking,
     OnlyAttacking,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SearchMode {
     Walk,
     Jump,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PatternStep {
     // all x are symmetric; if it can move right, it can move left
     pub x: u8,
@@ -53,7 +53,7 @@ impl PatternStep {
 }
 
 // The calculation type for board searches
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Pattern {
     // the unit of "stepping" for searching the board
     pub step: PatternStep,
@@ -273,7 +273,7 @@ impl BehaviorBuilder {
     }
 }
 
-#[derive(Clone, Debug, Default, Component)]
+#[derive(Clone, Debug, Default, Component, PartialEq, Eq, Hash)]
 pub struct Behavior {
     pub patterns: Vec<Pattern>,
 }

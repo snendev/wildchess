@@ -12,7 +12,7 @@ use wildchess_game::{
         Behavior, Pattern, PieceKind, Promotable, StartPosition,
         Team::{self, Black, White},
     },
-    File, GamePieces, GameplayPlugin, LocalSquare, PieceConfiguration, Rank,
+    BoardPieces, File, GameplayPlugin, LocalSquare, PieceConfiguration, Rank,
 };
 
 use wildchess_ui::{EguiBoardUIPlugin, PieceIcon, PieceIcons};
@@ -222,6 +222,6 @@ fn build_icons(pieces: Vec<(PieceConfiguration, Vec<StartPosition>)>) -> PieceIc
 
 fn add_classical_pieces(mut commands: Commands) {
     let pieces = classical_chess_configuration();
-    commands.insert_resource(GamePieces(pieces.clone()));
-    commands.insert_resource(build_icons(pieces))
+    commands.insert_resource(BoardPieces(pieces.clone()));
+    commands.insert_resource(build_icons(pieces));
 }

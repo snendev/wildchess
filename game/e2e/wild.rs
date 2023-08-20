@@ -1,6 +1,6 @@
 use bevy_geppetto::Test;
 
-use wildchess_game::{GameplayPlugin, WildBoardPlugin};
+use wildchess_game::{BoardPlugin, GameplayPlugin};
 use wildchess_ui::EguiBoardUIPlugin;
 
 fn main() {
@@ -8,7 +8,7 @@ fn main() {
         label: "wild chess".to_string(),
         setup: |app| {
             app.add_plugins(GameplayPlugin)
-                .add_plugins(WildBoardPlugin)
+                .add_plugins(BoardPlugin)
                 .add_plugins(EguiBoardUIPlugin);
         },
     }

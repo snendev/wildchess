@@ -2,7 +2,7 @@ use bevy::prelude::Component;
 
 use crate::{components::Behavior, Rank};
 
-#[derive(Clone, Debug, Component)]
+#[derive(Clone, Debug, Component, PartialEq, Hash)]
 pub struct Promotable {
     // the Rank required to reach promotion
     // flipped if Team::Black

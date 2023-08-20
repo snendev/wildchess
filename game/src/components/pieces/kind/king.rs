@@ -1,9 +1,6 @@
 use rand::Rng;
 
-use crate::{
-    components::{Behavior, PieceKind},
-    PieceConfiguration,
-};
+use crate::components::{Behavior, PieceConfiguration, PieceKind};
 
 impl PieceKind {
     pub fn generate_king() -> PieceConfiguration {

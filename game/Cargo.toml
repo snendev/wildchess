@@ -20,11 +20,6 @@ path = "e2e/classical.rs"
 harness = false
 
 [[test]]
-name = "e2e-sampling"
-path = "e2e/sampling.rs"
-harness = false
-
-[[test]]
 name = "e2e-wild"
 path = "e2e/wild.rs"
 harness = false

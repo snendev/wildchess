@@ -21,13 +21,6 @@ impl RequestPromotion {
     pub fn entity(&self) -> Entity {
         self.entity
     }
-
-    pub fn promote(&self, behavior: Behavior) -> Promotion {
-        Promotion {
-            entity: self.entity,
-            behavior,
-        }
-    }
 }
 
 // N.B. TypeState pattern enforces transitions between PieceEvent<Move>, PieceEvent<RequestPromotion>, and PieceEvent<Promotion>

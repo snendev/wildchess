@@ -1,11 +1,34 @@
+// The board is the structure that defines the game configuration
+
 use rand::{thread_rng, Rng};
 
-use bevy::prelude::{App, Commands, Plugin, Startup};
+use bevy::prelude::Component;
 
 use crate::{
-    components::{Behavior, PieceKind, Promotable, StartPosition},
-    File, GamePieces, LocalSquare, PieceConfiguration, Rank,
+    components::{Behavior, PieceConfiguration, PieceKind, Promotable, StartPosition},
+    File, LocalSquare, Rank,
 };
+
+#[derive(Clone, Debug, Hash)]
+pub struct BoardPieces(pub Vec<(PieceConfiguration, Vec<StartPosition>)>);
+
+#[derive(Clone, Component, Debug, Hash)]
+pub struct Board {
+    pub pieces: BoardPieces,
+    // TODO this not used yet
+    pub size: (u8, u8),
+    // id: BoardId,
+    // wtf else does this need
+}
+
+impl Board {
+    pub fn wild_configuration() -> Self {
+        Board {
+            pieces: BoardPieces(random_chess_configurations()),
+            size: (8, 8),
+        }
+    }
+}
 
 fn random_chess_configurations() -> Vec<(PieceConfiguration, Vec<StartPosition>)> {
     let mut rng = thread_rng();
@@ -17,11 +40,13 @@ fn random_chess_configurations() -> Vec<(PieceConfiguration, Vec<StartPosition>)
     let bg = PieceKind::generate_piece(max_value, &mut current_value);
     let cf = PieceKind::generate_piece(max_value, &mut current_value);
     let d = PieceKind::generate_piece(max_value, &mut current_value);
+    // pawns
     let pawn_promotion_options = vec![ah.clone(), bg.clone(), cf.clone(), d.clone()];
     let pawn = PieceKind::generate_pawn(Promotable {
         local_rank: Rank::Eight,
         behaviors: pawn_promotion_options.clone(),
     });
+    // king
     let king = PieceKind::generate_king();
 
     let make_piece_config = |behavior: Behavior| PieceConfiguration {
@@ -56,17 +81,4 @@ fn random_chess_configurations() -> Vec<(PieceConfiguration, Vec<StartPosition>)
         // king
         (king, vec![rank_one_square(File::E)]),
     ]
-}
-
-fn add_wild_pieces(mut commands: Commands) {
-    let pieces = random_chess_configurations();
-    commands.insert_resource(GamePieces(pieces.clone()));
-}
-
-pub struct WildBoardPlugin;
-
-impl Plugin for WildBoardPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Startup, add_wild_pieces);
-    }
 }
