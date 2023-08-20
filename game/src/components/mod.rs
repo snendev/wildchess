@@ -7,5 +7,8 @@ pub use pieces::{
     Promotable, SearchMode, StartPosition, TargetMode, Targets,
 };
 
+mod player;
+pub use player::{Player, PlayerBundle, Turn};
+
 mod team;
 pub use team::Team;

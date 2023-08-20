@@ -1,25 +1,25 @@
-use bevy::prelude::{Entity, EventReader, Query, ResMut, Resource};
+use bevy::prelude::{EventReader, Query, ResMut, Resource};
 
 use wildchess_game::{
     components::{Behavior, PieceKind, Promotable, Team},
-    PieceEvent, RequestPromotion,
+    Movement, RequestPromotionEvent,
 };
 
 use crate::PieceIcon;
 
 #[derive(Default, Resource)]
-pub struct IntendedPromotion(pub Option<(Entity, Vec<(PieceIcon, Behavior)>)>);
+pub struct IntendedPromotion(pub Option<(Movement, Vec<(PieceIcon, Behavior)>)>);
 
 pub fn read_promotions(
     mut intended_promotion: ResMut<IntendedPromotion>,
-    mut promotion_reader: EventReader<PieceEvent<RequestPromotion>>,
+    mut promotion_reader: EventReader<RequestPromotionEvent>,
     promotable_query: Query<(&PieceKind, &Team, &Promotable)>,
 ) {
     for event in promotion_reader.iter() {
-        let entity = event.get().entity();
+        let entity = event.0.entity;
         if let Ok((piece, team, promotable)) = promotable_query.get(entity) {
             intended_promotion.0 = Some((
-                entity,
+                event.0.clone(),
                 promotable
                     .behaviors
                     .iter()

@@ -1,7 +1,7 @@
 pub mod components;
 
 mod events;
-pub use events::{Movement, PieceEvent, Promotion, RequestPromotion};
+pub use events::{IssueMoveEvent, IssuePromotionEvent, Movement, RequestPromotionEvent, TurnEvent};
 
 mod plugins;
 pub use plugins::{BoardPlugin, GameplayPlugin};

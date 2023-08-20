@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Entity, EventWriter, Local, Query, ResMut},
+    prelude::{Entity, EventWriter, Local, Query, ResMut, With},
     utils::HashMap,
 };
 
@@ -10,10 +10,10 @@ use bevy_egui::{
 
 use wildchess_game::{
     components::{
-        Behavior, Pattern, PatternStep, PieceKind, Position, Promotable, SearchMode, StartPosition,
-        TargetMode, Targets, Team,
+        Behavior, Pattern, PatternStep, PieceKind, Player, Position, Promotable, SearchMode,
+        StartPosition, TargetMode, Targets, Team, Turn,
     },
-    Movement, PieceEvent, Promotion, Square,
+    IssueMoveEvent, IssuePromotionEvent, Movement, Square,
 };
 
 use crate::{icons::PieceIcon, promotion::IntendedPromotion};
@@ -75,14 +75,17 @@ pub type PieceTuple<'a> = (
 
 #[allow(clippy::too_many_arguments)]
 pub fn egui_chessboard(
-    query: Query<PieceQuery>,
+    piece_query: Query<PieceQuery>,
+    player_query: Query<&Team, (With<Player>, With<Turn>)>,
     mut contexts: EguiContexts,
-    mut move_writer: EventWriter<PieceEvent<Movement>>,
-    mut promotion_writer: EventWriter<PieceEvent<Promotion>>,
+    mut move_writer: EventWriter<IssueMoveEvent>,
     mut intended_promotion: ResMut<IntendedPromotion>,
+    mut promotion_writer: EventWriter<IssuePromotionEvent>,
     mut selected_piece: Local<Option<Entity>>,
 ) {
-    let pieces: HashMap<Square, PieceTuple> = query
+    let Ok(team_with_turn) = player_query.get_single() else { return };
+
+    let pieces: HashMap<Square, PieceTuple> = piece_query
         .iter()
         .map(
             |(
@@ -117,7 +120,7 @@ pub fn egui_chessboard(
     let selected_piece_entity = selected_piece.as_ref();
     let selected_piece_data = selected_piece_entity
         .and_then(|entity| {
-            query
+            piece_query
                 .get(*entity)
                 .map(|(_, _, position, _, _, _, _, _, _)| position.0)
                 .ok()
@@ -152,12 +155,14 @@ pub fn egui_chessboard(
                         }
 
                         if ui.add_sized([80., 80.], button).clicked() {
+                            intended_promotion.0.take();
                             handle_clicked_square(
                                 square,
                                 &mut selected_piece,
                                 selected_piece_data,
                                 &pieces,
                                 &mut move_writer,
+                                team_with_turn,
                             );
                         };
                     }
@@ -166,6 +171,8 @@ pub fn egui_chessboard(
             });
             ui.separator();
             ui.vertical(|ui| {
+                ui.label(egui::RichText::new(format!("{:?}'s turn.", team_with_turn)).size(36.));
+
                 let mut promotion_behavior = None;
 
                 if let Some((_, icons)) = intended_promotion.0.as_ref() {
@@ -173,16 +180,15 @@ pub fn egui_chessboard(
                 }
 
                 if let Some(behavior) = promotion_behavior {
-                    let (entity, _) = intended_promotion.0.take().unwrap();
-                    promotion_writer
-                        .send(PieceEvent::<Promotion>::new(Promotion { entity, behavior }));
+                    let (movement, _) = intended_promotion.0.take().unwrap();
+                    promotion_writer.send(IssuePromotionEvent(movement, behavior));
                 }
 
                 if let Some((_, behavior, square, _, _, _, _, _, _)) = selected_piece_data {
                     render_pattern_description(ui, behavior.clone(), square.0);
                 }
             });
-        })
+        });
     });
 }
 
@@ -245,11 +251,15 @@ fn handle_clicked_square(
     selected_piece: &mut Option<Entity>,
     selected_piece_data: Option<&PieceTuple>,
     pieces: &HashMap<Square, PieceTuple>,
-    move_writer: &mut EventWriter<PieceEvent<Movement>>,
+    move_writer: &mut EventWriter<IssueMoveEvent>,
+    team_with_turn: &Team,
 ) {
-    if let Some((entity, _, _, _, _, vision, _, _, _)) = selected_piece_data {
-        if vision.can_target(&square) {
-            move_writer.send(PieceEvent::<Movement>::new(*entity, square));
+    if let Some((entity, _, _, _, team, vision, _, _, _)) = selected_piece_data {
+        if vision.can_target(&square) && team == team_with_turn {
+            move_writer.send(IssueMoveEvent(Movement {
+                entity: *entity,
+                target_square: square,
+            }));
             *selected_piece = None;
         } else if let Some((current_entity, _, _, _, _, _, _, _, _)) = pieces.get(&square) {
             *selected_piece = Some(*current_entity);

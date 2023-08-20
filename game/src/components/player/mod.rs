@@ -1,8 +1,9 @@
-use bevy::prelude::Component;
+use bevy::prelude::{Bundle, Component};
 
 use crate::components::Team;
 
 mod clock;
+pub use clock::Clock;
 
 mod turn;
 pub use turn::Turn;
@@ -21,7 +22,7 @@ impl PlayerBundle {
     pub fn new(team: Team) -> Self {
         PlayerBundle {
             player: Player,
-            team: Team,
+            team,
             clock: Clock::default(),
         }
     }

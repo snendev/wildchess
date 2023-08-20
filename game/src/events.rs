@@ -2,63 +2,23 @@ use bevy::prelude::{Entity, Event};
 
 use crate::{components::Behavior, Square};
 
+#[derive(Clone)]
 pub struct Movement {
     pub entity: Entity,
     pub target_square: Square,
 }
 
-pub struct Promotion {
-    pub entity: Entity,
-    pub behavior: Behavior,
-}
-
-#[derive(Clone)]
-pub struct RequestPromotion {
-    entity: Entity,
-}
-
-impl RequestPromotion {
-    pub fn entity(&self) -> Entity {
-        self.entity
-    }
-}
-
-// N.B. TypeState pattern enforces transitions between PieceEvent<Move>, PieceEvent<RequestPromotion>, and PieceEvent<Promotion>
 #[derive(Event)]
-pub struct PieceEvent<T>(T);
-
-impl<T> PieceEvent<T> {
-    pub fn get(&self) -> &T {
-        &self.0
-    }
+pub enum TurnEvent {
+    Movement(Movement),
+    Promotion(Movement, Behavior),
 }
 
-impl PieceEvent<Movement> {
-    pub fn new(entity: Entity, target_square: Square) -> Self {
-        PieceEvent(Movement {
-            entity,
-            target_square,
-        })
-    }
+#[derive(Event)]
+pub struct IssueMoveEvent(pub Movement);
 
-    pub fn to_promotion(&self, behavior: Behavior) -> PieceEvent<Promotion> {
-        PieceEvent(Promotion {
-            entity: self.0.entity,
-            behavior,
-        })
-    }
-}
-
-impl From<&PieceEvent<Movement>> for PieceEvent<RequestPromotion> {
-    fn from(event: &PieceEvent<Movement>) -> Self {
-        PieceEvent(RequestPromotion {
-            entity: event.0.entity,
-        })
-    }
-}
-
-impl PieceEvent<Promotion> {
-    pub fn new(promotion: Promotion) -> Self {
-        PieceEvent(promotion)
-    }
-}
+// A useful event for informing the controller that it must provide a promotion to continue
+#[derive(Clone, Event)]
+pub struct RequestPromotionEvent(pub Movement);
+#[derive(Clone, Event)]
+pub struct IssuePromotionEvent(pub Movement, pub Behavior);

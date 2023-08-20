@@ -4,12 +4,12 @@ use bevy::prelude::{Added, App, Commands, IntoSystemConfigs, Plugin, Query, Upda
 
 use crate::{
     components::{Board, PieceBundle, Team},
-    Movement, PieceEvent, Promotion, RequestPromotion,
+    IssueMoveEvent, IssuePromotionEvent, RequestPromotionEvent, TurnEvent,
 };
 
 mod capture;
-mod movement;
 mod targets;
+mod turns;
 
 fn initialize_board(mut commands: Commands, query: Query<&Board, Added<Board>>) {
     for Board {
@@ -38,16 +38,18 @@ pub struct GameplayPlugin;
 
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<PieceEvent<Movement>>()
-            .add_event::<PieceEvent<RequestPromotion>>()
-            .add_event::<PieceEvent<Promotion>>()
+        app.add_event::<TurnEvent>()
+            .add_event::<IssueMoveEvent>()
+            .add_event::<IssuePromotionEvent>()
+            .add_event::<RequestPromotionEvent>()
             .add_systems(
                 Update,
                 (
-                    movement::move_pieces,
-                    movement::promote_pieces,
+                    turns::detect_turn,
+                    turns::execute_turn,
                     capture::capture_pieces,
                     targets::calculate_targets,
+                    turns::end_turn,
                 )
                     .chain(),
             )
