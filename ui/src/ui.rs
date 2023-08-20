@@ -201,9 +201,9 @@ fn get_square_background(
         })
         .unwrap_or_else(|| (false, false));
     if is_target_square && can_attack_square {
-        Color32::from_rgba_unmultiplied(139, 0, 0, 32)
+        Color32::from_rgba_unmultiplied(180, 70, 70, 130)
     } else if is_target_square {
-        Color32::from_rgba_unmultiplied(0, 0, 139, 32)
+        Color32::from_rgba_unmultiplied(70, 70, 180, 130)
     } else if (x + y) % 2 == 0 {
         LIGHT_SQUARE_BG
     } else {
