@@ -35,7 +35,7 @@ impl File {
 #[derive(Debug, Error)]
 enum FileParseError {
     #[error("Invalid rank: `{0}`")]
-    Int(u8),
+    Int(u16),
     #[error("Invalid rank: `{0}`")]
     Char(char),
 }
@@ -73,10 +73,10 @@ impl From<&File> for char {
     }
 }
 
-impl TryFrom<u8> for File {
+impl TryFrom<u16> for File {
     type Error = AnyError;
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(A),
             1 => Ok(B),
@@ -91,7 +91,7 @@ impl TryFrom<u8> for File {
     }
 }
 
-impl From<&File> for u8 {
+impl From<&File> for u16 {
     fn from(rank: &File) -> Self {
         match rank {
             A => 0,
@@ -107,8 +107,8 @@ impl From<&File> for u8 {
 }
 
 impl File {
-    pub fn checked_add(&self, delta: i8) -> Option<File> {
-        let current: u8 = self.into();
+    pub fn checked_add(&self, delta: i16) -> Option<File> {
+        let current: u16 = self.into();
         current
             .checked_add_signed(delta)
             .and_then(|next| next.try_into().ok())
@@ -154,7 +154,7 @@ impl Rank {
 #[derive(Debug, Error)]
 enum RankParseError {
     #[error("Invalid rank: `{0}`")]
-    Int(u8),
+    Int(u16),
     #[error("Invalid rank: `{0}`")]
     Char(char),
 }
@@ -192,10 +192,10 @@ impl From<&Rank> for char {
     }
 }
 
-impl TryFrom<u8> for Rank {
+impl TryFrom<u16> for Rank {
     type Error = AnyError;
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(One),
             1 => Ok(Two),
@@ -210,7 +210,7 @@ impl TryFrom<u8> for Rank {
     }
 }
 
-impl From<&Rank> for u8 {
+impl From<&Rank> for u16 {
     fn from(file: &Rank) -> Self {
         match file {
             One => 0,
@@ -226,8 +226,8 @@ impl From<&Rank> for u8 {
 }
 
 impl Rank {
-    pub fn checked_add(&self, delta: i8) -> Option<Rank> {
-        let current: u8 = self.into();
+    pub fn checked_add(&self, delta: i16) -> Option<Rank> {
+        let current: u16 = self.into();
         current
             .checked_add_signed(delta)
             .and_then(|next| next.try_into().ok())
@@ -278,7 +278,7 @@ impl TryFrom<&str> for Square {
 }
 
 impl Square {
-    pub fn checked_add(&self, y: i8, x: i8) -> Option<Square> {
+    pub fn checked_add(&self, y: i16, x: i16) -> Option<Square> {
         self.rank
             .checked_add(y)
             .zip(self.file.checked_add(x))

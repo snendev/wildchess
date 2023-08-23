@@ -196,8 +196,8 @@ const DARK_SQUARE_BG: Color32 = Color32::from_rgb(181, 136, 99);
 const LIGHT_SQUARE_BG: Color32 = Color32::from_rgb(240, 217, 181);
 
 fn get_square_background(
-    x: u8,
-    y: u8,
+    x: u16,
+    y: u16,
     selected_piece_data: Option<&PieceTuple>,
     square: &Square,
 ) -> Color32 {
@@ -275,7 +275,7 @@ fn render_promotion_buttons(
     ui: &mut egui::Ui,
     context: &egui::Context,
     promotion_behavior: &mut Option<Behavior>,
-    piece_icons: &Vec<(PieceIcon, Behavior)>,
+    piece_icons: &[(PieceIcon, Behavior)],
 ) {
     ui.label(egui::RichText::new("Promoting! Choose a piece.").size(24.));
 

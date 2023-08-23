@@ -25,7 +25,7 @@ pub fn read_promotions(
                     .iter()
                     .map(move |behavior| {
                         (
-                            PieceIcon::new_wild(*piece, &behavior, *team),
+                            PieceIcon::new_wild(*piece, behavior, *team),
                             behavior.clone(),
                         )
                     })

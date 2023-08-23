@@ -23,11 +23,11 @@ pub struct PatternStep {
     // all x are symmetric; if it can move right, it can move left
     pub x: u8,
     // y needs specifying whether forward or backward
-    pub y: i8,
+    pub y: i16,
 }
 
 impl PatternStep {
-    pub fn look(x: u8, y: i8) -> Self {
+    pub fn look(x: u8, y: i16) -> Self {
         PatternStep { x, y }
     }
 
@@ -76,7 +76,7 @@ impl Pattern {
         }
     }
 
-    pub fn look(x: u8, y: i8) -> Self {
+    pub fn look(x: u8, y: i16) -> Self {
         Pattern::new(PatternStep::look(x, y))
     }
 
@@ -130,8 +130,8 @@ impl Pattern {
         self
     }
 
-    fn get_movement_steps(&self, team: Team) -> Vec<(i8, i8)> {
-        let x = self.step.x as i8;
+    fn get_movement_steps(&self, team: Team) -> Vec<(i16, i16)> {
+        let x = self.step.x.into();
         let y = self.step.y;
 
         match (team, x) {
