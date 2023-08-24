@@ -224,7 +224,8 @@ fn get_button_ui(
         }
         PieceIcon::Character(character) => {
             let text = egui::RichText::new(*character)
-                .size(18.)
+                .size(32.)
+                .strong()
                 .color(Color32::BLACK);
             egui::Button::new(text).fill(background_color)
         }

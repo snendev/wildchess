@@ -12,6 +12,12 @@ use crate::{
 #[derive(Clone, Debug, Hash)]
 pub struct BoardPieces(pub Vec<(PieceConfiguration, Vec<StartPosition>)>);
 
+impl From<Vec<(PieceConfiguration, Vec<StartPosition>)>> for BoardPieces {
+    fn from(value: Vec<(PieceConfiguration, Vec<StartPosition>)>) -> Self {
+        BoardPieces(value)
+    }
+}
+
 #[derive(Clone, Component, Debug, Hash)]
 pub struct Board {
     pub pieces: BoardPieces,
@@ -22,11 +28,15 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn wild_configuration() -> Self {
+    pub fn from_pieces(pieces: BoardPieces) -> Self {
         Board {
-            pieces: BoardPieces(random_chess_configurations()),
+            pieces,
             size: (8, 8),
         }
+    }
+
+    pub fn wild_configuration() -> Self {
+        Board::from_pieces(BoardPieces(random_chess_configurations()))
     }
 }
 

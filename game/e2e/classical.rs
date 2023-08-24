@@ -1,28 +1,26 @@
-use itertools::Itertools;
-
-use bevy::{
-    prelude::{Commands, Startup},
-    utils::HashMap,
-};
+use bevy::prelude::{Added, Changed, Commands, Entity, Or, PostUpdate, Query, Startup};
 
 use bevy_geppetto::Test;
 
 use wildchess_game::{
     components::{
-        Behavior, Pattern, PieceKind, Promotable, StartPosition,
+        Behavior, Board, BoardPieces, Pattern, PieceConfiguration, PieceKind, PlayerBundle,
+        Promotable, StartPosition,
         Team::{self, Black, White},
+        Turn,
     },
-    BoardPieces, File, GameplayPlugin, LocalSquare, PieceConfiguration, Rank,
+    File, GameplayPlugin, LocalSquare, Rank,
 };
 
-use wildchess_ui::{EguiBoardUIPlugin, PieceIcon, PieceIcons};
+use wildchess_ui::{EguiBoardUIPlugin, PieceIcon};
 
 fn main() {
     Test {
         label: "test classical board".to_string(),
         setup: |app| {
             app.add_plugins((GameplayPlugin, EguiBoardUIPlugin))
-                .add_systems(Startup, add_classical_pieces);
+                .add_systems(Startup, add_classical_pieces)
+                .add_systems(PostUpdate, override_icons);
         },
     }
     .run()
@@ -60,7 +58,7 @@ fn queen() -> Behavior {
     Behavior::builder().radials().can_attack().build()
 }
 
-fn classical_chess_configuration() -> Vec<(PieceConfiguration, Vec<StartPosition>)> {
+fn classical_chess_configuration() -> Vec<(PieceConfiguration, Vec<StartPosition>, PieceIdentity)> {
     let make_piece_config = |behavior: Behavior| PieceConfiguration {
         kind: PieceKind::Piece,
         behavior,
@@ -73,16 +71,23 @@ fn classical_chess_configuration() -> Vec<(PieceConfiguration, Vec<StartPosition
         (
             make_piece_config(rook()),
             vec![rank_one_square(File::A), rank_one_square(File::H)],
+            PieceIdentity::Rook,
         ),
         (
             make_piece_config(knight()),
             vec![rank_one_square(File::B), rank_one_square(File::G)],
+            PieceIdentity::Knight,
         ),
         (
             make_piece_config(bishop()),
             vec![rank_one_square(File::C), rank_one_square(File::F)],
+            PieceIdentity::Bishop,
         ),
-        (make_piece_config(queen()), vec![rank_one_square(File::D)]),
+        (
+            make_piece_config(queen()),
+            vec![rank_one_square(File::D)],
+            PieceIdentity::Queen,
+        ),
         // king
         (
             PieceConfiguration {
@@ -91,6 +96,7 @@ fn classical_chess_configuration() -> Vec<(PieceConfiguration, Vec<StartPosition
                 promotable: None,
             },
             vec![rank_one_square(File::E)],
+            PieceIdentity::King,
         ),
         // pawns
         (
@@ -105,123 +111,86 @@ fn classical_chess_configuration() -> Vec<(PieceConfiguration, Vec<StartPosition
             File::all()
                 .map(|file| StartPosition(LocalSquare::new(Rank::Two, file)))
                 .collect(),
+            PieceIdentity::Pawn,
         ),
     ]
 }
 
-fn piece_unicode(position: StartPosition, team: Team) -> char {
-    match (position.0, team) {
-        // king
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::E,
-            },
-            White,
-        ) => '\u{2654}',
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::E,
-            },
-            Black,
-        ) => '\u{265A}',
-        // queen
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::D,
-            },
-            White,
-        ) => '\u{2655}',
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::D,
-            },
-            Black,
-        ) => '\u{265B}',
-        // rook
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::A | File::H,
-            },
-            White,
-        ) => '\u{2656}',
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::A | File::H,
-            },
-            Black,
-        ) => '\u{265C}',
-        // bishop
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::C | File::F,
-            },
-            White,
-        ) => '\u{2657}',
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::C | File::F,
-            },
-            Black,
-        ) => '\u{265D}',
-        // knight
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::B | File::G,
-            },
-            White,
-        ) => '\u{2658}',
-        (
-            LocalSquare {
-                rank: Rank::One,
-                file: File::B | File::G,
-            },
-            Black,
-        ) => '\u{265E}',
-        // pawn
-        (
-            LocalSquare {
-                rank: Rank::Two, ..
-            },
-            White,
-        ) => '\u{2659}',
-        (
-            LocalSquare {
-                rank: Rank::Two, ..
-            },
-            Black,
-        ) => '\u{265F}',
-        _ => ' ',
-    }
-}
-
-fn build_icons(pieces: Vec<(PieceConfiguration, Vec<StartPosition>)>) -> PieceIcons {
-    PieceIcons(
-        pieces
-            .into_iter()
-            .cartesian_product([Team::White, Team::Black])
-            .flat_map(|((_, start_positions), team)| {
-                start_positions.into_iter().map(move |start_position| {
-                    (
-                        (start_position.clone(), team),
-                        PieceIcon::Character(piece_unicode(start_position, team)),
-                    )
-                })
-            })
-            .collect::<HashMap<_, _>>(),
-    )
+#[derive(Clone, Debug)]
+enum PieceIdentity {
+    King,
+    Queen,
+    Rook,
+    Bishop,
+    Knight,
+    Pawn,
 }
 
 fn add_classical_pieces(mut commands: Commands) {
     let pieces = classical_chess_configuration();
-    commands.insert_resource(BoardPieces(pieces.clone()));
-    commands.insert_resource(build_icons(pieces));
+    commands.spawn(Board::from_pieces(BoardPieces(
+        pieces
+            .iter()
+            .map(|(config, start_position, _)| (config.clone(), start_position.clone()))
+            .collect(),
+    )));
+    commands.spawn((PlayerBundle::new(Team::White), Turn));
+    commands.spawn(PlayerBundle::new(Team::Black));
+}
+
+fn piece_unicode(piece: PieceIdentity, team: Team) -> char {
+    match (piece, team) {
+        // king
+        (PieceIdentity::King, White) => '\u{2654}',
+        (PieceIdentity::King, Black) => '\u{265A}',
+        // queen
+        (PieceIdentity::Queen, White) => '\u{2655}',
+        (PieceIdentity::Queen, Black) => '\u{265B}',
+        // rook
+        (PieceIdentity::Rook, White) => '\u{2656}',
+        (PieceIdentity::Rook, Black) => '\u{265C}',
+        // bishop
+        (PieceIdentity::Bishop, White) => '\u{2657}',
+        (PieceIdentity::Bishop, Black) => '\u{265D}',
+        // knight
+        (PieceIdentity::Knight, White) => '\u{2658}',
+        (PieceIdentity::Knight, Black) => '\u{265E}',
+        // pawn
+        (PieceIdentity::Pawn, White) => '\u{2659}',
+        (PieceIdentity::Pawn, Black) => '\u{265F}',
+    }
+}
+
+fn override_icons(
+    mut commands: Commands,
+    mut query: Query<
+        (Entity, &Behavior, &Team, Option<&mut PieceIcon>),
+        Or<(Changed<Behavior>, Added<PieceIcon>)>,
+    >,
+) {
+    for (entity, behavior, team, icon) in query.iter_mut() {
+        let identity = if *behavior == king() {
+            PieceIdentity::King
+        } else if *behavior == queen() {
+            PieceIdentity::Queen
+        } else if *behavior == rook() {
+            PieceIdentity::Rook
+        } else if *behavior == bishop() {
+            PieceIdentity::Bishop
+        } else if *behavior == knight() {
+            PieceIdentity::Knight
+        } else if *behavior == pawn() {
+            PieceIdentity::Pawn
+        } else {
+            panic!("Only use classical piece behaviors here.");
+        };
+        let piece_icon = piece_unicode(identity, *team);
+        if let Some(mut icon) = icon {
+            *icon = PieceIcon::Character(piece_icon);
+        } else {
+            commands
+                .entity(entity)
+                .insert(PieceIcon::Character(piece_icon));
+        }
+    }
 }
