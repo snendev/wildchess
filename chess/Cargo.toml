@@ -1,0 +1,9 @@
+[package]
+name = "chess"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { version = "1.0" }
+bevy = { version = "0.11" }
+thiserror = { version = "1.0" }

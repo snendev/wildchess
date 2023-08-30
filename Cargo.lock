@@ -1305,6 +1305,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
+name = "chess"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "thiserror",
+]
+
+[[package]]
+name = "chess_gameplay"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_geppetto",
+ "chess",
+ "wild_board",
+ "wildchess_ui",
+]
+
+[[package]]
 name = "clang-sys"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1355,6 +1375,16 @@ name = "clap_lex"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2da6da31387c7e4ef160ffab6d5e7f00c42626fe39aea70a7b0f1773f7dd6c1b"
+
+[[package]]
+name = "classical_board"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "chess",
+ "itertools",
+ "rand",
+]
 
 [[package]]
 name = "clipboard-win"
@@ -4083,11 +4113,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "653f141f39ec16bba3c5abe400a0c60da7468261cc2cbf36805022876bc721a8"
 
 [[package]]
+name = "wild_board"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "chess",
+ "itertools",
+ "rand",
+]
+
+[[package]]
 name = "wildchess_app_lib"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "wildchess_game",
+ "chess_gameplay",
+ "wild_board",
  "wildchess_ui",
 ]
 
@@ -4109,28 +4150,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "wildchess_game"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bevy",
- "bevy_geppetto",
- "itertools",
- "rand",
- "thiserror",
- "wildchess_ui",
-]
-
-[[package]]
 name = "wildchess_ui"
 version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_egui",
  "bevy_geppetto",
+ "chess_gameplay",
+ "classical_board",
  "egui_extras",
- "itertools",
- "wildchess_game",
 ]
 
 [[package]]

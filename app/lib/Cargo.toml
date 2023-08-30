@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-wildchess_game = { path = "../../game" }
+chess_gameplay = { path = "../../gameplay" }
+wild_board = { path = "../../boards/wild" }
 wildchess_ui = { path = "../../ui" }
 bevy = "0.11"

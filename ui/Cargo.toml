@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chess_gameplay = { path = "../gameplay" }
+classical_board = { path = "../boards/classical" }
 bevy = { version = "0.11" }
 bevy_egui = { version = "0.21" }
 egui_extras = { version = "0.22", features = ["svg"] }
-itertools = { version = "0.11" }
-wildchess_game = { path = "../game" }
 
 [dev-dependencies]
 bevy_geppetto = { git = "https://github.com/snendev/bevy_geppetto.git" }

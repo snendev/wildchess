@@ -9,12 +9,17 @@ use bevy_egui::{
     EguiContexts,
 };
 
-use wildchess_game::{
-    components::{
-        Behavior, Pattern, PatternStep, PieceKind, Player, Position, Promotable, SearchMode,
-        StartPosition, TargetMode, Targets, Team, Turn,
+use chess_gameplay::{
+    chess::{
+        pieces::{
+            Behavior, Pattern, PatternStep, Position, Promotable, SearchMode, StartPosition,
+            TargetMode, Targets,
+        },
+        square::Square,
+        team::Team,
     },
-    IssueMoveEvent, IssuePromotionEvent, Movement, Square,
+    components::{Player, Turn},
+    IssueMoveEvent, IssuePromotionEvent, Movement,
 };
 
 use crate::{icons::PieceIcon, promotion::IntendedPromotion};
@@ -51,6 +56,9 @@ fn describe_pattern(pattern: &Pattern) -> egui::RichText {
     .size(24.)
 }
 
+const SQUARE_WIDTH: f32 = 90.;
+const SQUARE_STROKE_WIDTH: f32 = 4.;
+
 #[derive(WorldQuery)]
 pub struct PieceQuery {
     pub entity: Entity,
@@ -59,7 +67,6 @@ pub struct PieceQuery {
     pub start_position: &'static StartPosition,
     pub team: &'static Team,
     pub targets: &'static Targets,
-    pub kind: &'static PieceKind,
     pub promotable: Option<&'static Promotable>,
     pub icon: Option<&'static PieceIcon>,
 }
@@ -71,7 +78,6 @@ pub struct PieceData<'a> {
     pub start_position: &'a StartPosition,
     pub team: &'a Team,
     pub targets: &'a Targets,
-    pub kind: &'a PieceKind,
     pub promotable: Option<&'a Promotable>,
     pub icon: Option<&'a PieceIcon>,
 }
@@ -85,7 +91,6 @@ impl<'a> From<PieceQueryItem<'a>> for PieceData<'a> {
             start_position: piece.start_position,
             team: piece.team,
             targets: piece.targets,
-            kind: piece.kind,
             promotable: piece.promotable,
             icon: piece.icon,
         }
@@ -133,10 +138,10 @@ pub fn egui_chessboard(
                         let mut button =
                             get_button_ui(&*ctx, piece.and_then(|piece| piece.2), background_color);
                         if let Some(stroke_color) = stroke_color {
-                            button = button.stroke(Stroke::new(4., stroke_color));
+                            button = button.stroke(Stroke::new(SQUARE_STROKE_WIDTH, stroke_color));
                         }
 
-                        if ui.add_sized([80., 80.], button).clicked() {
+                        if ui.add_sized([SQUARE_WIDTH, SQUARE_WIDTH], button).clicked() {
                             intended_promotion.0.take();
                             handle_clicked_square(
                                 square,
@@ -219,12 +224,14 @@ fn get_button_ui(
 ) -> egui::Button {
     match piece_icon.unwrap_or(&PieceIcon::Character(' ')) {
         PieceIcon::Svg { image, .. } => {
-            egui::Button::image_and_text(image.texture_id(context), Vec2::new(68., 68.), "")
+            // TODO: why is this not * 2.?
+            const R: f32 = SQUARE_WIDTH - SQUARE_STROKE_WIDTH * 3.;
+            egui::Button::image_and_text(image.texture_id(context), Vec2::new(R, R), "")
                 .fill(background_color)
         }
         PieceIcon::Character(character) => {
             let text = egui::RichText::new(*character)
-                .size(32.)
+                .size(64.)
                 .strong()
                 .color(Color32::BLACK);
             egui::Button::new(text).fill(background_color)
