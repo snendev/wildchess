@@ -1,10 +1,11 @@
 use anyhow::Error as AnyError;
 use thiserror::Error;
 
-use crate::team::Team;
+use bevy::prelude::Reflect;
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Reflect)]
 pub enum File {
+    #[default]
     A,
     B,
     C,
@@ -115,8 +116,9 @@ impl File {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
 pub enum Rank {
+    #[default]
     One,
     Two,
     Three,
@@ -226,7 +228,7 @@ impl Rank {
     }
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, Reflect)]
 pub struct Square {
     pub rank: Rank,
     pub file: File,
@@ -284,24 +286,9 @@ impl std::fmt::Display for Square {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct LocalSquare {
-    pub rank: Rank,
-    pub file: File,
-}
-
-impl LocalSquare {
-    pub fn new(rank: Rank, file: File) -> Self {
-        LocalSquare { rank, file }
-    }
-
-    pub fn to_square(&self, team: &Team) -> Square {
-        Square::new(
-            match team {
-                Team::White => self.rank,
-                Team::Black => self.rank.reverse(),
-            },
-            self.file,
-        )
+// convenient alias
+impl From<(File, Rank)> for Square {
+    fn from((file, rank): (File, Rank)) -> Self {
+        Square { file, rank }
     }
 }

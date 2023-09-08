@@ -1,54 +1,48 @@
-use bevy::prelude::{Bundle, Component};
+use bevy::prelude::{info, Bundle, Commands, Reflect};
 
 use crate::team::Team;
 
 mod behavior;
 pub use behavior::{Behavior, Pattern, PatternStep, SearchMode, TargetMode};
 
-mod promotable;
-pub use promotable::Promotable;
+mod mutation;
+pub use mutation::{Mutation, MutationCondition};
 
 mod position;
-pub use position::{Position, StartPosition};
+pub use position::Position;
+
+mod royal;
+pub use royal::Royal;
 
 mod targets;
 pub use targets::Targets;
 
-#[derive(Clone, Copy, Component, Debug)]
-pub struct King;
-
-#[derive(Clone, Bundle)]
-pub struct PieceBundle {
+#[derive(Clone, Debug, Default, Reflect)]
+pub struct PieceDefinition<Extra: Default = ()> {
     pub behavior: Behavior,
-    pub position: Position,
-    pub start_position: StartPosition,
     pub team: Team,
-    pub targets: Targets,
+    pub extra: Extra,
+    pub mutation: Option<Mutation<Extra>>,
+    pub royal: Option<Royal>,
 }
 
-impl PieceBundle {
-    pub fn new(behavior: Behavior, team: Team, start_position: StartPosition) -> Self {
-        PieceBundle {
-            behavior,
-            position: start_position.to_position(&team),
-            start_position,
-            team,
-            targets: Targets::default(),
+impl<Extras: Default + Bundle + Clone> PieceDefinition<Extras> {
+    pub fn spawn(self, commands: &mut Commands, start_position: Position) {
+        info!("{:?}", start_position);
+        let entity = commands
+            .spawn((
+                self.behavior,
+                start_position,
+                self.team,
+                Targets::default(),
+                self.extra.clone(),
+            ))
+            .id();
+        if let Some(mutation) = self.mutation {
+            commands.entity(entity).insert(mutation);
         }
-    }
-}
-
-#[derive(Clone, Bundle)]
-pub struct PromotableBundle {
-    pub piece: PieceBundle,
-    pub promotable: Promotable,
-}
-
-impl PieceBundle {
-    pub fn promotable(self, promotable: Promotable) -> PromotableBundle {
-        PromotableBundle {
-            piece: self,
-            promotable,
+        if let Some(royal) = self.royal {
+            commands.entity(entity).insert(royal);
         }
     }
 }

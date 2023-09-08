@@ -1314,13 +1314,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "chess_boards"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "chess",
+ "rand",
+]
+
+[[package]]
 name = "chess_gameplay"
 version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_geppetto",
  "chess",
- "wild_board",
+ "chess_boards",
  "wildchess_ui",
 ]
 
@@ -1375,16 +1384,6 @@ name = "clap_lex"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2da6da31387c7e4ef160ffab6d5e7f00c42626fe39aea70a7b0f1773f7dd6c1b"
-
-[[package]]
-name = "classical_board"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "chess",
- "itertools",
- "rand",
-]
 
 [[package]]
 name = "clipboard-win"
@@ -1667,12 +1666,6 @@ dependencies = [
  "tiny-skia",
  "usvg",
 ]
-
-[[package]]
-name = "either"
-version = "1.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
 name = "emath"
@@ -2297,15 +2290,6 @@ dependencies = [
  "hermit-abi",
  "rustix",
  "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "itertools"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
-dependencies = [
- "either",
 ]
 
 [[package]]
@@ -4113,22 +4097,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "653f141f39ec16bba3c5abe400a0c60da7468261cc2cbf36805022876bc721a8"
 
 [[package]]
-name = "wild_board"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "chess",
- "itertools",
- "rand",
-]
-
-[[package]]
 name = "wildchess_app_lib"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "chess_boards",
  "chess_gameplay",
- "wild_board",
  "wildchess_ui",
 ]
 
@@ -4156,8 +4130,8 @@ dependencies = [
  "bevy",
  "bevy_egui",
  "bevy_geppetto",
+ "chess_boards",
  "chess_gameplay",
- "classical_board",
  "egui_extras",
 ]
 

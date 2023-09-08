@@ -12,17 +12,17 @@ use bevy_egui::{
 use chess_gameplay::{
     chess::{
         pieces::{
-            Behavior, Pattern, PatternStep, Position, Promotable, SearchMode, StartPosition,
+            Behavior, Mutation, Pattern, PatternStep, PieceDefinition, Position, SearchMode,
             TargetMode, Targets,
         },
         square::Square,
         team::Team,
     },
     components::{Player, Turn},
-    IssueMoveEvent, IssuePromotionEvent, Movement,
+    IssueMoveEvent, IssueMutationEvent, Movement,
 };
 
-use crate::{icons::PieceIcon, promotion::IntendedPromotion};
+use crate::{icons::PieceIcon, mutation::IntendedMutation};
 
 fn describe_step(step: &PatternStep) -> String {
     match step {
@@ -64,10 +64,9 @@ pub struct PieceQuery {
     pub entity: Entity,
     pub behavior: &'static Behavior,
     pub position: &'static Position,
-    pub start_position: &'static StartPosition,
     pub team: &'static Team,
     pub targets: &'static Targets,
-    pub promotable: Option<&'static Promotable>,
+    pub mutation: Option<&'static Mutation>,
     pub icon: Option<&'static PieceIcon>,
 }
 
@@ -75,10 +74,9 @@ pub struct PieceData<'a> {
     pub entity: Entity,
     pub behavior: &'a Behavior,
     pub position: &'a Position,
-    pub start_position: &'a StartPosition,
     pub team: &'a Team,
     pub targets: &'a Targets,
-    pub promotable: Option<&'a Promotable>,
+    pub mutation: Option<&'a Mutation>,
     pub icon: Option<&'a PieceIcon>,
 }
 
@@ -88,10 +86,9 @@ impl<'a> From<PieceQueryItem<'a>> for PieceData<'a> {
             entity: piece.entity,
             behavior: piece.behavior,
             position: piece.position,
-            start_position: piece.start_position,
             team: piece.team,
             targets: piece.targets,
-            promotable: piece.promotable,
+            mutation: piece.mutation,
             icon: piece.icon,
         }
     }
@@ -103,8 +100,8 @@ pub fn egui_chessboard(
     player_query: Query<&Team, (With<Player>, With<Turn>)>,
     mut contexts: EguiContexts,
     mut move_writer: EventWriter<IssueMoveEvent>,
-    mut intended_promotion: ResMut<IntendedPromotion>,
-    mut promotion_writer: EventWriter<IssuePromotionEvent>,
+    mut intended_mutation: ResMut<IntendedMutation>,
+    mut mutation_writer: EventWriter<IssueMutationEvent>,
     mut selected_piece: Local<Option<Entity>>,
 ) {
     let Ok(team_with_turn) = player_query.get_single() else { return };
@@ -129,7 +126,7 @@ pub fn egui_chessboard(
 
                         let piece = pieces
                             .get(&square)
-                            .map(|piece| (piece.start_position, piece.team, piece.icon));
+                            .map(|piece| ((), piece.team, piece.icon));
 
                         let background_color =
                             get_square_background(x, y, selected_piece_data, &square);
@@ -142,7 +139,7 @@ pub fn egui_chessboard(
                         }
 
                         if ui.add_sized([SQUARE_WIDTH, SQUARE_WIDTH], button).clicked() {
-                            intended_promotion.0.take();
+                            intended_mutation.0.take();
                             handle_clicked_square(
                                 square,
                                 &mut selected_piece,
@@ -160,15 +157,15 @@ pub fn egui_chessboard(
             ui.vertical(|ui| {
                 ui.label(egui::RichText::new(format!("{:?}'s turn.", team_with_turn)).size(36.));
 
-                let mut promotion_behavior = None;
+                let mut selected_mutation = None;
 
-                if let Some((_, icons)) = intended_promotion.0.as_ref() {
-                    render_promotion_buttons(ui, &*ctx, &mut promotion_behavior, icons);
+                if let Some((_, icons)) = intended_mutation.0.as_ref() {
+                    render_mutation_options(ui, &*ctx, &mut selected_mutation, icons);
                 }
 
-                if let Some(behavior) = promotion_behavior {
-                    let (movement, _) = intended_promotion.0.take().unwrap();
-                    promotion_writer.send(IssuePromotionEvent(movement, behavior));
+                if let Some(piece) = selected_mutation {
+                    let (movement, _) = intended_mutation.0.take().unwrap();
+                    mutation_writer.send(IssueMutationEvent(movement, piece));
                 }
 
                 if let Some(piece) = selected_piece_data {
@@ -264,11 +261,11 @@ fn handle_clicked_square(
     }
 }
 
-fn render_promotion_buttons(
+fn render_mutation_options(
     ui: &mut egui::Ui,
     context: &egui::Context,
-    promotion_behavior: &mut Option<Behavior>,
-    piece_icons: &[(PieceIcon, Behavior)],
+    selected_mutation: &mut Option<PieceDefinition>,
+    piece_icons: &[(PieceIcon, PieceDefinition)],
 ) {
     ui.label(egui::RichText::new("Promoting! Choose a piece.").size(24.));
 
@@ -276,7 +273,7 @@ fn render_promotion_buttons(
         for (icon, behavior) in piece_icons.iter() {
             let button = get_button_ui(context, Some(icon), LIGHT_SQUARE_BG);
             if ui.add_sized([80., 80.], button).clicked() {
-                *promotion_behavior = Some(behavior.clone());
+                *selected_mutation = Some(behavior.clone());
             }
         }
     });

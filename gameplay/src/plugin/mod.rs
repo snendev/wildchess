@@ -1,10 +1,10 @@
 use bevy::prelude::{App, Commands, IntoSystemConfigs, Plugin, Startup, Update};
 
-use chess::team::Team;
+use chess::{team::Team, ChessTypesPlugin};
 
 use crate::{
     components::{PlayerBundle, Turn},
-    IssueMoveEvent, IssuePromotionEvent, RequestPromotionEvent, TurnEvent,
+    IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent,
 };
 
 mod capture;
@@ -20,10 +20,11 @@ pub struct GameplayPlugin;
 
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<TurnEvent>()
+        app.add_plugins(ChessTypesPlugin)
+            .add_event::<TurnEvent>()
             .add_event::<IssueMoveEvent>()
-            .add_event::<IssuePromotionEvent>()
-            .add_event::<RequestPromotionEvent>()
+            .add_event::<IssueMutationEvent>()
+            .add_event::<RequestMutationEvent>()
             .add_systems(Startup, initialize_players)
             .add_systems(
                 Update,

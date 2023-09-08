@@ -1,4 +1,4 @@
-use bevy::prelude::{Commands, DetectChanges, Entity, Query, Ref};
+use bevy::prelude::{info, Commands, DetectChanges, Entity, Query, Ref};
 
 use chess::pieces::Position;
 
@@ -13,6 +13,7 @@ pub fn capture_pieces(mut commands: Commands, piece_query: Query<(Entity, Ref<Po
                 }
             });
             if let Some(captured_piece) = captured_piece {
+                info!("???");
                 commands.entity(captured_piece).remove::<Position>();
             }
         }

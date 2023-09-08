@@ -1,18 +1,19 @@
-use bevy::prelude::Component;
+use bevy::prelude::{Component, Reflect, ReflectComponent};
 
-use crate::{
-    square::{LocalSquare, Square},
-    team::Team,
-};
+use crate::square::{File, Rank, Square};
 
-#[derive(Clone, Component, Debug, PartialEq, Eq)]
+#[derive(Clone, Component, Debug, Default, PartialEq, Eq, Reflect)]
+#[reflect(Component)]
 pub struct Position(pub Square);
 
-#[derive(Clone, Component, Debug, PartialEq, Eq, Hash)]
-pub struct StartPosition(pub LocalSquare);
+impl From<Square> for Position {
+    fn from(square: Square) -> Self {
+        Position(square)
+    }
+}
 
-impl StartPosition {
-    pub fn to_position(&self, team: &Team) -> Position {
-        Position(self.0.to_square(team))
+impl From<(File, Rank)> for Position {
+    fn from(square: (File, Rank)) -> Self {
+        Square::from(square).into()
     }
 }

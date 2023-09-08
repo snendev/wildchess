@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 chess_gameplay = { path = "../gameplay" }
-classical_board = { path = "../boards/classical" }
+chess_boards = { path = "../boards" }
 bevy = { version = "0.11" }
 bevy_egui = { version = "0.21" }
 egui_extras = { version = "0.22", features = ["svg"] }

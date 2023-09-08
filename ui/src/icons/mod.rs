@@ -6,7 +6,7 @@ use bevy::{
 use egui_extras::RetainedImage;
 
 use chess_gameplay::chess::{
-    pieces::{Behavior, King},
+    pieces::{Behavior, Royal},
     team::Team,
 };
 
@@ -60,18 +60,18 @@ pub fn attach_piece_icons(
             Entity,
             &Behavior,
             &Team,
-            Option<&King>,
+            Option<&Royal>,
             Option<&IconOverride>,
         ),
         Changed<Behavior>,
     >,
 ) {
     let mut icons = HashMap::<PieceIconHashKey, PieceIcon>::new();
-    for (entity, behavior, team, king, override_icon) in piece_query.iter() {
+    for (entity, behavior, team, maybe_royal, override_icon) in piece_query.iter() {
         let key = PieceIconHashKey {
             behavior,
             team,
-            is_king: king.is_some(),
+            is_king: maybe_royal.is_some(),
         };
         let icon = if let Some(icon) = icons.get(&key) {
             Some(icon)
@@ -80,7 +80,7 @@ pub fn attach_piece_icons(
             icons.get(&key)
         } else {
             // default to creating a new icon
-            let icon = PieceIcon::wild_svg(behavior, *team, king.is_some());
+            let icon = PieceIcon::wild_svg(behavior, *team, maybe_royal.is_some());
             icons.insert(key.clone(), icon.clone());
             icons.get(&key)
         };

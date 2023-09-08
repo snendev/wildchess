@@ -5,12 +5,13 @@ edition = "2021"
 
 [dependencies]
 chess = { path = "../chess" }
-wild_board = { path = "../boards/wild" }
+chess_boards = { path = "../boards" }
 bevy = { version = "0.11" }
 
 [dev-dependencies]
-bevy_geppetto = { git = "https://github.com/snendev/bevy_geppetto.git" }
+chess_boards = { path = "../boards" }
 wildchess_ui = { path = "../ui" }
+bevy_geppetto = { git = "https://github.com/snendev/bevy_geppetto.git" }
 
 [[test]]
 name = "e2e-classical"

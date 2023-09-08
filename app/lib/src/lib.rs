@@ -1,7 +1,7 @@
 use bevy::prelude::{App, DefaultPlugins, PluginGroup, Window, WindowPlugin};
 
+use chess_boards::BoardPlugin;
 use chess_gameplay::GameplayPlugin;
-use wild_board::BoardPlugin;
 use wildchess_ui::EguiBoardUIPlugin;
 
 pub fn run_app(canvas: Option<String>) {

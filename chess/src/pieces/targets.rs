@@ -1,8 +1,12 @@
-use bevy::{prelude::Component, utils::HashMap};
+use bevy::{
+    prelude::{Component, Reflect, ReflectComponent},
+    utils::HashMap,
+};
 
 use crate::{pieces::TargetMode, square::Square};
 
-#[derive(Clone, Component, Default, Debug)]
+#[derive(Clone, Component, Default, Debug, Reflect)]
+#[reflect(Component)]
 pub struct Targets(HashMap<Square, TargetMode>);
 
 impl Targets {

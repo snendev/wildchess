@@ -1,36 +1,42 @@
 use bevy::prelude::{Commands, Entity, EventReader, EventWriter, Query, With};
 
-use chess::pieces::{Behavior, Position, Promotable};
+use chess::pieces::{Behavior, Mutation, MutationCondition, Position};
 
 use crate::{
     components::{Player, Turn},
-    events::{IssueMoveEvent, RequestPromotionEvent},
-    IssuePromotionEvent, TurnEvent,
+    events::{IssueMoveEvent, RequestMutationEvent},
+    IssueMutationEvent, TurnEvent,
 };
 
 pub fn detect_turn(
-    piece_query: Query<&Promotable>,
+    piece_query: Query<&Mutation>,
     mut move_reader: EventReader<IssueMoveEvent>,
-    mut promotion_reader: EventReader<IssuePromotionEvent>,
-    mut promotion_request_writer: EventWriter<RequestPromotionEvent>,
+    mut mutation_reader: EventReader<IssueMutationEvent>,
+    mut mutation_request_writer: EventWriter<RequestMutationEvent>,
     mut turn_writer: EventWriter<TurnEvent>,
 ) {
     for IssueMoveEvent(movement) in move_reader.iter() {
-        if let Ok(promotable) = piece_query.get(movement.entity) {
-            if !promotable.ranks.contains(&movement.target_square.rank) {
-                turn_writer.send(TurnEvent::Movement(movement.clone()));
-            } else if promotable.behaviors.len() == 1 {
-                let promotion_behavior = promotable.behaviors.first().unwrap().clone();
-                turn_writer.send(TurnEvent::Promotion(movement.clone(), promotion_behavior));
-            } else {
-                promotion_request_writer.send(RequestPromotionEvent(movement.clone()));
+        if let Ok(mutation) = piece_query.get(movement.entity) {
+            match mutation.condition {
+                MutationCondition::Rank(rank) => {
+                    if rank == movement.target_square.rank {
+                        turn_writer.send(TurnEvent::Movement(movement.clone()));
+                    } else if mutation.options.len() == 1 {
+                        turn_writer.send(TurnEvent::Mutation(
+                            movement.clone(),
+                            mutation.options.first().unwrap().clone(),
+                        ));
+                    } else {
+                        mutation_request_writer.send(RequestMutationEvent(movement.clone()));
+                    }
+                }
             }
         } else {
             turn_writer.send(TurnEvent::Movement(movement.clone()));
         }
     }
-    for IssuePromotionEvent(movement, behavior) in promotion_reader.iter() {
-        turn_writer.send(TurnEvent::Promotion(movement.clone(), behavior.clone()));
+    for IssueMutationEvent(movement, behavior) in mutation_reader.iter() {
+        turn_writer.send(TurnEvent::Mutation(movement.clone(), behavior.clone()));
     }
 }
 
@@ -42,13 +48,13 @@ pub fn execute_turn(
     for event in turn_reader.iter() {
         let movement = match event {
             TurnEvent::Movement(movement) => movement,
-            TurnEvent::Promotion(movement, _) => movement,
+            TurnEvent::Mutation(movement, _) => movement,
         };
 
-        if let TurnEvent::Promotion(movement, upgraded_behavior) = event {
+        if let TurnEvent::Mutation(movement, mutation_option) = event {
             if let Ok((_, mut behavior)) = piece_query.get_mut(movement.entity) {
-                *behavior = upgraded_behavior.clone();
-                commands.entity(movement.entity).remove::<Promotable>();
+                *behavior = mutation_option.behavior.clone();
+                commands.entity(movement.entity).remove::<Mutation>();
             }
         }
 

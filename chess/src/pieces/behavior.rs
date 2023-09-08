@@ -1,24 +1,29 @@
 use bevy::{
-    prelude::Component,
+    prelude::{Component, Reflect, ReflectComponent},
     utils::{HashMap, HashSet},
 };
 
-use crate::{square::Square, team::Team};
+use crate::{
+    square::{Rank, Square},
+    team::Team,
+};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
 pub enum TargetMode {
-    Moving,
+    #[default]
     Attacking,
+    Moving,
     OnlyAttacking,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
 pub enum SearchMode {
+    #[default]
     Walk,
     Jump,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
 pub struct PatternStep {
     // all x are symmetric; if it can move right, it can move left
     pub x: u8,
@@ -52,8 +57,13 @@ impl PatternStep {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
+pub enum OriginConstraint {
+    LocalRank(Rank),
+}
+
 // The calculation type for board searches
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
 pub struct Pattern {
     // the unit of "stepping" for searching the board
     pub step: PatternStep,
@@ -64,6 +74,8 @@ pub struct Pattern {
     pub target_mode: TargetMode,
     // whether to stop search when colliding with another piece
     pub search_mode: SearchMode,
+    // which squares this pattern can be activated from, if any
+    pub origin_constrant: Option<OriginConstraint>,
 }
 
 impl Pattern {
@@ -73,6 +85,7 @@ impl Pattern {
             range: None,
             target_mode: TargetMode::Moving,
             search_mode: SearchMode::Walk,
+            origin_constrant: None,
         }
     }
 
@@ -127,6 +140,11 @@ impl Pattern {
 
     pub fn jumping(mut self) -> Self {
         self.search_mode = SearchMode::Jump;
+        self
+    }
+
+    pub fn only_from_local_rank(mut self, rank: Rank) -> Self {
+        self.origin_constrant = Some(OriginConstraint::LocalRank(rank));
         self
     }
 
@@ -267,13 +285,15 @@ impl BehaviorBuilder {
                 range: self.range,
                 target_mode: self.target_mode,
                 search_mode: self.search_mode,
+                origin_constrant: None,
             })
             .collect::<Vec<_>>()
             .into()
     }
 }
 
-#[derive(Clone, Debug, Default, Component, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Default, Component, PartialEq, Eq, Hash, Reflect)]
+#[reflect(Component)]
 pub struct Behavior {
     pub patterns: Vec<Pattern>,
 }
