@@ -1,7 +1,7 @@
 use bevy::prelude::{App, Plugin};
 
+pub mod board;
 pub mod pieces;
-pub mod square;
 pub mod team;
 
 pub struct ChessTypesPlugin;
@@ -10,15 +10,20 @@ impl Plugin for ChessTypesPlugin {
     fn build(&self, app: &mut App) {
         #[cfg(debug_assertions)]
         app.register_type::<team::Team>()
-            .register_type::<square::Square>()
-            .register_type::<square::Rank>()
-            .register_type::<square::File>()
+            .register_type::<board::Square>()
+            .register_type::<board::Rank>()
+            .register_type::<board::File>()
+            .register_type::<board::Board>()
             .register_type::<pieces::Position>()
-            .register_type::<pieces::Behavior>()
+            .register_type::<pieces::PatternBehavior>()
             .register_type::<pieces::Pattern>()
-            .register_type::<pieces::PatternStep>()
-            .register_type::<pieces::TargetMode>()
-            .register_type::<pieces::SearchMode>()
-            .register_type::<pieces::Targets>();
+            .register_type::<pieces::Step>()
+            .register_type::<pieces::RSymmetry>()
+            .register_type::<pieces::ABSymmetry>()
+            .register_type::<pieces::CaptureRules>()
+            .register_type::<pieces::CaptureMode>()
+            .register_type::<pieces::CapturePattern>()
+            .register_type::<pieces::TargetKind>()
+            .register_type::<pieces::Actions>();
     }
 }

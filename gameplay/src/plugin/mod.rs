@@ -1,15 +1,19 @@
-use bevy::prelude::{App, Commands, IntoSystemConfigs, Plugin, Startup, Update};
+use bevy::prelude::{
+    on_event, App, Commands, IntoSystem, IntoSystemConfigs, Plugin, Startup, Update,
+};
 
-use chess::{team::Team, ChessTypesPlugin};
+use chess::{
+    pieces::{Behavior, EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior},
+    team::Team,
+    ChessTypesPlugin,
+};
 
 use crate::{
     components::{PlayerBundle, Turn},
     IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent,
 };
 
-mod capture;
-mod targets;
-mod turns;
+mod systems;
 
 fn initialize_players(mut commands: Commands) {
     commands.spawn((PlayerBundle::new(Team::White), Turn));
@@ -29,10 +33,18 @@ impl Plugin for GameplayPlugin {
             .add_systems(
                 Update,
                 (
-                    turns::detect_turn,
-                    turns::execute_turn,
-                    capture::capture_pieces,
-                    (targets::calculate_targets, turns::end_turn),
+                    systems::detect_turn,
+                    systems::execute_turn,
+                    (
+                        systems::last_action.pipe(PatternBehavior::add_actions_system),
+                        systems::last_action.pipe(EnPassantBehavior::add_actions_system),
+                        systems::last_action.pipe(MimicBehavior::add_actions_system),
+                        systems::last_action.pipe(RelayBehavior::add_actions_system),
+                        systems::clear_actions,
+                        systems::end_turn,
+                    )
+                        .run_if(on_event::<TurnEvent>())
+                        .chain(),
                 )
                     .chain(),
             );

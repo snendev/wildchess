@@ -1,5 +1,5 @@
 use bevy::prelude::{
-    info, on_event, App, Commands, Event, EventReader, IntoSystemConfigs, Plugin, Update,
+    on_event, App, Commands, Event, EventReader, IntoSystemConfigs, Plugin, Update,
 };
 
 use crate::{
@@ -34,10 +34,8 @@ impl Plugin for BoardPlugin {
 
 fn configure_wild_boards(mut commands: Commands, mut reader: EventReader<BuildWildBoardEvent>) {
     for _ in reader.iter() {
-        let pieces = WildLayout::pieces();
-        // info!("{:?}", pieces);
-        for (piece, start_position) in pieces {
-            piece.spawn(&mut commands, start_position);
+        for piece in WildLayout::pieces() {
+            piece.spawn(&mut commands);
         }
     }
 }
@@ -47,10 +45,8 @@ fn configure_classical_boards(
     mut reader: EventReader<BuildClassicalBoardEvent>,
 ) {
     for _ in reader.iter() {
-        let pieces = ClassicalLayout::pieces();
-        // info!("{:?}", pieces);
-        for (piece, start_position) in pieces {
-            piece.spawn(&mut commands, start_position);
+        for piece in ClassicalLayout::pieces() {
+            piece.spawn(&mut commands);
         }
     }
 }

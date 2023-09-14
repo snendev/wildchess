@@ -1,6 +1,6 @@
 use bevy::prelude::{Added, Changed, Commands, Entity, Or, Query};
 
-use chess_gameplay::{pieces::Behavior, team::Team};
+use chess_gameplay::{pieces::PatternBehavior, team::Team};
 
 use super::PieceIcon;
 
@@ -30,8 +30,8 @@ fn piece_unicode(piece: PieceIdentity, team: Team) -> char {
 fn override_icons(
     mut commands: Commands,
     mut query: Query<
-        (Entity, &Behavior, &Team, Option<&mut PieceIcon>),
-        Or<(Changed<Behavior>, Added<PieceIcon>)>,
+        (Entity, &PatternBehavior, &Team, Option<&mut PieceIcon>),
+        Or<(Changed<PatternBehavior>, Added<PieceIcon>)>,
     >,
 ) {
     for (entity, behavior, team, icon) in query.iter_mut() {

@@ -6,7 +6,7 @@ use bevy::{
 use egui_extras::RetainedImage;
 
 use chess_gameplay::chess::{
-    pieces::{Behavior, Royal},
+    pieces::{PatternBehavior, Royal},
     team::Team,
 };
 
@@ -40,7 +40,7 @@ impl PieceIcon {
         PieceIcon::Character(character)
     }
 
-    pub fn wild_svg(behavior: &Behavior, team: Team, is_king: bool) -> Self {
+    pub fn wild_svg(behavior: &PatternBehavior, team: Team, is_king: bool) -> Self {
         let (generated_icon, icon_source) = wild_behavior_icon(behavior, team, is_king);
         PieceIcon::svg(generated_icon, icon_source)
     }
@@ -48,7 +48,7 @@ impl PieceIcon {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct PieceIconHashKey<'a> {
-    behavior: &'a Behavior,
+    behavior: &'a PatternBehavior,
     team: &'a Team,
     is_king: bool,
 }
@@ -58,12 +58,12 @@ pub fn attach_piece_icons(
     piece_query: Query<
         (
             Entity,
-            &Behavior,
+            &PatternBehavior,
             &Team,
             Option<&Royal>,
             Option<&IconOverride>,
         ),
-        Changed<Behavior>,
+        Changed<PatternBehavior>,
     >,
 ) {
     let mut icons = HashMap::<PieceIconHashKey, PieceIcon>::new();

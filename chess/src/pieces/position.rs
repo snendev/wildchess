@@ -1,6 +1,6 @@
 use bevy::prelude::{Component, Reflect, ReflectComponent};
 
-use crate::square::{File, Rank, Square};
+use crate::board::{File, Rank, Square};
 
 #[derive(Clone, Component, Debug, Default, PartialEq, Eq, Reflect)]
 #[reflect(Component)]

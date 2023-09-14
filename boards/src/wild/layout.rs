@@ -1,17 +1,19 @@
 use rand::{thread_rng, Rng};
 
 use chess::{
-    pieces::{Behavior, Mutation, MutationCondition, PieceDefinition, Position, Royal},
-    square::{File, Rank},
+    board::{File, Rank},
+    pieces::{
+        Mutation, MutationCondition, PatternBehavior, PieceDefinition, PieceSpecification, Royal,
+    },
     team::Team,
 };
 
-use crate::{utils, wild::PieceKind};
+use crate::{utils::squares_by_team, wild::PieceKind};
 
 pub struct WildLayout;
 
 impl WildLayout {
-    pub fn pieces() -> Vec<(PieceDefinition, Position)> {
+    pub fn pieces() -> Vec<PieceSpecification> {
         let piece_set = random_pieces();
 
         let pawn_promotion_options = vec![
@@ -21,88 +23,82 @@ impl WildLayout {
             piece_set.pieces.3.clone(),
         ];
 
-        // typical pieces
-        utils::pieces_by_team(utils::team_piece_square(Rank::One, File::A), |team| {
-            piece(piece_set.pieces.0.clone(), team)
-        })
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::H),
-            |team| piece(piece_set.pieces.0.clone(), team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::B),
-            |team| piece(piece_set.pieces.1.clone(), team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::G),
-            |team| piece(piece_set.pieces.1.clone(), team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::C),
-            |team| piece(piece_set.pieces.2.clone(), team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::F),
-            |team| piece(piece_set.pieces.2.clone(), team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::D),
-            |team| piece(piece_set.pieces.3.clone(), team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::E),
-            |team| king(piece_set.king.clone(), team),
-        ))
-        .chain(File::all().flat_map(|file| {
-            utils::pieces_by_team(utils::team_piece_square(Rank::Two, file), |team| {
-                pawn(
-                    piece_set.pawn.clone(),
-                    team,
-                    pawn_promotion(team, pawn_promotion_options.clone()),
-                )
+        squares_by_team(0, [File::A, File::H].into_iter())
+            .map(|(team, square)| {
+                PieceSpecification::new(piece(piece_set.pieces.0.clone()), team, square.into())
             })
-        }))
-        .collect()
+            .chain(
+                squares_by_team(0, [File::B, File::G].into_iter()).map(|(team, square)| {
+                    PieceSpecification::new(piece(piece_set.pieces.1.clone()), team, square.into())
+                }),
+            )
+            .chain(
+                squares_by_team(0, [File::C, File::F].into_iter()).map(|(team, square)| {
+                    PieceSpecification::new(piece(piece_set.pieces.2.clone()), team, square.into())
+                }),
+            )
+            .chain(
+                squares_by_team(0, std::iter::once(File::D)).map(|(team, square)| {
+                    PieceSpecification::new(piece(piece_set.pieces.3.clone()), team, square.into())
+                }),
+            )
+            .chain(
+                squares_by_team(0, std::iter::once(File::E)).map(|(team, square)| {
+                    PieceSpecification::new(king(piece_set.king.clone()), team, square.into())
+                }),
+            )
+            .chain(
+                squares_by_team(1, (0..8).map(|file| File::from(file))).map(|(team, square)| {
+                    PieceSpecification::new(
+                        pawn(
+                            piece_set.pawn.clone(),
+                            pawn_promotion(
+                                match team {
+                                    Team::White => Rank::EIGHT,
+                                    Team::Black => Rank::ONE,
+                                },
+                                pawn_promotion_options.clone(),
+                            ),
+                        ),
+                        team,
+                        square.into(),
+                    )
+                }),
+            )
+            .collect()
     }
 }
 
-fn piece(behavior: Behavior, team: Team) -> PieceDefinition {
+fn piece(behavior: PatternBehavior) -> PieceDefinition {
     PieceDefinition {
         behavior,
-        team,
         ..Default::default()
     }
 }
 
-fn king(behavior: Behavior, team: Team) -> PieceDefinition {
+fn king(behavior: PatternBehavior) -> PieceDefinition {
     PieceDefinition {
         behavior,
-        team,
         royal: Some(Royal),
         ..Default::default()
     }
 }
 
-fn pawn(behavior: Behavior, team: Team, mutation: Mutation) -> PieceDefinition {
+fn pawn(behavior: PatternBehavior, mutation: Mutation) -> PieceDefinition {
     PieceDefinition {
         behavior,
-        team,
         mutation: Some(mutation),
         ..Default::default()
     }
 }
 
-fn pawn_promotion(team: Team, options: Vec<Behavior>) -> Mutation {
+fn pawn_promotion(rank: Rank, options: Vec<PatternBehavior>) -> Mutation {
     Mutation {
-        condition: MutationCondition::Rank(match team {
-            Team::White => Rank::Eight,
-            Team::Black => Rank::One,
-        }),
+        condition: MutationCondition::Rank(rank),
         options: options
             .into_iter()
             .map(|behavior| PieceDefinition {
                 behavior,
-                team,
                 ..Default::default()
             })
             .collect(),
@@ -110,9 +106,14 @@ fn pawn_promotion(team: Team, options: Vec<Behavior>) -> Mutation {
 }
 
 struct WildPieceSet {
-    pub pieces: (Behavior, Behavior, Behavior, Behavior),
-    pub pawn: Behavior,
-    pub king: Behavior,
+    pub pieces: (
+        PatternBehavior,
+        PatternBehavior,
+        PatternBehavior,
+        PatternBehavior,
+    ),
+    pub pawn: PatternBehavior,
+    pub king: PatternBehavior,
 }
 
 fn random_pieces() -> WildPieceSet {

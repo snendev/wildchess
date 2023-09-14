@@ -1,27 +1,18 @@
 use bevy::prelude::{Entity, Event};
 
-use chess::{
-    pieces::{Behavior, PieceDefinition},
-    square::Square,
-};
-
-#[derive(Clone)]
-pub struct Movement {
-    pub entity: Entity,
-    pub target_square: Square,
-}
+use chess::pieces::{Action, PieceDefinition};
 
 #[derive(Event)]
 pub enum TurnEvent {
-    Movement(Movement),
-    Mutation(Movement, PieceDefinition),
+    Action(Entity, Action),
+    Mutation(Entity, Action, PieceDefinition),
 }
 
 #[derive(Event)]
-pub struct IssueMoveEvent(pub Movement);
+pub struct IssueMoveEvent(pub Entity, pub Action);
 
-// A useful event for informing the controller that it must provide a promotion to continue
+// A useful event for informing the controller that it must provide a mutation to continue
 #[derive(Clone, Event)]
-pub struct RequestMutationEvent(pub Movement);
+pub struct RequestMutationEvent(pub Entity, pub Action);
 #[derive(Clone, Event)]
-pub struct IssueMutationEvent(pub Movement, pub PieceDefinition);
+pub struct IssueMutationEvent(pub Entity, pub Action, pub PieceDefinition);

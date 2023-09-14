@@ -1,98 +1,91 @@
 use chess::{
-    pieces::{Behavior, Mutation, MutationCondition, Position, Royal},
-    square::{File, Rank},
+    board::{File, Rank},
+    pieces::{Mutation, MutationCondition, PatternBehavior, PieceSpecification, Royal},
     team::Team,
 };
 
 use super::{pieces, ClassicalIdentity, ClassicalPiece};
-use crate::utils;
+use crate::utils::squares_by_team;
 
 pub(crate) struct ClassicalLayout;
 
 impl ClassicalLayout {
-    pub(crate) fn pieces() -> Vec<(ClassicalPiece, Position)> {
-        utils::pieces_by_team(utils::team_piece_square(Rank::One, File::A), |team| {
-            rook(team)
-        })
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::H),
-            |team| rook(team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::B),
-            |team| knight(team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::G),
-            |team| knight(team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::C),
-            |team| bishop(team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::F),
-            |team| bishop(team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::D),
-            |team| queen(team),
-        ))
-        .chain(utils::pieces_by_team(
-            utils::team_piece_square(Rank::One, File::E),
-            |team| king(team),
-        ))
-        .chain(File::all().flat_map(|file| {
-            utils::pieces_by_team(utils::team_piece_square(Rank::Two, file), |team| pawn(team))
-        }))
-        .collect()
+    pub(crate) fn pieces() -> Vec<PieceSpecification<ClassicalIdentity>> {
+        squares_by_team(0, [File::A, File::H].into_iter())
+            .map(|(team, square)| PieceSpecification::new(rook(), team, square.into()))
+            .chain(
+                squares_by_team(0, [File::B, File::G].into_iter())
+                    .map(|(team, square)| PieceSpecification::new(knight(), team, square.into())),
+            )
+            .chain(
+                squares_by_team(0, [File::C, File::F].into_iter())
+                    .map(|(team, square)| PieceSpecification::new(bishop(), team, square.into())),
+            )
+            .chain(
+                squares_by_team(0, std::iter::once(File::D))
+                    .map(|(team, square)| PieceSpecification::new(queen(), team, square.into())),
+            )
+            .chain(
+                squares_by_team(0, std::iter::once(File::E))
+                    .map(|(team, square)| PieceSpecification::new(king(), team, square.into())),
+            )
+            .chain(
+                squares_by_team(1, (0..8).map(|file| File::from(file))).map(|(team, square)| {
+                    PieceSpecification::new(
+                        pawn(match team {
+                            Team::White => Rank::EIGHT,
+                            Team::Black => Rank::ONE,
+                        }),
+                        team,
+                        square.into(),
+                    )
+                }),
+            )
+            .collect()
     }
 }
 
-fn king(team: Team) -> ClassicalPiece {
+fn king() -> ClassicalPiece {
     ClassicalPiece {
         behavior: pieces::king(),
-        team,
         royal: Some(Royal),
         extra: ClassicalIdentity::King,
         ..Default::default()
     }
 }
 
-fn pawn(team: Team) -> ClassicalPiece {
+fn pawn(promotion_rank: Rank) -> ClassicalPiece {
     ClassicalPiece {
         behavior: pieces::pawn(),
-        team,
         mutation: Some(Mutation::<ClassicalIdentity> {
-            condition: MutationCondition::Rank(utils::team_local_rank(team, Rank::One)),
-            options: vec![queen(team), rook(team), bishop(team), knight(team)],
+            condition: MutationCondition::Rank(promotion_rank),
+            options: vec![queen(), rook(), bishop(), knight()],
         }),
         extra: ClassicalIdentity::Pawn,
         ..Default::default()
     }
 }
 
-fn piece(behavior: Behavior, team: Team, identity: ClassicalIdentity) -> ClassicalPiece {
+fn piece(behavior: PatternBehavior, identity: ClassicalIdentity) -> ClassicalPiece {
     ClassicalPiece {
         behavior,
-        team,
         extra: identity,
         ..Default::default()
     }
 }
 
-fn rook(team: Team) -> ClassicalPiece {
-    piece(pieces::rook(), team, ClassicalIdentity::Rook)
+fn rook() -> ClassicalPiece {
+    piece(pieces::rook(), ClassicalIdentity::Rook)
 }
 
-fn knight(team: Team) -> ClassicalPiece {
-    piece(pieces::knight(), team, ClassicalIdentity::Knight)
+fn knight() -> ClassicalPiece {
+    piece(pieces::knight(), ClassicalIdentity::Knight)
 }
 
-fn bishop(team: Team) -> ClassicalPiece {
-    piece(pieces::bishop(), team, ClassicalIdentity::Bishop)
+fn bishop() -> ClassicalPiece {
+    piece(pieces::bishop(), ClassicalIdentity::Bishop)
 }
 
-fn queen(team: Team) -> ClassicalPiece {
-    piece(pieces::queen(), team, ClassicalIdentity::Queen)
+fn queen() -> ClassicalPiece {
+    piece(pieces::queen(), ClassicalIdentity::Queen)
 }

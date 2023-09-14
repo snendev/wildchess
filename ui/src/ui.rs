@@ -11,46 +11,72 @@ use bevy_egui::{
 
 use chess_gameplay::{
     chess::{
+        board::Square,
         pieces::{
-            Behavior, Mutation, Pattern, PatternStep, PieceDefinition, Position, SearchMode,
-            TargetMode, Targets,
+            ABSymmetry, Action, Actions, CaptureMode, CaptureRules, Mutation, Pattern,
+            PatternBehavior, PieceDefinition, Position, RSymmetry, ScanMode, Scanner, Step,
         },
-        square::Square,
         team::Team,
     },
     components::{Player, Turn},
-    IssueMoveEvent, IssueMutationEvent, Movement,
+    IssueMoveEvent, IssueMutationEvent,
 };
 
 use crate::{icons::PieceIcon, mutation::IntendedMutation};
 
-fn describe_step(step: &PatternStep) -> String {
+fn describe_step(step: Step) -> String {
     match step {
-        PatternStep { x: 0, y: 1 } => "forward".to_string(),
-        PatternStep { x: 1, y: 0 } => "sideways".to_string(),
-        PatternStep { x: 0, y: -1 } => "backward".to_string(),
-        PatternStep { x: 1, y: 1 } => "diagonally-forward".to_string(),
-        PatternStep { x: 1, y: -1 } => "diagonally-backward".to_string(),
-        PatternStep { x, y } => format!("{}-by-{}", x, y,),
+        Step::OneDim(r, symmetry) => {
+            let mut directions = vec![];
+            if symmetry.intersects(RSymmetry::FORWARD) {
+                directions.push("forward");
+            }
+            if symmetry.intersects(RSymmetry::sideways()) {
+                directions.push("sideways");
+            }
+            if symmetry.intersects(RSymmetry::BACKWARD) {
+                directions.push("backward");
+            }
+            if symmetry.intersects(RSymmetry::diagonal()) {
+                directions.push("diagonal");
+            } else if symmetry.intersects(RSymmetry::diagonal_forward()) {
+                directions.push("diagonal-forward");
+            } else if symmetry.intersects(RSymmetry::diagonal_backward()) {
+                directions.push("diagonal-backward")
+            }
+            format!("{}", directions.join(", "))
+            // "sideways".to_string(),
+            //  "backward".to_string(),
+            // "diagonally-forward".to_string(),
+            //  "diagonally-backward".to_string(),
+        }
+        Step::TwoDim(a, b, symmetry) => format!("{}-by-{}", a, b,),
     }
 }
 
 fn describe_pattern(pattern: &Pattern) -> egui::RichText {
     egui::RichText::new(format!(
         "- {} {}{}{}.",
-        match pattern.target_mode {
-            TargetMode::Moving => "move without attacking",
-            TargetMode::Attacking => "move allowing attacks",
-            TargetMode::OnlyAttacking => "move only to attack",
+        match pattern.capture {
+            None => "move without attacking",
+            Some(CaptureRules {
+                mode: CaptureMode::CanCapture,
+                ..
+            }) => "move allowing attacks",
+            Some(CaptureRules {
+                mode: CaptureMode::MustCapture,
+                ..
+            }) => "move only to attack",
         },
         pattern
+            .scanner
             .range
             .map_or("".to_string(), |range| format!("up to {} squares ", range),),
-        describe_step(&pattern.step),
-        if pattern.search_mode == SearchMode::Walk {
-            " until a collision"
-        } else {
-            " through any collisions"
+        describe_step(pattern.scanner.step),
+        match pattern.scanner.mode {
+            ScanMode::Walk => " until a collision",
+            ScanMode::Pierce => " through any collisions",
+            ScanMode::Hop { .. } => " after hopping over an enemy",
         },
     ))
     .size(24.)
@@ -62,20 +88,20 @@ const SQUARE_STROKE_WIDTH: f32 = 4.;
 #[derive(WorldQuery)]
 pub struct PieceQuery {
     pub entity: Entity,
-    pub behavior: &'static Behavior,
+    pub behavior: &'static PatternBehavior,
     pub position: &'static Position,
     pub team: &'static Team,
-    pub targets: &'static Targets,
+    pub actions: &'static Actions,
     pub mutation: Option<&'static Mutation>,
     pub icon: Option<&'static PieceIcon>,
 }
 
 pub struct PieceData<'a> {
     pub entity: Entity,
-    pub behavior: &'a Behavior,
+    pub behavior: &'a PatternBehavior,
     pub position: &'a Position,
     pub team: &'a Team,
-    pub targets: &'a Targets,
+    pub actions: &'a Actions,
     pub mutation: Option<&'a Mutation>,
     pub icon: Option<&'a PieceIcon>,
 }
@@ -87,7 +113,7 @@ impl<'a> From<PieceQueryItem<'a>> for PieceData<'a> {
             behavior: piece.behavior,
             position: piece.position,
             team: piece.team,
-            targets: piece.targets,
+            actions: piece.actions,
             mutation: piece.mutation,
             icon: piece.icon,
         }
@@ -159,13 +185,13 @@ pub fn egui_chessboard(
 
                 let mut selected_mutation = None;
 
-                if let Some((_, icons)) = intended_mutation.0.as_ref() {
+                if let Some((_, _, icons)) = intended_mutation.0.as_ref() {
                     render_mutation_options(ui, &*ctx, &mut selected_mutation, icons);
                 }
 
                 if let Some(piece) = selected_mutation {
-                    let (movement, _) = intended_mutation.0.take().unwrap();
-                    mutation_writer.send(IssueMutationEvent(movement, piece));
+                    let (entity, action, _) = intended_mutation.0.take().unwrap();
+                    mutation_writer.send(IssueMutationEvent(entity, action, piece));
                 }
 
                 if let Some(piece) = selected_piece_data {
@@ -187,9 +213,10 @@ fn get_square_background(
 ) -> Color32 {
     let (is_target_square, can_attack_square) = selected_piece_data
         .map(|piece| {
+            let action = piece.actions.get(square);
             (
-                piece.targets.can_target(square),
-                piece.targets.can_attack(square),
+                action.is_some(),
+                action.is_some_and(|action| !action.captures.is_empty()),
             )
         })
         .unwrap_or_else(|| (false, false));
@@ -244,20 +271,22 @@ fn handle_clicked_square(
     move_writer: &mut EventWriter<IssueMoveEvent>,
     team_with_turn: &Team,
 ) {
+    *selected_piece = None;
+
+    let mut did_issue_move = false;
     if let Some(piece) = selected_piece_data {
-        if piece.targets.can_target(&square) && piece.team == team_with_turn {
-            move_writer.send(IssueMoveEvent(Movement {
-                entity: piece.entity,
-                target_square: square,
-            }));
-            *selected_piece = None;
-        } else if let Some(piece) = pieces.get(&square) {
-            *selected_piece = Some(piece.entity);
-        } else {
-            *selected_piece = None;
+        if let Some(action) = piece.actions.get(&square) {
+            if piece.team == team_with_turn {
+                move_writer.send(IssueMoveEvent(piece.entity, action.clone()));
+                did_issue_move = true;
+            }
         }
-    } else if let Some(piece) = pieces.get(&square) {
-        *selected_piece = Some(piece.entity);
+    }
+
+    if !did_issue_move {
+        if let Some(piece) = pieces.get(&square) {
+            *selected_piece = Some(piece.entity);
+        }
     }
 }
 
@@ -281,7 +310,7 @@ fn render_mutation_options(
     ui.separator();
 }
 
-fn render_pattern_description(ui: &mut egui::Ui, behavior: Behavior, square: Square) {
+fn render_pattern_description(ui: &mut egui::Ui, behavior: PatternBehavior, square: Square) {
     ui.set_style(Style {
         visuals: Visuals {
             window_stroke: (4., Color32::WHITE).into(),

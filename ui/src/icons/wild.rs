@@ -1,12 +1,12 @@
 use egui_extras::RetainedImage;
 
 use chess_gameplay::chess::{
-    pieces::{Behavior, Pattern, TargetMode},
+    pieces::{Pattern, PatternBehavior, TargetMode},
     team::Team,
 };
 
 pub(crate) fn wild_behavior_icon(
-    behavior: &Behavior,
+    behavior: &PatternBehavior,
     team: Team,
     is_king: bool,
 ) -> (RetainedImage, String) {
@@ -24,7 +24,7 @@ pub(crate) fn wild_behavior_icon(
 
 // svg generation utilities
 
-fn build_svg(behavior: Behavior, team: Team, is_king: bool) -> String {
+fn build_svg(behavior: PatternBehavior, team: Team, is_king: bool) -> String {
     format!(
         r#"<svg
     width="1000"
@@ -209,6 +209,8 @@ fn arrow(position: NodePosition, color_hex: &str) -> String {
     }
 }
 
+// TODO: reconfigure step_x and step_y to be R and RSymmetry
+// TODO: how to deal with AB case?
 fn calculate_node_positions(
     step_x: u8,
     step_y: i16,
@@ -272,7 +274,7 @@ fn pattern_nodes(pattern: Pattern, team: Team) -> String {
 }
 
 // builds a set of symbols to decorate the piece tile with patterns that describe its behavior options
-fn behavior_nodes(behavior: Behavior, team: Team) -> String {
+fn behavior_nodes(behavior: PatternBehavior, team: Team) -> String {
     behavior
         .patterns
         .into_iter()

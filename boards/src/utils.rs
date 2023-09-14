@@ -1,29 +1,21 @@
 use chess::{
-    pieces::{PieceDefinition, Position},
-    square::{File, Rank, Square},
+    board::{File, Rank, Square},
     team::Team::{self, Black, White},
 };
 
-const TEAMS: [Team; 2] = [White, Black];
+pub const TEAMS: [Team; 2] = [White, Black];
 
-pub(crate) fn pieces_by_team<'a, Extra: Default>(
-    pick_square: impl Fn(Team) -> Square + 'a,
-    pick_piece: impl Fn(Team) -> PieceDefinition<Extra> + 'a,
-) -> impl Iterator<Item = (PieceDefinition<Extra>, Position)> + 'a {
-    TEAMS.into_iter().map(move |team| {
-        let square = pick_square(team);
-        let piece = pick_piece(team);
-        (piece, Position(square))
+pub fn squares_by_team(
+    distance_from_back_rank: u16,
+    files: impl Iterator<Item = File> + Clone,
+) -> impl Iterator<Item = (Team, Square)> {
+    TEAMS.into_iter().flat_map(move |team: Team| {
+        let back_rank = match team {
+            Team::White => Rank::ONE.0 + distance_from_back_rank,
+            Team::Black => Rank::EIGHT.0 - distance_from_back_rank,
+        };
+        files
+            .clone()
+            .map(move |file| (team, Square::new(file, Rank(back_rank))))
     })
-}
-
-pub(crate) fn team_local_rank(team: Team, local_rank: Rank) -> Rank {
-    match (team, local_rank) {
-        (Team::White, local_rank) => local_rank,
-        (Team::Black, local_rank) => local_rank.reverse(),
-    }
-}
-
-pub(crate) fn team_piece_square(local_rank: Rank, file: File) -> impl Fn(Team) -> Square {
-    move |team: Team| (file, team_local_rank(team, local_rank)).into()
 }

@@ -1,37 +1,34 @@
 use rand::Rng;
 
-use chess::pieces::Behavior;
+use chess::pieces::{Pattern, PatternBehavior, RSymmetry, Step};
 
 use super::PieceKind;
 
 impl PieceKind {
-    pub fn generate_king() -> Behavior {
+    pub fn generate_king() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // classical king
-            0 => Behavior::builder().radials().range(1).can_attack().build(),
+            0 => PatternBehavior::default()
+                .with_pattern(Pattern::radial().leaper().captures_by_displacement()),
             // weak king
-            1 => Behavior::builder()
-                .orthogonals()
-                .range(1)
-                .can_attack()
-                .build(),
+            1 => PatternBehavior::default()
+                .with_pattern(Pattern::orthogonal().leaper().captures_by_displacement()),
             // silver general king
-            2 => Behavior::builder()
-                .forward()
-                .diagonals()
-                .range(1)
-                .can_attack()
-                .build(),
+            2 => PatternBehavior::default().with_pattern(
+                Pattern::new(Step::from_r(1, RSymmetry::diagonal() | RSymmetry::FORWARD))
+                    .leaper()
+                    .captures_by_displacement(),
+            ),
             // gold general king
-            _ => Behavior::builder()
-                .forward()
-                .sideways()
-                .backward()
-                .diagonal_forward()
-                .range(1)
-                .can_attack()
-                .build(),
+            _ => PatternBehavior::default().with_pattern(
+                Pattern::new(Step::from_r(
+                    1,
+                    RSymmetry::diagonal() | RSymmetry::sideways() | RSymmetry::FORWARD,
+                ))
+                .leaper()
+                .captures_by_displacement(),
+            ),
         }
     }
 }

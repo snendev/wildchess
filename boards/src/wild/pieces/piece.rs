@@ -1,12 +1,12 @@
 use rand::{thread_rng, Rng};
 
-use chess::pieces::{Behavior, Pattern};
+use chess::pieces::{Pattern, PatternBehavior, RSymmetry, ScanMode, Step};
 
 use super::PieceKind;
 
 impl PieceKind {
     // TODO figure out a better strategy
-    pub fn generate_piece(max_value: u32, current_value: &mut u32) -> Behavior {
+    pub fn generate_piece(max_value: u32, current_value: &mut u32) -> PatternBehavior {
         let mut rng = thread_rng();
         let new_cost = rng.gen_range(0u32..(max_value - *current_value));
         *current_value += new_cost;
@@ -24,48 +24,43 @@ impl PieceKind {
 struct InfantryBuilder;
 
 impl InfantryBuilder {
-    fn generate_wild_behavior() -> Behavior {
+    fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // grunt
-            0 => Behavior::builder()
-                .orthogonals()
-                .range(3)
-                .can_attack()
-                .build(),
+            0 => PatternBehavior::default()
+                .with_pattern(Pattern::orthogonal().range(3).captures_by_displacement()),
             // hound
-            1 => Behavior::builder()
-                .diagonal_forward()
-                .range(2)
-                .can_attack()
-                .build()
-                .join(
-                    Behavior::builder()
-                        .sideways()
-                        .backward()
-                        .cannot_attack()
-                        .range(1)
-                        .build(),
+            1 => PatternBehavior::default()
+                .with_pattern(
+                    Pattern::diagonal_forward()
+                        .range(2)
+                        .captures_by_displacement(),
+                )
+                .with_pattern(
+                    Pattern::new(Step::from_r(
+                        1,
+                        RSymmetry::BACKWARD | RSymmetry::horizontal(),
+                    ))
+                    .range(1),
                 ),
             // fencer
-            2 => Behavior::default()
-                .with_pattern(Pattern::forward().can_attack().range(2))
-                .with_pattern(Pattern::forward().must_attack().jumping().range(3))
-                .with_pattern(Pattern::sideways().cannot_attack().range(1)),
+            2 => PatternBehavior::default()
+                .with_pattern(Pattern::forward().range(2).captures_by_displacement())
+                .with_pattern(
+                    Pattern::forward()
+                        .range(3)
+                        .scan_mode(ScanMode::Pierce)
+                        .only_captures_by_displacement(),
+                )
+                .with_pattern(Pattern::horizontal().range(1)),
             // squire
-            _ => Behavior::builder()
-                .forward()
-                .sideways()
-                .range(1)
-                .cannot_attack()
-                .build()
-                .join(
-                    Behavior::builder()
-                        .knight_jumps()
-                        .must_attack()
-                        .range(1)
-                        .build(),
-                ),
+            _ => PatternBehavior::default()
+                .with_pattern(Pattern::new(Step::from_r(
+                    1,
+                    RSymmetry::FORWARD | RSymmetry::horizontal(),
+                )))
+                .with_pattern(Pattern::knight().leaper().only_captures_by_displacement()),
         }
     }
 }
@@ -74,27 +69,34 @@ impl InfantryBuilder {
 pub struct MinorBuilder;
 
 impl MinorBuilder {
-    fn generate_wild_behavior() -> Behavior {
+    fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // classic knight
-            0 => Behavior::builder().knight_jumps().can_attack().build(),
-            // classic bishop
-            1 => Behavior::builder().diagonals().can_attack().build(),
-            // scorpion
-            2 => Behavior::default()
-                .with_pattern(Pattern::backward().range(1).cannot_attack())
-                .with_pattern(Pattern::diagonal_forward().jumping().range(3).must_attack())
-                .join(
-                    Behavior::builder()
-                        .forward()
-                        .sideways()
+            0 => PatternBehavior::default()
+                .with_pattern(Pattern::knight().captures_by_displacement()),
+            // clPatternBehaviorshop
+            1 => PatternBehavior::default()
+                .with_pattern(Pattern::diagonal().captures_by_displacement()),
+            // scPatternBehavior
+            2 => PatternBehavior::default()
+                .with_pattern(Pattern::backward().leaper())
+                .with_pattern(
+                    Pattern::diagonal_forward()
+                        .scan_mode(ScanMode::Pierce)
                         .range(3)
-                        .cannot_attack()
-                        .build(),
+                        .only_captures_by_displacement(),
+                )
+                .with_pattern(
+                    Pattern::new(Step::from_r(
+                        1,
+                        RSymmetry::FORWARD | RSymmetry::horizontal(),
+                    ))
+                    .range(3),
                 ),
-            // princess
-            _ => Behavior::builder().radials().range(2).can_attack().build(),
+            // prPatternBehavior
+            _ => PatternBehavior::default()
+                .with_pattern(Pattern::radial().range(2).captures_by_displacement()),
         }
     }
 }
@@ -103,48 +105,25 @@ impl MinorBuilder {
 pub struct AdvancedBuilder;
 
 impl AdvancedBuilder {
-    fn generate_wild_behavior() -> Behavior {
+    fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // jester
-            0 => Behavior::builder()
-                .knight_jumps()
-                .range(1)
-                .can_attack()
-                .build()
-                .join(Behavior::builder().orthogonals().range(2).build()),
+            0 => PatternBehavior::default()
+                .with_pattern(Pattern::knight().leaper().captures_by_displacement())
+                .with_pattern(Pattern::orthogonal().range(2)),
             // butterfly
-            1 => Behavior::builder()
-                .knight_jumps()
-                .range(1)
-                .can_attack()
-                .build()
-                .join(
-                    Behavior::builder()
-                        .radials()
-                        .range(3)
-                        .cannot_attack()
-                        .build(),
-                ),
+            1 => PatternBehavior::default()
+                .with_pattern(Pattern::knight().leaper().captures_by_displacement())
+                .with_pattern(Pattern::radial().range(3)),
             // dancer
-            2 => Behavior::builder()
-                .diagonals()
-                .cannot_attack()
-                .build()
-                .join(Behavior::builder().orthogonals().must_attack().build()),
+            2 => PatternBehavior::default()
+                .with_pattern(Pattern::diagonal())
+                .with_pattern(Pattern::orthogonal().only_captures_by_displacement()),
             // aiofe
-            _ => Behavior::builder()
-                .radials()
-                .range(2)
-                .can_attack()
-                .build()
-                .join(
-                    Behavior::builder()
-                        .knight_jumps()
-                        .range(1)
-                        .cannot_attack()
-                        .build(),
-                ),
+            _ => PatternBehavior::default()
+                .with_pattern(Pattern::radial().range(2).captures_by_displacement())
+                .with_pattern(Pattern::knight().leaper()),
         }
     }
 }
@@ -153,19 +132,16 @@ impl AdvancedBuilder {
 pub struct MajorBuilder;
 
 impl MajorBuilder {
-    fn generate_wild_behavior() -> Behavior {
+    fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=2) {
             // classic rook
-            0 => Behavior::builder().orthogonals().can_attack().build(),
+            0 => PatternBehavior::default()
+                .with_pattern(Pattern::orthogonal().captures_by_displacement()),
             // cardinal
-            _ => Behavior::builder().diagonals().can_attack().build().join(
-                Behavior::builder()
-                    .orthogonals()
-                    .range(1)
-                    .cannot_attack()
-                    .build(),
-            ),
+            _ => PatternBehavior::default()
+                .with_pattern(Pattern::diagonal().captures_by_displacement())
+                .with_pattern(Pattern::orthogonal().leaper()),
         }
     }
 }
@@ -174,43 +150,28 @@ impl MajorBuilder {
 pub struct EliteBuilder;
 
 impl EliteBuilder {
-    fn generate_wild_behavior() -> Behavior {
+    fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=2) {
             // classic queen
-            0 => Behavior::builder().radials().can_attack().build(),
+            0 => PatternBehavior::default()
+                .with_pattern(Pattern::radial().captures_by_displacement()),
             // chancellor
-            1 => Behavior::builder().orthogonals().can_attack().build().join(
-                Behavior::builder()
-                    .knight_jumps()
-                    .range(1)
-                    .can_attack()
-                    .build(),
-            ),
+            1 => PatternBehavior::default()
+                .with_pattern(Pattern::orthogonal().captures_by_displacement())
+                .with_pattern(Pattern::knight().leaper().captures_by_displacement()),
             // panther
-            2 => Behavior::builder()
-                .orthogonals()
-                .can_attack()
-                .build()
+            2 => PatternBehavior::default()
+                .with_pattern(Pattern::orthogonal().captures_by_displacement())
                 .with_pattern(
                     Pattern::diagonal_forward()
                         .range(3)
-                        .jumping()
-                        .cannot_attack(),
+                        .scan_mode(ScanMode::Pierce),
                 ),
             // dominator
-            _ => Behavior::builder()
-                .radials()
-                .range(3)
-                .can_attack()
-                .build()
-                .join(
-                    Behavior::builder()
-                        .knight_jumps()
-                        .range(1)
-                        .can_attack()
-                        .build(),
-                ),
+            _ => PatternBehavior::default()
+                .with_pattern(Pattern::radial().range(3).captures_by_displacement())
+                .with_pattern(Pattern::knight().leaper().captures_by_displacement()),
         }
     }
 }
@@ -219,20 +180,16 @@ impl EliteBuilder {
 pub struct LegendaryBuilder;
 
 impl LegendaryBuilder {
-    fn generate_wild_behavior() -> Behavior {
+    fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=2) {
             // dragon
-            _ => Behavior::builder().radials().can_attack().build().join(
-                Behavior::builder()
-                    .knight_jumps()
-                    .range(1)
-                    .can_attack()
-                    .build(),
-            ),
+            _ => PatternBehavior::default()
+                .with_pattern(Pattern::radial().captures_by_displacement())
+                .with_pattern(Pattern::knight().leaper().captures_by_displacement()),
             // TODO
             // pirate
-            // _ => Behavior::builder()
+            // _ => PatternBehavior::builder()
             //     .knight_jumps()
             //     .range(2)
             //     .can_attack()
