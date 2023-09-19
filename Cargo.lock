@@ -1316,6 +1316,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "chess_app_lib"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_egui",
+ "chess_boards",
+ "chess_gameplay",
+ "chess_ui",
+]
+
+[[package]]
+name = "chess_app_native"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "chess_app_lib",
+]
+
+[[package]]
+name = "chess_app_wasm"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "chess_app_lib",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "chess_boards"
 version = "0.1.0"
 dependencies = [
@@ -4124,33 +4152,6 @@ name = "widestring"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "653f141f39ec16bba3c5abe400a0c60da7468261cc2cbf36805022876bc721a8"
-
-[[package]]
-name = "wildchess_app_lib"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "chess_boards",
- "chess_gameplay",
- "chess_ui",
-]
-
-[[package]]
-name = "wildchess_app_native"
-version = "0.1.0"
-dependencies = [
- "cfg-if",
- "wildchess_app_lib",
-]
-
-[[package]]
-name = "wildchess_app_wasm"
-version = "0.1.0"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
- "wildchess_app_lib",
-]
 
 [[package]]
 name = "winapi"

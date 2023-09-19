@@ -4,7 +4,7 @@ extern crate cfg_if;
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         use wasm_bindgen::prelude::*;
-        use wildchess_app_lib::run_app;
+        use chess_app_lib::run_app;
 
         #[wasm_bindgen(start)]
         pub fn main() -> Result<(), JsValue> {
