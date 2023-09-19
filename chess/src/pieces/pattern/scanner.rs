@@ -1,6 +1,10 @@
 use bevy::{prelude::Reflect, utils::HashMap};
 
-use crate::{board::Square, pieces::Orientation, team::Team};
+use crate::{
+    board::{Board, Square},
+    pieces::Orientation,
+    team::Team,
+};
 
 use super::{Step, TargetKind};
 
@@ -28,7 +32,7 @@ pub struct Scanner {
     pub step: Step,
     // how many steps can this pattern be executed for?
     // if None, do not set a limit
-    pub range: Option<u8>,
+    pub range: Option<usize>,
     // configuration for how to deal with colliders
     pub mode: ScanMode,
 }
@@ -103,7 +107,7 @@ impl Scanner {
 
     // Number steps executed: leaper or rider?
 
-    pub fn range(mut self, range: u8) -> Self {
+    pub fn range(mut self, range: usize) -> Self {
         self.range = Some(range);
         self
     }
@@ -141,23 +145,27 @@ impl Scanner {
             .collect()
     }
 
-    // TODO: perhaps define some Board::next_tile(step, &my_piece, &origin, &pieces)
     pub fn scan(
         &self,
         origin: &Square,
         orientation: Orientation,
         my_team: &Team,
-        board_max: &Square,
+        board: &Board,
         pieces: &HashMap<Square, Team>,
     ) -> Vec<ScanTarget> {
         let mut targets = Vec::new();
 
-        for (x, y) in self.get_steps(orientation) {
-            let mut last_square = *origin;
+        for step in self.get_steps(orientation) {
             let mut scanned_squares = vec![];
             let mut steps_after_hop: Option<usize> = None;
 
-            while let Some(square) = last_square.checked_add(x, y, board_max) {
+            let board_iter = board.scan(*origin, step);
+            let board_iter = match self.range {
+                Some(range) => itertools::Either::Left(board_iter.take(range)),
+                None => itertools::Either::Right(board_iter),
+            };
+
+            for square in board_iter {
                 match self.mode {
                     ScanMode::Walk => {
                         targets.push(ScanTarget {
@@ -201,13 +209,6 @@ impl Scanner {
                 }
 
                 scanned_squares.push(square);
-                last_square = square;
-
-                if let Some(range) = self.range {
-                    if scanned_squares.len() >= range.into() {
-                        break;
-                    }
-                }
             }
         }
 
@@ -217,7 +218,7 @@ impl Scanner {
 
 #[cfg(test)]
 mod tests {
-    use crate::board::{common::chess_board, File, Rank};
+    use crate::board::{File, Rank};
 
     use super::*;
 
@@ -242,7 +243,7 @@ mod tests {
             &origin(),
             Orientation::Up,
             &Team::White,
-            &chess_board().size,
+            &Board::chess_board(),
             &HashMap::new(),
         );
         let mut results = results.iter().map(|scan| scan.target).collect::<Vec<_>>();
@@ -283,7 +284,7 @@ mod tests {
             &origin(),
             Orientation::Up,
             &Team::White,
-            &chess_board().size,
+            &Board::chess_board(),
             &sample_board(),
         );
         let mut results = results.iter().map(|scan| scan.target).collect::<Vec<_>>();
@@ -322,7 +323,7 @@ mod tests {
             &origin(),
             Orientation::Up,
             &Team::White,
-            &chess_board().size,
+            &Board::chess_board(),
             &HashMap::new(),
         );
         let mut results = results.iter().map(|scan| scan.target).collect::<Vec<_>>();
@@ -366,7 +367,7 @@ mod tests {
             &origin(),
             Orientation::Up,
             &Team::White,
-            &chess_board().size,
+            &Board::chess_board(),
             &sample_board(),
         );
         let mut results = results.iter().map(|scan| scan.target).collect::<Vec<_>>();
@@ -407,7 +408,7 @@ mod tests {
             &origin(),
             Orientation::Up,
             &Team::White,
-            &chess_board().size,
+            &Board::chess_board(),
             &HashMap::new(),
         );
         let mut results = results.iter().map(|scan| scan.target).collect::<Vec<_>>();
@@ -447,7 +448,7 @@ mod tests {
             &origin(),
             Orientation::Up,
             &Team::White,
-            &chess_board().size,
+            &Board::chess_board(),
             &HashMap::new(),
         );
         let mut results = results.iter().map(|scan| scan.target).collect::<Vec<_>>();
@@ -491,7 +492,7 @@ mod tests {
             &origin(),
             Orientation::Up,
             &Team::White,
-            &chess_board().size,
+            &Board::chess_board(),
             &sample_board(),
         );
         let mut results = results.iter().map(|scan| scan.target).collect::<Vec<_>>();

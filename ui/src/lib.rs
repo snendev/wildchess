@@ -1,4 +1,4 @@
-use bevy::prelude::{App, EventWriter, Plugin, Startup, Update};
+use bevy::prelude::{App, Plugin, Update};
 
 pub use bevy_egui;
 

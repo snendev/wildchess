@@ -4,7 +4,6 @@ use bevy::{
 };
 
 use crate::{
-    board::common::chess_board,
     pieces::{Action, Actions, Orientation, Pattern, Position, Scanner},
     team::Team,
 };
@@ -23,6 +22,7 @@ pub struct RotationBehavior;
 impl Behavior for RotationBehavior {
     fn add_actions_system(
         In(_): In<Option<Action>>,
+        board_query: Query<&Board>,
         mut piece_query: Query<(
             Option<&RotationBehavior>,
             &Position,
@@ -31,6 +31,10 @@ impl Behavior for RotationBehavior {
             &mut Actions,
         )>,
     ) {
+        let Ok(board) = board_query.get_single() else {
+            return;
+        };
+
         for (_, position, orientation, team, mut actions) in piece_query.iter_mut() {
             let rotation_actions = Actions::new(
                 orientation
@@ -38,13 +42,7 @@ impl Behavior for RotationBehavior {
                     .into_iter()
                     .flat_map(|orientation: Orientation| {
                         Scanner::forward()
-                            .scan(
-                                &position.0,
-                                orientation,
-                                team,
-                                &chess_board().size,
-                                &HashMap::default(),
-                            )
+                            .scan(&position.0, orientation, team, board, &HashMap::default())
                             .into_iter()
                             .map(|scan_target| scan_target.target)
                             .map(move |square| {

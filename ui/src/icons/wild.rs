@@ -1,7 +1,7 @@
 use egui_extras::RetainedImage;
 
 use chess_gameplay::chess::{
-    pieces::{Pattern, PatternBehavior, TargetMode},
+    pieces::{CaptureMode, Pattern, PatternBehavior},
     team::Team,
 };
 
@@ -119,6 +119,22 @@ impl NodePosition {
             dy,
         }
     }
+
+    pub fn calculate(step_x: i16, step_y: i16, radius: u8, team: Team) -> Self {
+        let x: i32 = step_x.into();
+        let y: i32 = step_y.into();
+        let radius: i32 = radius.into();
+        let y = y * match team {
+            Team::White => -1,
+            Team::Black => 1,
+        };
+
+        let dy = -(y * radius + y.signum());
+        let dx = x * radius + x.signum();
+        let cy = 500 - dy * 100;
+        let cx = 500 + dx * 100;
+        NodePosition::new(cx, cy, dx, -dy)
+    }
 }
 
 fn circle(position: NodePosition, color_hex: &str) -> String {
@@ -209,68 +225,30 @@ fn arrow(position: NodePosition, color_hex: &str) -> String {
     }
 }
 
-// TODO: reconfigure step_x and step_y to be R and RSymmetry
-// TODO: how to deal with AB case?
-fn calculate_node_positions(
-    step_x: u8,
-    step_y: i16,
-    radius: u8,
-    team: Team,
-) -> impl Iterator<Item = NodePosition> {
-    let x: i32 = step_x.into();
-    let y: i32 = step_y.into();
-    let radius: i32 = radius.into();
-    let y = y * match team {
-        Team::White => -1,
-        Team::Black => 1,
-    };
-
-    let y = -(y * radius + y.signum());
-    if x == 0 {
-        vec![(0, y)].into_iter()
-    } else {
-        let x = x * radius + 1;
-        vec![(x, y), (-x, y)].into_iter()
-    }
-    .map(|(dx, dy)| {
-        let cy = 500 - dy * 100;
-        let cx = 500 + dx * 100;
-        NodePosition::new(cx, cy, dx, -dy)
-    })
-}
-
-enum Symbol {
-    Circle,
-    Arrow,
-}
-
 fn pattern_nodes(pattern: Pattern, team: Team) -> String {
-    let color_hex = match pattern.target_mode {
-        TargetMode::Attacking => "#000000",
-        TargetMode::Moving => "#0000ff",
-        TargetMode::OnlyAttacking => "#ff0000",
+    let color_hex = match pattern.capture.map(|capture| capture.mode) {
+        None => "#0000ff",
+        Some(CaptureMode::CanCapture) => "#000000",
+        Some(CaptureMode::MustCapture) => "#ff0000",
     };
 
-    let anchors: Vec<(NodePosition, Symbol)> = match pattern.range {
-        None => calculate_node_positions(pattern.step.x, pattern.step.y, 2, team)
-            .map(|node| (node, Symbol::Arrow))
-            .collect(),
+    let movements = pattern.scanner.step.movements();
+    match pattern.scanner.range {
+        None => movements
+            .into_iter()
+            .map(|(x, y)| NodePosition::calculate(x, y, 1, team))
+            .map(|node| arrow(node, color_hex))
+            .collect::<Vec<_>>(),
         Some(range) => (1..=range.min(3))
             .flat_map(|radius| {
-                calculate_node_positions(pattern.step.x, pattern.step.y, radius, team)
+                movements
+                    .iter()
+                    .map(move |(x, y)| NodePosition::calculate(*x, *y, radius, team))
             })
-            .map(|node| (node, Symbol::Circle))
-            .collect(),
-    };
-
-    anchors
-        .into_iter()
-        .map(|(position, symbol)| match symbol {
-            Symbol::Arrow => arrow(position, color_hex),
-            Symbol::Circle => circle(position, color_hex),
-        })
-        .collect::<Vec<_>>()
-        .join("\n   ")
+            .map(|node| circle(node, color_hex))
+            .collect::<Vec<_>>(),
+    }
+    .join("\n   ")
 }
 
 // builds a set of symbols to decorate the piece tile with patterns that describe its behavior options

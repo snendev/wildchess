@@ -1,6 +1,8 @@
 use bevy::prelude::{
-    on_event, App, Commands, Event, EventReader, IntoSystemConfigs, Plugin, Update,
+    on_event, Added, App, Commands, Component, Event, EventReader, IntoSystemConfigs, Plugin,
+    Query, Update,
 };
+use chess::board::Board;
 
 use crate::{
     classical::{ClassicalIdentity, ClassicalLayout},
@@ -32,6 +34,16 @@ impl Plugin for BoardPlugin {
     }
 }
 
+fn spawn_game_entities(mut commands: Commands, query: Query<&Game, Added<Game>>) {
+    for added_game in query.iter() {
+        let board = match added_game {
+            Game::Chess | Game::WildChess | Game::SuperRelayChess => Board::chess_board(),
+        };
+        commands.spawn(board);
+        // TODO: spawn pieces
+    }
+}
+
 fn configure_wild_boards(mut commands: Commands, mut reader: EventReader<BuildWildBoardEvent>) {
     for _ in reader.iter() {
         for piece in WildLayout::pieces() {
@@ -49,4 +61,13 @@ fn configure_classical_boards(
             piece.spawn(&mut commands);
         }
     }
+}
+
+#[derive(Clone, Component, Debug, Default)]
+pub enum Game {
+    Chess,
+    #[default]
+    WildChess,
+    SuperRelayChess,
+    // Checkers, // TODO
 }

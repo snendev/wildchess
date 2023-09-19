@@ -244,52 +244,53 @@ impl From<(File, Rank)> for Square {
 
 #[cfg(test)]
 mod tests {
-    use crate::board::common::chess_board;
+    use crate::board::Board;
 
     use super::*;
 
     #[test]
     fn test_addition() {
+        let board_size = Board::chess_board().size;
         assert_eq!(
-            Square::new(File::A, Rank::ONE).checked_add(3, 7, &chess_board().size),
+            Square::new(File::A, Rank::ONE).checked_add(3, 7, &board_size),
             Some(Square::new(File::D, Rank::EIGHT)),
         );
 
         assert_eq!(
-            Square::new(File::D, Rank::FIVE).checked_add(1, 0, &chess_board().size),
+            Square::new(File::D, Rank::FIVE).checked_add(1, 0, &board_size),
             Some(Square::new(File::E, Rank::FIVE)),
         );
 
         assert_eq!(
-            Square::new(File::B, Rank::TWO).checked_add(-1, 0, &chess_board().size),
+            Square::new(File::B, Rank::TWO).checked_add(-1, 0, &board_size),
             Some(Square::new(File::A, Rank::TWO)),
         );
 
         assert_eq!(
-            Square::new(File::G, Rank::FOUR).checked_add(0, 3, &chess_board().size),
+            Square::new(File::G, Rank::FOUR).checked_add(0, 3, &board_size),
             Some(Square::new(File::G, Rank::SEVEN)),
         );
 
         assert_eq!(
-            Square::new(File::G, Rank::FOUR).checked_add(0, -3, &chess_board().size),
+            Square::new(File::G, Rank::FOUR).checked_add(0, -3, &board_size),
             Some(Square::new(File::G, Rank::ONE)),
         );
 
         // out of bounds checks
         assert_eq!(
-            Square::new(File::A, Rank::ONE).checked_add(-1, 0, &chess_board().size),
+            Square::new(File::A, Rank::ONE).checked_add(-1, 0, &board_size),
             None,
         );
         assert_eq!(
-            Square::new(File::A, Rank::ONE).checked_add(0, -1, &chess_board().size),
+            Square::new(File::A, Rank::ONE).checked_add(0, -1, &board_size),
             None,
         );
         assert_eq!(
-            Square::new(File::H, Rank::EIGHT).checked_add(1, 0, &chess_board().size),
+            Square::new(File::H, Rank::EIGHT).checked_add(1, 0, &board_size),
             None,
         );
         assert_eq!(
-            Square::new(File::H, Rank::EIGHT).checked_add(0, 1, &chess_board().size),
+            Square::new(File::H, Rank::EIGHT).checked_add(0, 1, &board_size),
             None,
         );
     }

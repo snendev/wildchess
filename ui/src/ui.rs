@@ -13,8 +13,8 @@ use chess_gameplay::{
     chess::{
         board::Square,
         pieces::{
-            ABSymmetry, Action, Actions, CaptureMode, CaptureRules, Mutation, Pattern,
-            PatternBehavior, PieceDefinition, Position, RSymmetry, ScanMode, Scanner, Step,
+            Actions, CaptureMode, CaptureRules, Mutation, Pattern, PatternBehavior,
+            PieceDefinition, Position, RSymmetry, ScanMode, Step,
         },
         team::Team,
     },
@@ -26,7 +26,7 @@ use crate::{icons::PieceIcon, mutation::IntendedMutation};
 
 fn describe_step(step: Step) -> String {
     match step {
-        Step::OneDim(r, symmetry) => {
+        Step::OneDim(_r, symmetry) => {
             let mut directions = vec![];
             if symmetry.intersects(RSymmetry::FORWARD) {
                 directions.push("forward");
@@ -45,12 +45,8 @@ fn describe_step(step: Step) -> String {
                 directions.push("diagonal-backward")
             }
             format!("{}", directions.join(", "))
-            // "sideways".to_string(),
-            //  "backward".to_string(),
-            // "diagonally-forward".to_string(),
-            //  "diagonally-backward".to_string(),
         }
-        Step::TwoDim(a, b, symmetry) => format!("{}-by-{}", a, b,),
+        Step::TwoDim(a, b, _symmetry) => format!("{}-by-{}", a, b,),
     }
 }
 
@@ -72,7 +68,7 @@ fn describe_pattern(pattern: &Pattern) -> egui::RichText {
             .scanner
             .range
             .map_or("".to_string(), |range| format!("up to {} squares ", range),),
-        describe_step(pattern.scanner.step),
+        describe_step(pattern.scanner.step.clone()),
         match pattern.scanner.mode {
             ScanMode::Walk => " until a collision",
             ScanMode::Pierce => " through any collisions",
@@ -130,7 +126,9 @@ pub fn egui_chessboard(
     mut mutation_writer: EventWriter<IssueMutationEvent>,
     mut selected_piece: Local<Option<Entity>>,
 ) {
-    let Ok(team_with_turn) = player_query.get_single() else { return };
+    let Ok(team_with_turn) = player_query.get_single() else {
+        return;
+    };
 
     let pieces: HashMap<Square, PieceData> = piece_query
         .into_iter()
@@ -148,7 +146,7 @@ pub fn egui_chessboard(
             egui::Grid::new("board_grid").show(ui, |ui| {
                 for y in (0..=7).rev() {
                     for x in 0..=7 {
-                        let square = Square::new(y.try_into().unwrap(), x.try_into().unwrap());
+                        let square = Square::new(x.try_into().unwrap(), y.try_into().unwrap());
 
                         let piece = pieces
                             .get(&square)

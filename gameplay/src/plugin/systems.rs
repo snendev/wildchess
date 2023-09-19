@@ -78,6 +78,7 @@ pub(crate) fn execute_turn(
                         }
                     })
             {
+                // TODO: should this despawn, or is there a good reason to keep the entity around?
                 commands.entity(captured_piece).remove::<Position>();
             }
         }

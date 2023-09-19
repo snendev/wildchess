@@ -3,7 +3,7 @@ use itertools::Either;
 use bevy::{prelude::Reflect, utils::HashMap};
 
 use crate::{
-    board::{Rank, Square},
+    board::{Board, Rank, Square},
     pieces::{Action, Orientation},
     team::Team,
 };
@@ -117,7 +117,7 @@ impl Pattern {
 
     // Number steps executed: leaper or rider?
 
-    pub fn range(mut self, range: u8) -> Self {
+    pub fn range(mut self, range: usize) -> Self {
         self.scanner = self.scanner.range(range);
         self
     }
@@ -240,7 +240,7 @@ impl Pattern {
         origin: &Square,
         orientation: &Orientation,
         my_team: &Team,
-        board_max: &Square,
+        board: &Board,
         pieces: &HashMap<Square, Team>,
         last_action: Option<&Action>,
     ) -> HashMap<Square, Action> {
@@ -252,7 +252,7 @@ impl Pattern {
 
         let scan_targets = self
             .scanner
-            .scan(origin, *orientation, my_team, board_max, pieces);
+            .scan(origin, *orientation, my_team, board, pieces);
 
         if let Some(ForbiddenTargetConstraint(forbidden_squares)) =
             &self.constraints.forbidden_targets
@@ -285,7 +285,7 @@ impl Pattern {
 
 #[cfg(test)]
 mod test {
-    use crate::board::{common::chess_board, File};
+    use crate::board::{Board, File};
 
     use super::*;
 
@@ -310,7 +310,7 @@ mod test {
             &origin(),
             &Orientation::Up,
             &Team::White,
-            &chess_board().size,
+            &Board::chess_board(),
             &HashMap::new(),
             None,
         );
@@ -355,7 +355,7 @@ mod test {
             &origin(),
             &Orientation::Up,
             &Team::White,
-            &chess_board().size,
+            &Board::chess_board(),
             &sample_board(),
             None,
         );

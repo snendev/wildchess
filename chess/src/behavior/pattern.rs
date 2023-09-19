@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    board::{common::chess_board, Square},
+    board::{Board, Square},
     pieces::{Action, Actions, Orientation, Pattern, Position},
     team::Team,
 };
@@ -42,6 +42,7 @@ impl PatternBehavior {
         origin: &Square,
         orientation: &Orientation,
         my_team: &Team,
+        board: &Board,
         pieces: &HashMap<Square, Team>,
         last_action: Option<&Action>,
     ) -> Actions {
@@ -49,14 +50,7 @@ impl PatternBehavior {
             self.patterns
                 .iter()
                 .flat_map(|pattern| {
-                    pattern.search(
-                        origin,
-                        orientation,
-                        my_team,
-                        &chess_board().size,
-                        pieces,
-                        last_action,
-                    )
+                    pattern.search(origin, orientation, my_team, board, pieces, last_action)
                 })
                 .collect(),
         )
@@ -66,6 +60,7 @@ impl PatternBehavior {
 impl Behavior for PatternBehavior {
     fn add_actions_system(
         In(last_action): In<Option<Action>>,
+        board_query: Query<&Board>,
         mut piece_query: Query<(
             Option<&PatternBehavior>,
             &Position,
@@ -74,6 +69,10 @@ impl Behavior for PatternBehavior {
             &mut Actions,
         )>,
     ) {
+        let Ok(board) = board_query.get_single() else {
+            return;
+        };
+
         let pieces: HashMap<Square, Team> = piece_query
             .iter()
             .map(|(_, position, _, team, _)| (position.0, *team))
@@ -85,6 +84,7 @@ impl Behavior for PatternBehavior {
                     &position.0,
                     &orientation,
                     team,
+                    board,
                     &pieces,
                     last_action.as_ref(),
                 ));

@@ -1,9 +1,10 @@
 use bevy::prelude::{
-    on_event, App, Commands, IntoSystem, IntoSystemConfigs, Plugin, Startup, Update,
+    on_event, Added, App, Commands, Component, Condition, IntoSystem, IntoSystemConfigs, Plugin,
+    Query, Startup, Update,
 };
 
 use chess::{
-    pieces::{Behavior, EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior},
+    pieces::{Actions, Behavior, EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior},
     team::Team,
     ChessTypesPlugin,
 };
@@ -35,18 +36,22 @@ impl Plugin for GameplayPlugin {
                 (
                     systems::detect_turn,
                     systems::execute_turn,
+                    (systems::clear_actions, systems::end_turn).run_if(on_event::<TurnEvent>()),
                     (
                         systems::last_action.pipe(PatternBehavior::add_actions_system),
                         systems::last_action.pipe(EnPassantBehavior::add_actions_system),
                         systems::last_action.pipe(MimicBehavior::add_actions_system),
                         systems::last_action.pipe(RelayBehavior::add_actions_system),
-                        systems::clear_actions,
-                        systems::end_turn,
                     )
-                        .run_if(on_event::<TurnEvent>())
-                        .chain(),
+                        .run_if(
+                            any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>()),
+                        ),
                 )
                     .chain(),
             );
     }
+}
+
+pub fn any_with_component_added<T: Component>() -> impl FnMut(Query<(), Added<T>>) -> bool {
+    move |query: Query<(), Added<T>>| query.iter().count() > 0
 }

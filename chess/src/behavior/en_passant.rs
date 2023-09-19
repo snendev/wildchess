@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    board::{common::chess_board, Square},
+    board::{Board, Square},
     pieces::{Action, Actions, Orientation, Pattern, Position},
     team::Team,
 };
@@ -24,6 +24,7 @@ impl EnPassantBehavior {
         origin: &Square,
         orientation: &Orientation,
         my_team: &Team,
+        board: &Board,
         pieces: &HashMap<Square, (Option<EnPassantBehavior>, Team)>,
         last_action: Option<&Action>,
     ) -> Actions {
@@ -31,7 +32,7 @@ impl EnPassantBehavior {
             origin,
             orientation,
             my_team,
-            &chess_board().size,
+            board,
             &pieces
                 .iter()
                 .map(|(square, (_, team))| (*square, *team))
@@ -58,6 +59,7 @@ impl EnPassantBehavior {
 impl Behavior for EnPassantBehavior {
     fn add_actions_system(
         In(last_action): In<Option<Action>>,
+        board_query: Query<&Board>,
         mut piece_query: Query<(
             Option<&EnPassantBehavior>,
             &Position,
@@ -66,6 +68,10 @@ impl Behavior for EnPassantBehavior {
             &mut Actions,
         )>,
     ) {
+        let Ok(board) = board_query.get_single() else {
+            return;
+        };
+
         let en_passant_pieces = piece_query
             .iter()
             .map(|(en_passant, position, _, team, _)| {
@@ -79,6 +85,7 @@ impl Behavior for EnPassantBehavior {
                     &position.0,
                     &orientation,
                     team,
+                    board,
                     &en_passant_pieces,
                     last_action.as_ref(),
                 ));
@@ -149,6 +156,7 @@ mod test {
             &origin(),
             &Orientation::Up,
             &Team::White,
+            &Board::chess_board(),
             &en_passant_scenario_board(Team::Black),
             Some(&last_action()),
         );
@@ -167,6 +175,7 @@ mod test {
             &origin(),
             &Orientation::Up,
             &Team::White,
+            &Board::chess_board(),
             &en_passant_scenario_board(Team::White),
             Some(&last_action()),
         );
@@ -185,6 +194,7 @@ mod test {
             &origin(),
             &Orientation::Up,
             &Team::White,
+            &Board::chess_board(),
             &not_en_passant_scenario_board(),
             Some(&last_action()),
         );

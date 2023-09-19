@@ -47,7 +47,7 @@ future goal.
 
 #### Pieces
 
-#### Player Control
+##### Player Control
 
 Pieces can be controlled by a specific player or players. They can also be
 neutral, uncontrollable pieces, or neutral, mutually-controllable pieces.
@@ -91,9 +91,7 @@ number of conditions:
 - by surrounding (covering on some number of sides) an enemy piece ("custodial
   capture")
 - by "shooting" ("range capture")
-- by "maneuvering" (moving + shooting) (TODO: I thought I found a word for this
-  somewhere?); a typical example is
-  [_en passant_](https://en.wikipedia.org/wiki/En_passant)
+- by capturing "in passing" (if the last turn was moving the captured piece through the target square)
 
 Capture can be restricted only to certain kinds of enemy pieces.
 

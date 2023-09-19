@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    board::{common::chess_board, Square},
+    board::{Board, Square},
     pieces::{Action, Actions, Orientation, Pattern, Position},
     team::Team,
 };
@@ -30,6 +30,7 @@ impl From<PatternBehavior> for RelayBehavior {
 impl Behavior for RelayBehavior {
     fn add_actions_system(
         In(last_action): In<Option<Action>>,
+        board_query: Query<&Board>,
         mut piece_query: Query<(
             Option<&RelayBehavior>,
             &Position,
@@ -38,6 +39,10 @@ impl Behavior for RelayBehavior {
             &mut Actions,
         )>,
     ) {
+        let Ok(board) = board_query.get_single() else {
+            return;
+        };
+
         let pieces: HashMap<Square, Team> = piece_query
             .iter()
             .map(|(_, position, _, team, _)| (position.0, *team))
@@ -47,13 +52,11 @@ impl Behavior for RelayBehavior {
         for (relay_behavior, position, orientation, team, _) in piece_query.iter_mut() {
             if let Some(relay_behavior) = relay_behavior {
                 for pattern in relay_behavior.patterns.iter() {
-                    for scan_target in pattern.scanner.scan(
-                        &position.0,
-                        *orientation,
-                        team,
-                        &chess_board().size,
-                        &pieces,
-                    ) {
+                    for scan_target in
+                        pattern
+                            .scanner
+                            .scan(&position.0, *orientation, team, board, &pieces)
+                    {
                         if let Some(patterns) = relay_pattern_map.get_mut(&scan_target.target) {
                             patterns.push(pattern.clone());
                         } else {
@@ -70,6 +73,7 @@ impl Behavior for RelayBehavior {
                     &position.0,
                     &orientation,
                     team,
+                    board,
                     &pieces,
                     last_action.as_ref(),
                 ))

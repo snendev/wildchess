@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    board::{common::chess_board, Square},
+    board::{Board, Square},
     pieces::{Action, Actions, Orientation, Position},
     team::Team,
 };
@@ -23,6 +23,7 @@ pub struct MimicBehavior;
 impl Behavior for MimicBehavior {
     fn add_actions_system(
         In(last_action): In<Option<Action>>,
+        board_query: Query<&Board>,
         mut piece_query: Query<(
             Option<&MimicBehavior>,
             &Position,
@@ -31,6 +32,10 @@ impl Behavior for MimicBehavior {
             &mut Actions,
         )>,
     ) {
+        let Ok(board) = board_query.get_single() else {
+            return;
+        };
+
         let pieces: HashMap<Square, Team> = piece_query
             .iter()
             .map(|(_, position, _, team, _)| (position.0, *team))
@@ -43,7 +48,7 @@ impl Behavior for MimicBehavior {
                         &position.0,
                         &orientation,
                         team,
-                        &chess_board().size,
+                        board,
                         &pieces,
                         Some(&last_action),
                     )))
