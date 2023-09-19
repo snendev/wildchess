@@ -1,19 +1,19 @@
 use egui_extras::RetainedImage;
 
 use chess_gameplay::chess::{
-    pieces::{CaptureMode, Pattern, PatternBehavior},
+    pieces::{CaptureMode, Pattern},
     team::Team,
 };
 
 pub(crate) fn wild_behavior_icon(
-    behavior: &PatternBehavior,
+    patterns: &Vec<Pattern>,
     team: Team,
     is_king: bool,
 ) -> (RetainedImage, String) {
-    let svg_source = build_svg(behavior.clone(), team, is_king);
+    let svg_source = build_svg(patterns.clone(), team, is_king);
     (
         RetainedImage::from_svg_str(
-            format!("svg-{:?}-{:?}", team, behavior),
+            format!("svg-{:?}-{:?}", team, patterns),
             svg_source.as_str(),
         )
         // issues building the svg are developer-error, panic so that we can catch these errors
@@ -24,7 +24,7 @@ pub(crate) fn wild_behavior_icon(
 
 // svg generation utilities
 
-fn build_svg(behavior: PatternBehavior, team: Team, is_king: bool) -> String {
+fn build_svg(patterns: Vec<Pattern>, team: Team, is_king: bool) -> String {
     format!(
         r#"<svg
     width="1000"
@@ -40,7 +40,7 @@ fn build_svg(behavior: PatternBehavior, team: Team, is_king: bool) -> String {
     </g>
 </svg>"#,
         piece_nodes(team, is_king),
-        behavior_nodes(behavior, team),
+        behavior_nodes(patterns, team),
     )
 }
 
@@ -120,10 +120,10 @@ impl NodePosition {
         }
     }
 
-    pub fn calculate(step_x: i16, step_y: i16, radius: u8, team: Team) -> Self {
+    pub fn calculate(step_x: i16, step_y: i16, radius: usize, team: Team) -> Self {
         let x: i32 = step_x.into();
         let y: i32 = step_y.into();
-        let radius: i32 = radius.into();
+        let radius: i32 = radius.try_into().unwrap();
         let y = y * match team {
             Team::White => -1,
             Team::Black => 1,
@@ -252,9 +252,8 @@ fn pattern_nodes(pattern: Pattern, team: Team) -> String {
 }
 
 // builds a set of symbols to decorate the piece tile with patterns that describe its behavior options
-fn behavior_nodes(behavior: PatternBehavior, team: Team) -> String {
-    behavior
-        .patterns
+fn behavior_nodes(patterns: Vec<Pattern>, team: Team) -> String {
+    patterns
         .into_iter()
         .map(|pattern| pattern_nodes(pattern, team))
         .collect::<Vec<_>>()

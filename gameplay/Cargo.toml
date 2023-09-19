@@ -10,12 +10,17 @@ bevy = { version = "0.11" }
 
 [dev-dependencies]
 chess_boards = { path = "../boards" }
-wildchess_ui = { path = "../ui" }
+chess_ui = { path = "../ui" }
 bevy_geppetto = { git = "https://github.com/snendev/bevy_geppetto.git" }
 
 [[test]]
 name = "e2e-classical"
 path = "e2e/classical.rs"
+harness = false
+
+[[test]]
+name = "e2e-relay"
+path = "e2e/relay.rs"
 harness = false
 
 [[test]]

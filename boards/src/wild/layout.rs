@@ -1,10 +1,11 @@
 use rand::{thread_rng, Rng};
 
+use bevy::prelude::Commands;
+
 use chess::{
+    behavior::PatternBehavior,
     board::{File, Rank},
-    pieces::{
-        Mutation, MutationCondition, PatternBehavior, PieceDefinition, PieceSpecification, Royal,
-    },
+    pieces::{Mutation, MutationCondition, PieceDefinition, PieceSpecification, Royal},
     team::Team,
 };
 
@@ -13,17 +14,29 @@ use crate::{utils::squares_by_team, wild::PieceKind};
 pub struct WildLayout;
 
 impl WildLayout {
-    pub fn pieces() -> Vec<PieceSpecification> {
+    pub fn spawn_pieces(commands: &mut Commands) {
         let piece_set = random_pieces();
 
         let pawn_promotion_options = vec![
-            piece_set.pieces.0.clone(),
-            piece_set.pieces.1.clone(),
-            piece_set.pieces.2.clone(),
-            piece_set.pieces.3.clone(),
+            PieceDefinition {
+                behaviors: piece_set.pieces.0.clone().into(),
+                ..Default::default()
+            },
+            PieceDefinition {
+                behaviors: piece_set.pieces.1.clone().into(),
+                ..Default::default()
+            },
+            PieceDefinition {
+                behaviors: piece_set.pieces.2.clone().into(),
+                ..Default::default()
+            },
+            PieceDefinition {
+                behaviors: piece_set.pieces.3.clone().into(),
+                ..Default::default()
+            },
         ];
 
-        squares_by_team(0, [File::A, File::H].into_iter())
+        for piece in squares_by_team(0, [File::A, File::H].into_iter())
             .map(|(team, square)| {
                 PieceSpecification::new(piece(piece_set.pieces.0.clone()), team, square.into())
             })
@@ -65,20 +78,22 @@ impl WildLayout {
                     )
                 }),
             )
-            .collect()
+        {
+            piece.spawn(commands);
+        }
     }
 }
 
 fn piece(behavior: PatternBehavior) -> PieceDefinition {
     PieceDefinition {
-        behavior,
+        behaviors: behavior.into(),
         ..Default::default()
     }
 }
 
 fn king(behavior: PatternBehavior) -> PieceDefinition {
     PieceDefinition {
-        behavior,
+        behaviors: behavior.into(),
         royal: Some(Royal),
         ..Default::default()
     }
@@ -86,22 +101,17 @@ fn king(behavior: PatternBehavior) -> PieceDefinition {
 
 fn pawn(behavior: PatternBehavior, mutation: Mutation) -> PieceDefinition {
     PieceDefinition {
-        behavior,
+        behaviors: behavior.into(),
         mutation: Some(mutation),
         ..Default::default()
     }
 }
 
-fn pawn_promotion(rank: Rank, options: Vec<PatternBehavior>) -> Mutation {
+fn pawn_promotion(rank: Rank, options: Vec<PieceDefinition>) -> Mutation {
     Mutation {
         condition: MutationCondition::Rank(rank),
-        options: options
-            .into_iter()
-            .map(|behavior| PieceDefinition {
-                behavior,
-                ..Default::default()
-            })
-            .collect(),
+        to_piece: options,
+        ..Default::default()
     }
 }
 

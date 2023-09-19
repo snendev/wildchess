@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Component, In, Query},
+    prelude::{Bundle, Component, In, Query},
     reflect::Reflect,
 };
 
@@ -77,4 +77,15 @@ impl From<RelayBehavior> for PieceBehaviors {
             ..Default::default()
         }
     }
+}
+
+// Rarely will a piece need all these behaviors
+// However, this bundle is useful for calling EntityMut::remove()
+// to remove all behaviors at once
+#[derive(Clone, Debug, Default, Bundle, Reflect)]
+pub struct PieceBehaviorsBundle {
+    pub pattern: PatternBehavior,
+    pub en_passant: EnPassantBehavior,
+    pub mimic: MimicBehavior,
+    pub relay: RelayBehavior,
 }

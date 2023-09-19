@@ -128,6 +128,7 @@ impl From<&Rank> for char {
     fn from(rank: &Rank) -> Self {
         match rank.0 {
             0..=7 => char::from_digit((rank.0 + 1).into(), 10).unwrap(),
+            100 => '?',
             _ => unimplemented!("need more work to support arbitrary rank strings"),
         }
     }

@@ -1,6 +1,8 @@
 use bevy::prelude::{Component, Reflect, ReflectComponent};
 
-use crate::{behavior::PieceBehaviors, board::Rank};
+use crate::board::Rank;
+
+use super::PieceDefinition;
 
 // AKA "Promotion", but named Mutation in case of more general purposes
 #[derive(Clone, Component, Debug, Default, Reflect)]
@@ -11,8 +13,9 @@ pub struct Mutation {
     // whether mutation is forced or optional
     pub required: MutationRequired,
     // the mutation options to choose from
-    pub result: MutationResult,
-    // whether the promoted piece is Royal
+    #[reflect(ignore)]
+    pub to_piece: Vec<PieceDefinition>,
+    // whether the upgraded piece is royal
     pub to_royal: bool,
 }
 
@@ -35,16 +38,4 @@ pub enum MutationRequired {
     #[default]
     Yes,
     No,
-}
-
-#[derive(Clone, Debug, Reflect)]
-pub enum MutationResult {
-    Simple(PieceBehaviors),
-    Choice(Vec<PieceBehaviors>),
-}
-
-impl Default for MutationResult {
-    fn default() -> Self {
-        MutationResult::Simple(PieceBehaviors::default())
-    }
 }

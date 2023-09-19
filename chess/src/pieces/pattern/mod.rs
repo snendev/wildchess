@@ -36,9 +36,9 @@ pub struct Constraints {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
-pub struct FromRankConstraint(Rank);
+pub struct FromRankConstraint(pub Rank);
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
-pub struct ForbiddenTargetConstraint(Vec<Square>);
+pub struct ForbiddenTargetConstraint(pub Vec<Square>);
 
 // TODO Chains
 
@@ -245,7 +245,11 @@ impl Pattern {
         last_action: Option<&Action>,
     ) -> HashMap<Square, Action> {
         if let Some(rank_constraint) = &self.constraints.from_rank {
-            if origin.rank != rank_constraint.0 {
+            let allowed_rank = match my_team {
+                Team::White => rank_constraint.0,
+                Team::Black => rank_constraint.0.reverse(board.size.rank.0),
+            };
+            if origin.rank != allowed_rank {
                 return HashMap::new();
             }
         }

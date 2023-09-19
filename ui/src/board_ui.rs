@@ -1,5 +1,4 @@
 use bevy::{
-    ecs::query::WorldQuery,
     prelude::{Entity, EventWriter, Local, Query, ResMut, With},
     utils::HashMap,
 };
@@ -11,110 +10,23 @@ use bevy_egui::{
 
 use chess_gameplay::{
     chess::{
+        behavior::{MimicBehavior, PatternBehavior, RelayBehavior},
         board::Square,
-        pieces::{
-            Actions, CaptureMode, CaptureRules, Mutation, Pattern, PatternBehavior,
-            PieceDefinition, Position, RSymmetry, ScanMode, Step,
-        },
+        pieces::{CaptureMode, CaptureRules, Pattern, PieceDefinition, RSymmetry, ScanMode, Step},
         team::Team,
     },
     components::{Player, Turn},
     IssueMoveEvent, IssueMutationEvent,
 };
 
-use crate::{icons::PieceIcon, mutation::IntendedMutation};
-
-fn describe_step(step: Step) -> String {
-    match step {
-        Step::OneDim(_r, symmetry) => {
-            let mut directions = vec![];
-            if symmetry.intersects(RSymmetry::FORWARD) {
-                directions.push("forward");
-            }
-            if symmetry.intersects(RSymmetry::sideways()) {
-                directions.push("sideways");
-            }
-            if symmetry.intersects(RSymmetry::BACKWARD) {
-                directions.push("backward");
-            }
-            if symmetry.intersects(RSymmetry::diagonal()) {
-                directions.push("diagonal");
-            } else if symmetry.intersects(RSymmetry::diagonal_forward()) {
-                directions.push("diagonal-forward");
-            } else if symmetry.intersects(RSymmetry::diagonal_backward()) {
-                directions.push("diagonal-backward")
-            }
-            format!("{}", directions.join(", "))
-        }
-        Step::TwoDim(a, b, _symmetry) => format!("{}-by-{}", a, b,),
-    }
-}
-
-fn describe_pattern(pattern: &Pattern) -> egui::RichText {
-    egui::RichText::new(format!(
-        "- {} {}{}{}.",
-        match pattern.capture {
-            None => "move without attacking",
-            Some(CaptureRules {
-                mode: CaptureMode::CanCapture,
-                ..
-            }) => "move allowing attacks",
-            Some(CaptureRules {
-                mode: CaptureMode::MustCapture,
-                ..
-            }) => "move only to attack",
-        },
-        pattern
-            .scanner
-            .range
-            .map_or("".to_string(), |range| format!("up to {} squares ", range),),
-        describe_step(pattern.scanner.step.clone()),
-        match pattern.scanner.mode {
-            ScanMode::Walk => " until a collision",
-            ScanMode::Pierce => " through any collisions",
-            ScanMode::Hop { .. } => " after hopping over an enemy",
-        },
-    ))
-    .size(24.)
-}
+use crate::{
+    icons::PieceIcon,
+    mutation::IntendedMutation,
+    query::{PieceData, PieceQuery},
+};
 
 const SQUARE_WIDTH: f32 = 90.;
 const SQUARE_STROKE_WIDTH: f32 = 4.;
-
-#[derive(WorldQuery)]
-pub struct PieceQuery {
-    pub entity: Entity,
-    pub behavior: &'static PatternBehavior,
-    pub position: &'static Position,
-    pub team: &'static Team,
-    pub actions: &'static Actions,
-    pub mutation: Option<&'static Mutation>,
-    pub icon: Option<&'static PieceIcon>,
-}
-
-pub struct PieceData<'a> {
-    pub entity: Entity,
-    pub behavior: &'a PatternBehavior,
-    pub position: &'a Position,
-    pub team: &'a Team,
-    pub actions: &'a Actions,
-    pub mutation: Option<&'a Mutation>,
-    pub icon: Option<&'a PieceIcon>,
-}
-
-impl<'a> From<PieceQueryItem<'a>> for PieceData<'a> {
-    fn from(piece: PieceQueryItem<'a>) -> Self {
-        PieceData {
-            entity: piece.entity,
-            behavior: piece.behavior,
-            position: piece.position,
-            team: piece.team,
-            actions: piece.actions,
-            mutation: piece.mutation,
-            icon: piece.icon,
-        }
-    }
-}
 
 #[allow(clippy::too_many_arguments)]
 pub fn egui_chessboard(
@@ -193,7 +105,14 @@ pub fn egui_chessboard(
                 }
 
                 if let Some(piece) = selected_piece_data {
-                    render_pattern_description(ui, piece.behavior.clone(), piece.position.0);
+                    render_pattern_description(
+                        ui,
+                        piece.team,
+                        piece.behavior,
+                        piece.relay_behavior,
+                        piece.mimic_behavior,
+                        piece.position.0,
+                    );
                 }
             });
         });
@@ -308,7 +227,14 @@ fn render_mutation_options(
     ui.separator();
 }
 
-fn render_pattern_description(ui: &mut egui::Ui, behavior: PatternBehavior, square: Square) {
+fn render_pattern_description(
+    ui: &mut egui::Ui,
+    team: &Team,
+    patterns: Option<&PatternBehavior>,
+    relays: Option<&RelayBehavior>,
+    mimic: Option<&MimicBehavior>,
+    square: Square,
+) {
     ui.set_style(Style {
         visuals: Visuals {
             window_stroke: (4., Color32::WHITE).into(),
@@ -318,8 +244,84 @@ fn render_pattern_description(ui: &mut egui::Ui, behavior: PatternBehavior, squa
     });
 
     ui.label(egui::RichText::new(format!("Selected piece: {:?}", square)).size(24.));
-    ui.label(egui::RichText::new("Piece move patterns:").size(24.));
-    for pattern in behavior.patterns.iter() {
-        ui.label(describe_pattern(pattern));
+    if let Some(patterns) = patterns {
+        ui.label(egui::RichText::new("Piece move patterns:").size(24.));
+        for pattern in patterns.patterns.iter() {
+            ui.label(describe_pattern(pattern, team));
+        }
+    }
+    if let Some(relays) = relays {
+        ui.label(egui::RichText::new("Piece relay patterns:").size(24.));
+        for pattern in relays.patterns.iter() {
+            ui.label(describe_pattern(pattern, team));
+        }
+    }
+    if mimic.is_some() {
+        ui.label(
+            egui::RichText::new("Piece can execute the pattern used in the last turn.").size(24.),
+        );
+    }
+}
+
+fn describe_pattern(pattern: &Pattern, _team: &Team) -> egui::RichText {
+    egui::RichText::new(format!(
+        "- {} {}{}{}{}.",
+        match pattern.capture {
+            None => "move without attacking",
+            Some(CaptureRules {
+                mode: CaptureMode::CanCapture,
+                ..
+            }) => "move allowing attacks",
+            Some(CaptureRules {
+                mode: CaptureMode::MustCapture,
+                ..
+            }) => "move only to attack",
+        },
+        pattern
+            .scanner
+            .range
+            .map_or("".to_string(), |range| format!("up to {} squares ", range),),
+        describe_step(pattern.scanner.step.clone()),
+        match pattern.scanner.mode {
+            ScanMode::Walk => " until a collision",
+            ScanMode::Pierce => " through any collisions",
+            ScanMode::Hop { .. } => " after hopping over an enemy",
+        },
+        pattern
+            .constraints
+            .from_rank
+            .as_ref()
+            // TODO: use Team here
+            .map_or("".to_string(), |constraint| format!(
+                "when on rank {} (from its perspective)",
+                char::from(&constraint.0)
+            )),
+    ))
+    .size(24.)
+}
+
+fn describe_step(step: Step) -> String {
+    match step {
+        Step::OneDim(_r, symmetry) => {
+            let mut directions = vec![];
+            if symmetry.intersects(RSymmetry::FORWARD) {
+                directions.push("forward");
+            }
+            if symmetry.intersects(RSymmetry::sideways()) {
+                directions.push("sideways");
+            }
+            if symmetry.intersects(RSymmetry::BACKWARD) {
+                directions.push("backward");
+            }
+            if symmetry.intersects(RSymmetry::diagonal()) {
+                directions.push("diagonal");
+            } else if symmetry.intersects(RSymmetry::diagonal_forward()) {
+                directions.push("diagonal-forward");
+            } else if symmetry.intersects(RSymmetry::diagonal_backward()) {
+                directions.push("diagonal-backward")
+            }
+            format!("{}", directions.join(", "))
+        }
+        Step::TwoDim(a, b, _symmetry) => format!("{}-by-{}", a, b,),
     }
 }

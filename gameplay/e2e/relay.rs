@@ -17,5 +17,5 @@ fn main() {
 }
 
 fn spawn_game(mut commands: Commands) {
-    commands.spawn(Game::Chess);
+    commands.spawn(Game::SuperRelayChess);
 }

@@ -1,5 +1,5 @@
 [package]
-name = "wildchess_ui"
+name = "chess_ui"
 version = "0.1.0"
 edition = "2021"
 

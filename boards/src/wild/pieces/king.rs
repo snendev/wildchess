@@ -1,6 +1,9 @@
 use rand::Rng;
 
-use chess::pieces::{Pattern, PatternBehavior, RSymmetry, Step};
+use chess::{
+    behavior::PatternBehavior,
+    pieces::{Pattern, RSymmetry, Step},
+};
 
 use super::PieceKind;
 

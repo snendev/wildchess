@@ -1,9 +1,9 @@
-use bevy::prelude::{Bundle, Commands, Reflect};
+use bevy::prelude::{Bundle, Commands, Entity, Reflect};
 
 use crate::{behavior::PieceBehaviors, team::Team};
 
 mod mutation;
-pub use mutation::{Mutation, MutationCondition};
+pub use mutation::{Mutation, MutationCondition, MutationRequired};
 
 mod orientation;
 pub use orientation::Orientation;
@@ -72,6 +72,15 @@ pub struct PieceDefinition {
     pub royal: Option<Royal>,
 }
 
+impl PieceDefinition {
+    pub fn new(behaviors: PieceBehaviors) -> Self {
+        PieceDefinition {
+            behaviors,
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Reflect)]
 pub struct PieceSpecification {
     pub piece: PieceDefinition,
@@ -86,7 +95,7 @@ impl PieceSpecification {
         }
     }
 
-    pub fn spawn(self, commands: &mut Commands) {
+    pub fn spawn(self, commands: &mut Commands) -> Entity {
         let entity = commands
             .spawn(PieceBundle::from_state(self.start_state))
             .id();
@@ -109,5 +118,7 @@ impl PieceSpecification {
         if let Some(behavior) = self.piece.behaviors.relay {
             commands.entity(entity).insert(behavior);
         }
+
+        entity
     }
 }

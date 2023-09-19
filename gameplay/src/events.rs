@@ -3,9 +3,28 @@ use bevy::prelude::{Entity, Event};
 use chess::pieces::{Action, PieceDefinition};
 
 #[derive(Event)]
-pub enum TurnEvent {
-    Action(Entity, Action),
-    Mutation(Entity, Action, PieceDefinition),
+pub struct TurnEvent {
+    pub entity: Entity,
+    pub action: Action,
+    pub mutation: Option<PieceDefinition>,
+}
+
+impl TurnEvent {
+    pub fn action(entity: Entity, action: Action) -> Self {
+        TurnEvent {
+            entity,
+            action,
+            mutation: None,
+        }
+    }
+
+    pub fn mutation(entity: Entity, action: Action, mutated_piece: PieceDefinition) -> Self {
+        TurnEvent {
+            entity,
+            action,
+            mutation: Some(mutated_piece),
+        }
+    }
 }
 
 #[derive(Event)]

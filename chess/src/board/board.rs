@@ -40,7 +40,14 @@ impl<'a> Iterator for BoardIterator<'a> {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.current_square
-            .checked_add(self.scan_vector.0, self.scan_vector.1, &self.board.size)
+        let next_square = self.current_square.checked_add(
+            self.scan_vector.0,
+            self.scan_vector.1,
+            &self.board.size,
+        );
+        if let Some(square) = next_square {
+            self.current_square = square;
+        }
+        next_square
     }
 }

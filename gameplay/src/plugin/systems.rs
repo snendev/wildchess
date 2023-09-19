@@ -1,6 +1,9 @@
 use bevy::prelude::{Commands, Entity, EventReader, EventWriter, Query, With};
 
-use chess::pieces::{Action, Actions, Mutation, MutationCondition, PatternBehavior, Position};
+use chess::{
+    behavior::PieceBehaviorsBundle,
+    pieces::{Action, Actions, Mutation, MutationCondition, Position, Royal},
+};
 
 use crate::{
     components::{Player, Turn},
@@ -20,12 +23,12 @@ pub(crate) fn detect_turn(
             match mutation.condition {
                 MutationCondition::Rank(rank) => {
                     if rank != action.landing_square.rank {
-                        turn_writer.send(TurnEvent::Action(*entity, action.clone()));
-                    } else if mutation.options.len() == 1 {
-                        turn_writer.send(TurnEvent::Mutation(
+                        turn_writer.send(TurnEvent::action(*entity, action.clone()));
+                    } else if mutation.to_piece.len() == 1 {
+                        turn_writer.send(TurnEvent::mutation(
                             *entity,
                             action.clone(),
-                            mutation.options.first().unwrap().clone(),
+                            mutation.to_piece.first().unwrap().clone(),
                         ));
                     } else {
                         mutation_request_writer.send(RequestMutationEvent(*entity, action.clone()));
@@ -36,50 +39,87 @@ pub(crate) fn detect_turn(
                 }
             }
         } else {
-            turn_writer.send(TurnEvent::Action(*entity, action.clone()));
+            turn_writer.send(TurnEvent::action(*entity, action.clone()));
         }
     }
     for IssueMutationEvent(entity, action, piece) in mutation_reader.iter() {
-        turn_writer.send(TurnEvent::Mutation(*entity, action.clone(), piece.clone()));
+        turn_writer.send(TurnEvent::mutation(*entity, action.clone(), piece.clone()));
     }
 }
 
-pub(crate) fn execute_turn(
+pub(crate) fn execute_turn_movement(
     mut commands: Commands,
-    mut piece_query: Query<(Entity, &mut Position, &mut PatternBehavior)>,
+    mut piece_query: Query<(Entity, &mut Position)>,
     mut turn_reader: EventReader<TurnEvent>,
 ) {
     for event in turn_reader.iter() {
-        let (entity, action) = match event {
-            TurnEvent::Action(entity, action) => (*entity, action),
-            TurnEvent::Mutation(entity, action, _) => (*entity, action),
-        };
-
-        if let TurnEvent::Mutation(_, _, mutated_piece) = event {
-            if let Ok((_, _, mut behavior)) = piece_query.get_mut(entity) {
-                *behavior = mutated_piece.behavior.clone();
-                commands.entity(entity).remove::<Mutation>();
-            }
+        if let Ok((_, mut current_square)) = piece_query.get_mut(event.entity) {
+            current_square.0 = event.action.landing_square;
         }
 
-        if let Ok((_, mut current_square, _)) = piece_query.get_mut(entity) {
-            current_square.0 = action.landing_square;
-        }
-
-        for capture_square in action.captures.iter() {
+        for capture_square in event.action.captures.iter() {
             if let Some(captured_piece) =
-                piece_query
-                    .iter()
-                    .find_map(|(capture_entity, position, _)| {
-                        if *position == (*capture_square).into() && capture_entity != entity {
-                            Some(entity)
-                        } else {
-                            None
-                        }
-                    })
+                piece_query.iter().find_map(|(capture_entity, position)| {
+                    if *position == (*capture_square).into() && capture_entity != event.entity {
+                        Some(capture_entity)
+                    } else {
+                        None
+                    }
+                })
             {
                 // TODO: should this despawn, or is there a good reason to keep the entity around?
                 commands.entity(captured_piece).remove::<Position>();
+            }
+        }
+    }
+}
+
+pub(crate) fn execute_turn_mutations(
+    mut commands: Commands,
+    mut turn_reader: EventReader<TurnEvent>,
+) {
+    for event in turn_reader.iter() {
+        if let Some(mutated_piece) = &event.mutation {
+            // remove any existing behaviors and mutation
+            commands
+                .entity(event.entity)
+                .remove::<PieceBehaviorsBundle>();
+            commands.entity(event.entity).remove::<Mutation>();
+            commands.entity(event.entity).remove::<Royal>();
+
+            // add subsequent mutation if specified
+            if let Some(new_mutation) = &mutated_piece.mutation {
+                commands.entity(event.entity).insert(new_mutation.clone());
+            }
+
+            // add Royal if specified
+            if mutated_piece.royal.is_some() {
+                commands.entity(event.entity).insert(Royal);
+            }
+
+            // add all specified behaviors
+            if let Some(mutation_behavior) = &mutated_piece.behaviors.pattern {
+                commands
+                    .entity(event.entity)
+                    .insert(mutation_behavior.clone());
+            }
+
+            if let Some(mutation_behavior) = &mutated_piece.behaviors.en_passant {
+                commands
+                    .entity(event.entity)
+                    .insert(mutation_behavior.clone());
+            }
+
+            if let Some(mutation_behavior) = &mutated_piece.behaviors.mimic {
+                commands
+                    .entity(event.entity)
+                    .insert(mutation_behavior.clone());
+            }
+
+            if let Some(mutation_behavior) = &mutated_piece.behaviors.relay {
+                commands
+                    .entity(event.entity)
+                    .insert(mutation_behavior.clone());
             }
         }
     }
@@ -105,12 +145,5 @@ pub(crate) fn clear_actions(mut piece_query: Query<&mut Actions>) {
 }
 
 pub(crate) fn last_action(mut reader: EventReader<TurnEvent>) -> Option<Action> {
-    let mut last_action = None;
-    for event in reader.iter() {
-        last_action = Some(match event {
-            TurnEvent::Action(_, action) => action.clone(),
-            TurnEvent::Mutation(_, action, _) => action.clone(),
-        });
-    }
-    last_action
+    reader.iter().last().map(|event| event.action.clone())
 }

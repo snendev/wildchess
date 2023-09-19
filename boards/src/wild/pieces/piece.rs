@@ -1,11 +1,14 @@
 use rand::{thread_rng, Rng};
 
-use chess::pieces::{Pattern, PatternBehavior, RSymmetry, ScanMode, Step};
+use chess::{
+    behavior::PatternBehavior,
+    pieces::{Pattern, RSymmetry, ScanMode, Step},
+};
 
 use super::PieceKind;
 
 impl PieceKind {
-    // TODO figure out a better strategy
+    // TODO implement out a better strategy
     pub fn generate_piece(max_value: u32, current_value: &mut u32) -> PatternBehavior {
         let mut rng = thread_rng();
         let new_cost = rng.gen_range(0u32..(max_value - *current_value));

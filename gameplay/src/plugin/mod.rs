@@ -1,10 +1,11 @@
 use bevy::prelude::{
-    on_event, Added, App, Commands, Component, Condition, IntoSystem, IntoSystemConfigs, Plugin,
-    Query, Startup, Update,
+    apply_deferred, on_event, Added, App, Commands, Component, Condition, IntoSystem,
+    IntoSystemConfigs, Plugin, Query, Startup, Update,
 };
 
 use chess::{
-    pieces::{Actions, Behavior, EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior},
+    behavior::{Behavior, EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior},
+    pieces::Actions,
     team::Team,
     ChessTypesPlugin,
 };
@@ -35,8 +36,12 @@ impl Plugin for GameplayPlugin {
                 Update,
                 (
                     systems::detect_turn,
-                    systems::execute_turn,
+                    (
+                        systems::execute_turn_movement,
+                        systems::execute_turn_mutations,
+                    ),
                     (systems::clear_actions, systems::end_turn).run_if(on_event::<TurnEvent>()),
+                    apply_deferred,
                     (
                         systems::last_action.pipe(PatternBehavior::add_actions_system),
                         systems::last_action.pipe(EnPassantBehavior::add_actions_system),

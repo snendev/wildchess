@@ -1,4 +1,4 @@
-use chess::pieces::{Pattern, PatternBehavior};
+use chess::{behavior::PatternBehavior, board::Rank, pieces::Pattern};
 
 pub fn pawn() -> PatternBehavior {
     PatternBehavior::default()
@@ -8,6 +8,7 @@ pub fn pawn() -> PatternBehavior {
                 .range(1)
                 .only_captures_by_displacement(),
         )
+        .with_pattern(Pattern::forward().range(2).only_from_local_rank(Rank::TWO))
 }
 
 // no castling

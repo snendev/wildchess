@@ -11,7 +11,7 @@ use crate::{
 
 use super::{Behavior, PatternBehavior};
 
-#[derive(Clone, Component, Debug, Default, Reflect)]
+#[derive(Clone, Debug, Default, Component, PartialEq, Eq, Hash, Reflect)]
 #[reflect(Component)]
 // A behavior that "relays" patterns to scanned ally pieces
 pub struct RelayBehavior {
@@ -48,7 +48,10 @@ impl Behavior for RelayBehavior {
             .map(|(_, position, _, team, _)| (position.0, *team))
             .collect();
 
-        let mut relay_pattern_map: HashMap<Square, Vec<Pattern>> = HashMap::new();
+        // TODO: pre-filter this map so that it only stores the Squares with pieces on them
+        // additionally, this could then only push patterns that match the appropriate team
+        let mut relay_pattern_map: HashMap<Square, Vec<(Pattern, Team)>> = HashMap::new();
+
         for (relay_behavior, position, orientation, team, _) in piece_query.iter_mut() {
             if let Some(relay_behavior) = relay_behavior {
                 for pattern in relay_behavior.patterns.iter() {
@@ -58,9 +61,10 @@ impl Behavior for RelayBehavior {
                             .scan(&position.0, *orientation, team, board, &pieces)
                     {
                         if let Some(patterns) = relay_pattern_map.get_mut(&scan_target.target) {
-                            patterns.push(pattern.clone());
+                            patterns.push((pattern.clone(), *team));
                         } else {
-                            relay_pattern_map.insert(scan_target.target, vec![pattern.clone()]);
+                            relay_pattern_map
+                                .insert(scan_target.target, vec![(pattern.clone(), *team)]);
                         }
                     }
                 }
@@ -69,6 +73,16 @@ impl Behavior for RelayBehavior {
 
         for (_, position, orientation, team, mut actions) in piece_query.iter_mut() {
             if let Some(patterns) = relay_pattern_map.remove(&position.0) {
+                let patterns = patterns
+                    .into_iter()
+                    .filter_map(|(pattern, source_team)| {
+                        if *team == source_team {
+                            Some(pattern)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
                 actions.extend(PatternBehavior::new(patterns).search(
                     &position.0,
                     &orientation,

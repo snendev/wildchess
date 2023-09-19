@@ -6,9 +6,10 @@ mod icons;
 pub use icons::PieceIcon;
 
 pub(crate) mod mutation;
+pub(crate) mod query;
 
-mod ui;
-use ui::egui_chessboard;
+mod board_ui;
+use board_ui::egui_chessboard;
 
 pub struct EguiBoardUIPlugin;
 
