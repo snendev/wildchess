@@ -3,7 +3,8 @@ use chess::board::Board;
 
 use crate::{
     classical::{ClassicalIdentity, ClassicalLayout},
-    relay::RelayLayout,
+    knight_relay::KnightRelayLayout,
+    super_relay::SuperRelayLayout,
     wild::WildLayout,
     Game,
 };
@@ -22,13 +23,16 @@ impl Plugin for BoardPlugin {
 fn spawn_game_entities(mut commands: Commands, query: Query<&Game, Added<Game>>) {
     for added_game in query.iter() {
         let board = match added_game {
-            Game::Chess | Game::WildChess | Game::SuperRelayChess => Board::chess_board(),
+            Game::Chess | Game::WildChess | Game::KnightRelayChess | Game::SuperRelayChess => {
+                Board::chess_board()
+            }
         };
         commands.spawn(board);
         match added_game {
             Game::Chess => ClassicalLayout::spawn_pieces(&mut commands),
             Game::WildChess => WildLayout::spawn_pieces(&mut commands),
-            Game::SuperRelayChess => RelayLayout::spawn_pieces(&mut commands),
+            Game::KnightRelayChess => KnightRelayLayout::spawn_pieces(&mut commands),
+            Game::SuperRelayChess => SuperRelayLayout::spawn_pieces(&mut commands),
         }
     }
 }

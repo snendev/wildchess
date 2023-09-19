@@ -1,7 +1,7 @@
 use bevy::prelude::Commands;
 
 use chess::{
-    behavior::RelayBehavior,
+    behavior::{PieceBehaviors, RelayBehavior},
     board::{File, Rank},
     pieces::{Mutation, MutationCondition, PieceDefinition, PieceSpecification, Royal},
     team::Team,
@@ -12,9 +12,9 @@ use crate::{
     utils::squares_by_team,
 };
 
-pub(crate) struct RelayLayout;
+pub(crate) struct KnightRelayLayout;
 
-impl RelayLayout {
+impl KnightRelayLayout {
     pub(crate) fn spawn_pieces(commands: &mut Commands) {
         for (piece, identity) in squares_by_team(0, [File::A, File::H].into_iter())
             .map(|(team, square)| {
@@ -79,7 +79,7 @@ impl RelayLayout {
 
 fn king() -> PieceDefinition {
     PieceDefinition {
-        behaviors: RelayBehavior::from(pieces::king()).into(),
+        behaviors: pieces::king().into(),
         royal: Some(Royal),
         ..Default::default()
     }
@@ -87,7 +87,7 @@ fn king() -> PieceDefinition {
 
 fn pawn(promotion_rank: Rank) -> PieceDefinition {
     PieceDefinition {
-        behaviors: RelayBehavior::from(pieces::pawn()).into(),
+        behaviors: pieces::pawn().into(),
         mutation: Some(Mutation {
             condition: MutationCondition::Rank(promotion_rank),
             to_piece: vec![queen(), rook(), bishop(), knight()],
@@ -98,17 +98,22 @@ fn pawn(promotion_rank: Rank) -> PieceDefinition {
 }
 
 fn rook() -> PieceDefinition {
-    PieceDefinition::new(RelayBehavior::from(pieces::rook()).into())
+    PieceDefinition::new(pieces::rook().into())
 }
 
 fn knight() -> PieceDefinition {
-    PieceDefinition::new(RelayBehavior::from(pieces::knight()).into())
+    let pattern_behavior = pieces::knight();
+    PieceDefinition::new(PieceBehaviors {
+        relay: Some(RelayBehavior::from(pattern_behavior.clone())),
+        pattern: Some(pattern_behavior),
+        ..Default::default()
+    })
 }
 
 fn bishop() -> PieceDefinition {
-    PieceDefinition::new(RelayBehavior::from(pieces::bishop()).into())
+    PieceDefinition::new(pieces::bishop().into())
 }
 
 fn queen() -> PieceDefinition {
-    PieceDefinition::new(RelayBehavior::from(pieces::queen()).into())
+    PieceDefinition::new(pieces::queen().into())
 }

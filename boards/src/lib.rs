@@ -1,7 +1,8 @@
 use bevy::prelude::Component;
 
 pub mod classical;
-pub mod relay;
+pub mod knight_relay;
+pub mod super_relay;
 pub mod wild;
 
 mod plugin;
@@ -15,5 +16,8 @@ pub enum Game {
     #[default]
     WildChess,
     SuperRelayChess,
+    KnightRelayChess,
+    // Shogi,    // TODO
     // Checkers, // TODO
+    //
 }

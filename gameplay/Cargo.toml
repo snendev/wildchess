@@ -19,8 +19,13 @@ path = "e2e/classical.rs"
 harness = false
 
 [[test]]
-name = "e2e-relay"
-path = "e2e/relay.rs"
+name = "e2e-knight-relay"
+path = "e2e/knight_relay.rs"
+harness = false
+
+[[test]]
+name = "e2e-super-relay"
+path = "e2e/super_relay.rs"
 harness = false
 
 [[test]]
