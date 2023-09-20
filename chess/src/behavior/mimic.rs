@@ -13,10 +13,6 @@ use super::Behavior;
 
 #[derive(Clone, Copy, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
-// WIP: Too many problems around target squares right now
-// For example, RotationBehavior currently does not allow rotating towards the right
-// from the H file
-// Multiple actions on the same square are also not yet supported
 pub struct MimicBehavior;
 
 // Enable performing whatever Pattern was executed in the last turn

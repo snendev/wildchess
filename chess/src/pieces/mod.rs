@@ -1,4 +1,4 @@
-use bevy::prelude::{Bundle, Commands, Entity, Reflect};
+use bevy::prelude::{Bundle, Commands, Entity, Name, Reflect};
 
 use crate::{behavior::PieceBehaviors, team::Team};
 
@@ -7,13 +7,6 @@ pub use mutation::{Mutation, MutationCondition, MutationRequired};
 
 mod orientation;
 pub use orientation::Orientation;
-
-// TODO: move Pattern code
-mod pattern;
-pub use pattern::{
-    ABSymmetry, CaptureMode, CapturePattern, CaptureRules, Constraints, ForbiddenTargetConstraint,
-    FromRankConstraint, Pattern, RSymmetry, ScanMode, ScanTarget, Scanner, Step, TargetKind,
-};
 
 mod position;
 pub use position::Position;
@@ -96,8 +89,18 @@ impl PieceSpecification {
     }
 
     pub fn spawn(self, commands: &mut Commands) -> Entity {
+        let name = Name::new(format!(
+            "{:?} {}-{}",
+            self.start_state.team,
+            self.start_state.position.0,
+            if self.piece.royal.is_some() {
+                "King"
+            } else {
+                "Piece"
+            }
+        ));
         let entity = commands
-            .spawn(PieceBundle::from_state(self.start_state))
+            .spawn((PieceBundle::from_state(self.start_state), name))
             .id();
 
         if self.piece.royal.is_some() {

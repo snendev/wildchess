@@ -2,7 +2,7 @@ use rand::{thread_rng, Rng};
 
 use chess::{
     behavior::PatternBehavior,
-    pieces::{Pattern, RSymmetry, ScanMode, Step},
+    pattern::{Pattern, RSymmetry, ScanMode, Step},
 };
 
 use super::PieceKind;

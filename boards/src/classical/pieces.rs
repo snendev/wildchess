@@ -1,4 +1,4 @@
-use chess::{behavior::PatternBehavior, board::Rank, pieces::Pattern};
+use chess::{behavior::PatternBehavior, board::Rank, pattern::Pattern};
 
 pub fn pawn() -> PatternBehavior {
     PatternBehavior::default()

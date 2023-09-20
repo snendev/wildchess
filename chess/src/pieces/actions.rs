@@ -3,10 +3,7 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::{
-    board::Square,
-    pieces::{Orientation, Pattern},
-};
+use crate::{board::Square, pattern::Pattern, pieces::Orientation};
 
 #[derive(Clone, Debug, Default, PartialEq, Reflect)]
 pub struct Action {

@@ -8,7 +8,8 @@ use egui_extras::RetainedImage;
 
 use chess_gameplay::chess::{
     behavior::{PatternBehavior, RelayBehavior},
-    pieces::{Pattern, Royal},
+    pattern::Pattern,
+    pieces::Royal,
     team::Team,
 };
 

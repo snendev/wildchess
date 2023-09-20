@@ -12,7 +12,8 @@ use chess_gameplay::{
     chess::{
         behavior::{MimicBehavior, PatternBehavior, RelayBehavior},
         board::Square,
-        pieces::{CaptureMode, CaptureRules, Pattern, PieceDefinition, RSymmetry, ScanMode, Step},
+        pattern::{CaptureMode, CaptureRules, Pattern, RSymmetry, ScanMode, Step},
+        pieces::PieceDefinition,
         team::Team,
     },
     components::{Player, Turn},
