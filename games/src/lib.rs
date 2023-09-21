@@ -2,8 +2,7 @@ pub use chess;
 
 pub mod components;
 
-mod events;
-pub use events::{IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent};
-
 mod plugin;
-pub use plugin::GameplayPlugin;
+pub use plugin::{
+    GameplayPlugin, IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent,
+};

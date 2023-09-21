@@ -1,6 +1,9 @@
 use bevy::prelude::{Entity, Event};
 
-use chess::pieces::{Action, PieceDefinition};
+use chess::{
+    pieces::{Action, PieceDefinition},
+    team::Team,
+};
 
 #[derive(Event)]
 pub struct TurnEvent {
@@ -35,3 +38,8 @@ pub struct IssueMoveEvent(pub Entity, pub Action);
 pub struct RequestMutationEvent(pub Entity, pub Action);
 #[derive(Clone, Event)]
 pub struct IssueMutationEvent(pub Entity, pub Action, pub PieceDefinition);
+
+#[derive(Clone, Event)]
+pub struct GameoverEvent {
+    pub winner: Team,
+}

@@ -1,4 +1,6 @@
-use bevy::prelude::{Added, Commands, Entity, EventReader, EventWriter, Query, Res, Time, With};
+use bevy::prelude::{
+    info, Added, Commands, Entity, EventReader, EventWriter, Query, Res, Time, With,
+};
 
 use chess::{
     behavior::PieceBehaviorsBundle,
@@ -8,10 +10,10 @@ use chess::{
 };
 use layouts::{ClassicalLayout, KnightRelayLayout, SuperRelayLayout, WildLayout};
 
-use crate::{
-    components::{Clock, ClockConfiguration, GameBoard, Player, Turn, WinCondition},
-    events::{IssueMoveEvent, RequestMutationEvent},
-    IssueMutationEvent, TurnEvent,
+use crate::components::{Clock, ClockConfiguration, GameBoard, Player, Turn, WinCondition};
+
+use super::{
+    events::GameoverEvent, IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent,
 };
 
 pub(super) fn detect_turn(
@@ -129,15 +131,19 @@ pub(super) fn execute_turn_mutations(
 }
 
 pub(super) fn end_turn(
-    mut players_query: Query<(Entity, &mut Clock, Option<&Turn>), With<Player>>,
+    mut players_query: Query<(Entity, Option<&mut Clock>, Option<&Turn>), With<Player>>,
     mut commands: Commands,
 ) {
-    for (player, mut clock, my_turn) in players_query.iter_mut() {
+    for (player, clock, my_turn) in players_query.iter_mut() {
         if my_turn.is_some() {
-            clock.pause();
+            if let Some(mut clock) = clock {
+                clock.pause();
+            }
             commands.entity(player).remove::<Turn>();
         } else {
-            clock.unpause();
+            if let Some(mut clock) = clock {
+                clock.unpause();
+            }
             commands.entity(player).insert(Turn);
         }
     }
@@ -154,9 +160,66 @@ pub(super) fn last_action(mut reader: EventReader<TurnEvent>) -> Option<Action> 
 }
 
 pub(super) fn detect_gameover(
-    game_query: Query<Entity, &WinCondition>,
-    royal_query: Query<(&Position, &Team), With<Royal>>,
+    game_query: Query<(Entity, &WinCondition)>,
+    royal_query: Query<(&Team, Option<&Position>), With<Royal>>,
+    mut gameover_writer: EventWriter<GameoverEvent>,
 ) {
+    // TODO: enable running multiple boards
+    let Ok((_game_entity, win_condition)) = game_query.get_single() else { return; };
+
+    match win_condition {
+        WinCondition::RoyalCaptureAll => {
+            let all_captured = |current_team: Team| {
+                royal_query
+                    .iter()
+                    .filter(|(team, position)| **team == current_team && position.is_some())
+                    .count()
+                    == 0
+            };
+            if all_captured(Team::White) {
+                gameover_writer.send(GameoverEvent {
+                    winner: Team::Black,
+                })
+            }
+            if all_captured(Team::Black) {
+                gameover_writer.send(GameoverEvent {
+                    winner: Team::White,
+                })
+            }
+        }
+        WinCondition::RoyalCapture => {
+            let any_captured = |current_team: Team| {
+                royal_query
+                    .iter()
+                    .filter(|(team, position)| **team == current_team && position.is_none())
+                    .count()
+                    > 0
+            };
+            if any_captured(Team::White) {
+                gameover_writer.send(GameoverEvent {
+                    winner: Team::Black,
+                })
+            }
+            if any_captured(Team::Black) {
+                gameover_writer.send(GameoverEvent {
+                    winner: Team::White,
+                })
+            }
+        }
+        WinCondition::RaceToRank(_rank) => {
+            unimplemented!("TODO: Implement Racing Kings!")
+        }
+        WinCondition::RaceToRegion(_goal_squares) => {
+            unimplemented!("TODO: Implement Racing Kings!")
+        }
+    }
+}
+
+pub fn log_gameover_events(mut gameovers: EventReader<GameoverEvent>) {
+    for gameover in gameovers.iter() {
+        info!("Team {:?} won!", gameover.winner);
+        // TODO: display this somewhere
+    }
 }
 
 pub(super) fn spawn_game_entities(

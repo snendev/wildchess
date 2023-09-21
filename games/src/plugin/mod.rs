@@ -10,7 +10,10 @@ use chess::{
 };
 use layouts::ClassicalIdentity;
 
-use crate::{IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent};
+mod events;
+pub use events::{IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent};
+
+use self::events::GameoverEvent;
 
 mod systems;
 
@@ -23,6 +26,7 @@ impl Plugin for GameplayPlugin {
             .add_event::<IssueMoveEvent>()
             .add_event::<IssueMutationEvent>()
             .add_event::<RequestMutationEvent>()
+            .add_event::<GameoverEvent>()
             .add_systems(
                 Update,
                 (
@@ -35,8 +39,13 @@ impl Plugin for GameplayPlugin {
                     apply_deferred,
                     (
                         systems::tick_clocks,
-                        systems::detect_gameover,
+                        systems::detect_gameover.run_if(on_event::<TurnEvent>()),
+                        systems::log_gameover_events.after(systems::detect_gameover),
                         (
+                            // TODO: parallelize these by buffering actions inside Behavior first
+                            // and then joining in a later system
+                            // it could additionally be good to specify some
+                            // BehaviorsPlugin<M, S: IntoSystem<Action, (), M>>
                             systems::last_action.pipe(PatternBehavior::add_actions_system),
                             systems::last_action.pipe(EnPassantBehavior::add_actions_system),
                             systems::last_action.pipe(MimicBehavior::add_actions_system),
