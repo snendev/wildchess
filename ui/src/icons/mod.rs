@@ -3,15 +3,15 @@ use bevy::{
     utils::HashMap,
 };
 
-use chess_boards::classical::ClassicalIdentity;
 use egui_extras::RetainedImage;
 
-use chess_gameplay::chess::{
+use games::chess::{
     behavior::{PatternBehavior, RelayBehavior},
     pattern::Pattern,
     pieces::Royal,
     team::Team,
 };
+use layouts::ClassicalIdentity;
 
 mod classical;
 

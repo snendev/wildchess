@@ -42,7 +42,7 @@ and a second set of pieces are moved otherwise.
 Boards are most often square grids, but size and shape can vary. For example,
 Chess is 8x8, Shogi is 9x9; additionally, Chess can be played where the `a` and
 `h` files "wrap" around. Boards can also be hexagonal or other regular shapes.
-For now, this will only consider orthogonal boards, but exploring more is a
+For now, this will only consider orthogonal layouts, but exploring more is a
 future goal.
 
 #### Pieces
@@ -91,7 +91,8 @@ number of conditions:
 - by surrounding (covering on some number of sides) an enemy piece ("custodial
   capture")
 - by "shooting" ("range capture")
-- by capturing "in passing" (if the last turn was moving the captured piece through the target square)
+- by capturing "in passing" (if the last turn was moving the captured piece
+  through the target square)
 
 Capture can be restricted only to certain kinds of enemy pieces.
 
@@ -136,4 +137,10 @@ to implement this much, but that might take a while.)
 
 ### Implementation
 
-TODO
+#### Pieces
+
+Pieces are specified using a combination of components that
+
+#### Board / rule configurations
+
+Board layouts are currently implemented in the `layouts` directory.

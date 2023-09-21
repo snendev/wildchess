@@ -8,7 +8,7 @@ use bevy_egui::{
     EguiContexts,
 };
 
-use chess_gameplay::{
+use games::{
     chess::{
         behavior::{MimicBehavior, PatternBehavior, RelayBehavior},
         board::Square,

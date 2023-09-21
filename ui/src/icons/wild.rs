@@ -1,6 +1,6 @@
 use egui_extras::RetainedImage;
 
-use chess_gameplay::chess::{
+use games::chess::{
     pattern::{CaptureMode, Pattern},
     team::Team,
 };

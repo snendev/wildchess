@@ -2,6 +2,8 @@ use bevy::prelude::{App, IntoSystemConfigs, Plugin, SystemSet, Update};
 
 pub use bevy_egui;
 
+mod egui;
+
 mod icons;
 pub use icons::PieceIcon;
 

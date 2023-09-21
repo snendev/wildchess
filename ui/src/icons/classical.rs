@@ -1,5 +1,5 @@
-use chess_boards::classical::ClassicalIdentity::{self, Bishop, King, Knight, Pawn, Queen, Rook};
-use chess_gameplay::chess::team::Team::{self, Black, White};
+use games::chess::team::Team::{self, Black, White};
+use layouts::ClassicalIdentity::{self, Bishop, King, Knight, Pawn, Queen, Rook};
 
 pub(crate) fn piece_unicode(piece: &ClassicalIdentity, team: &Team) -> char {
     match (piece, team) {

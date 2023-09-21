@@ -1,6 +1,6 @@
 use bevy::{ecs::query::WorldQuery, prelude::Entity};
 
-use chess_gameplay::chess::{
+use games::chess::{
     behavior::{MimicBehavior, PatternBehavior, RelayBehavior},
     pieces::{Actions, Mutation, Position},
     team::Team,

@@ -1,6 +1,6 @@
 use bevy::prelude::{Entity, EventReader, Query, ResMut, Resource};
 
-use chess_gameplay::{
+use games::{
     chess::{
         pieces::{Action, Mutation, PieceDefinition, Royal},
         team::Team,
@@ -30,7 +30,8 @@ pub fn read_mutation_options(
                     .map(move |option| {
                         // TODO: don't construct this unnecessarily
                         let empty = Vec::new();
-                        let patterns_to_display = if let Some(behavior) = &option.behaviors.pattern {
+                        let patterns_to_display = if let Some(behavior) = &option.behaviors.pattern
+                        {
                             &behavior.patterns
                         } else if let Some(behavior) = &option.behaviors.relay {
                             &behavior.patterns

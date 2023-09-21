@@ -15,6 +15,7 @@ impl File {
     pub const F: Self = File(5);
     pub const G: Self = File(6);
     pub const H: Self = File(7);
+    pub const I: Self = File(8);
 }
 
 #[derive(Debug, Error)]
@@ -36,6 +37,7 @@ impl TryFrom<char> for File {
             'f' => Ok(File::F),
             'g' => Ok(File::G),
             'h' => Ok(File::H),
+            'i' => Ok(File::I),
             _ => Err(AnyError::new(FileParseError::Char(value))),
         }
     }
@@ -52,6 +54,7 @@ impl From<&File> for char {
             File(5) => 'f',
             File(6) => 'g',
             File(7) => 'h',
+            File(8) => 'i',
             _ => 'x',
         }
     }
@@ -92,6 +95,7 @@ impl Rank {
     pub const SIX: Self = Rank(5);
     pub const SEVEN: Self = Rank(6);
     pub const EIGHT: Self = Rank(7);
+    pub const NINE: Self = Rank(8);
 
     pub fn reverse(&self, height: u16) -> Rank {
         Rank(height - self.0)
@@ -119,6 +123,7 @@ impl TryFrom<char> for Rank {
             '6' => Ok(Rank(5)),
             '7' => Ok(Rank(6)),
             '8' => Ok(Rank(7)),
+            '9' => Ok(Rank(8)),
             _ => Err(AnyError::new(RankParseError::Char(value))),
         }
     }
@@ -127,7 +132,7 @@ impl TryFrom<char> for Rank {
 impl From<&Rank> for char {
     fn from(rank: &Rank) -> Self {
         match rank.0 {
-            0..=7 => char::from_digit((rank.0 + 1).into(), 10).unwrap(),
+            0..=8 => char::from_digit((rank.0 + 1).into(), 10).unwrap(),
             100 => '?',
             _ => unimplemented!("need more work to support arbitrary rank strings"),
         }
@@ -147,6 +152,7 @@ impl TryFrom<u16> for Rank {
             5 => Ok(Rank::SIX),
             6 => Ok(Rank::SEVEN),
             7 => Ok(Rank::EIGHT),
+            8 => Ok(Rank::NINE),
             _ => Err(AnyError::new(RankParseError::Int(value))),
         }
     }
@@ -211,6 +217,12 @@ impl TryFrom<&str> for Square {
 }
 
 impl Square {
+    // whether this is an "even" square in the grid
+    // where (0,0) (even) is the bottom-left corner
+    pub fn is_even(&self) -> bool {
+        (self.file.0 + self.rank.0) % 2 == 0
+    }
+
     fn is_in_bounds(&self, max: &Square) -> bool {
         self.rank <= max.rank && self.file <= max.file
     }

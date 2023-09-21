@@ -1,0 +1,34 @@
+[package]
+name = "games"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chess = { path = "../chess" }
+layouts = { path = "../layouts" }
+bevy = { version = "0.11" }
+
+[dev-dependencies]
+layouts = { path = "../layouts" }
+chess_ui = { path = "../ui" }
+bevy_geppetto = { git = "https://github.com/snendev/bevy_geppetto.git" }
+
+[[test]]
+name = "e2e-classical"
+path = "e2e/classical.rs"
+harness = false
+
+[[test]]
+name = "e2e-knight-relay"
+path = "e2e/knight_relay.rs"
+harness = false
+
+[[test]]
+name = "e2e-super-relay"
+path = "e2e/super_relay.rs"
+harness = false
+
+[[test]]
+name = "e2e-wild"
+path = "e2e/wild.rs"
+harness = false
