@@ -98,7 +98,9 @@ pub(crate) fn egui_chessboard(
                 }
                 ui.add_space(100.);
 
-                ui.label(RichText::new(format!("{:?}'s turn.", team_with_turn)).size(36.));
+                if let Some(team_with_turn) = team_with_turn {
+                    ui.label(RichText::new(format!("{:?}'s turn.", team_with_turn)).size(36.));
+                }
 
                 let mut selected_mutation = None;
                 if let Some((_, _, icons)) = intended_mutation.0.as_ref() {
