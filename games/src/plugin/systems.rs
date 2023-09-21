@@ -9,7 +9,7 @@ use chess::{
 use layouts::{ClassicalLayout, KnightRelayLayout, SuperRelayLayout, WildLayout};
 
 use crate::{
-    components::{Clock, GameBoard, Player, PlayerBundle, Turn, WinCondition},
+    components::{Clock, ClockConfiguration, GameBoard, Player, Turn, WinCondition},
     events::{IssueMoveEvent, RequestMutationEvent},
     IssueMutationEvent, TurnEvent,
 };
@@ -161,9 +161,9 @@ pub(super) fn detect_gameover(
 
 pub(super) fn spawn_game_entities(
     mut commands: Commands,
-    query: Query<(Entity, &GameBoard), Added<GameBoard>>,
+    query: Query<(Entity, &GameBoard, Option<&ClockConfiguration>), Added<GameBoard>>,
 ) {
-    for (entity, game_board) in query.iter() {
+    for (entity, game_board, clock) in query.iter() {
         let board = match game_board {
             GameBoard::Chess
             | GameBoard::WildChess
@@ -171,8 +171,16 @@ pub(super) fn spawn_game_entities(
             | GameBoard::SuperRelayChess => Board::chess_board(),
         };
         commands.entity(entity).insert(board);
-        commands.spawn((PlayerBundle::new(Team::White), Turn));
-        commands.spawn((PlayerBundle::new(Team::Black)));
+
+        let mut white = commands.spawn((Player, Team::White, Turn));
+        if let Some(ClockConfiguration { clock }) = clock {
+            white.insert(clock.clone());
+        }
+        let mut black = commands.spawn((Player, Team::Black));
+        if let Some(ClockConfiguration { clock }) = clock {
+            black.insert(clock.clone());
+        }
+
         match game_board {
             GameBoard::Chess => ClassicalLayout::spawn_pieces(&mut commands),
             GameBoard::WildChess => WildLayout::spawn_pieces(&mut commands),

@@ -1,4 +1,7 @@
-use bevy::prelude::{Bundle, Commands, Entity, Name, Reflect};
+use bevy::{
+    ecs::system::EntityCommands,
+    prelude::{Bundle, Commands, Name, Reflect},
+};
 
 use crate::{behavior::PieceBehaviors, team::Team};
 
@@ -88,7 +91,10 @@ impl PieceSpecification {
         }
     }
 
-    pub fn spawn(self, commands: &mut Commands) -> Entity {
+    pub fn spawn<'w, 's, 'a>(
+        self,
+        commands: &'a mut Commands<'w, 's>,
+    ) -> EntityCommands<'w, 's, 'a> {
         let name = Name::new(format!(
             "{:?} {}-{}",
             self.start_state.team,
@@ -99,29 +105,28 @@ impl PieceSpecification {
                 "Piece"
             }
         ));
-        let entity = commands
-            .spawn((PieceBundle::from_state(self.start_state), name))
-            .id();
+
+        let mut builder = commands.spawn((PieceBundle::from_state(self.start_state), name));
 
         if self.piece.royal.is_some() {
-            commands.entity(entity).insert(Royal);
+            builder.insert(Royal);
         }
         if let Some(mutation) = self.piece.mutation {
-            commands.entity(entity).insert(mutation);
+            builder.insert(mutation);
         }
         if let Some(behavior) = self.piece.behaviors.en_passant {
-            commands.entity(entity).insert(behavior);
+            builder.insert(behavior);
         }
         if let Some(behavior) = self.piece.behaviors.mimic {
-            commands.entity(entity).insert(behavior);
+            builder.insert(behavior);
         }
         if let Some(behavior) = self.piece.behaviors.pattern {
-            commands.entity(entity).insert(behavior.clone());
+            builder.insert(behavior.clone());
         }
         if let Some(behavior) = self.piece.behaviors.relay {
-            commands.entity(entity).insert(behavior);
+            builder.insert(behavior);
         }
 
-        entity
+        builder
     }
 }

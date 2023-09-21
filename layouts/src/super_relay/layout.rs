@@ -71,8 +71,7 @@ impl SuperRelayLayout {
                 }),
             )
         {
-            let entity = piece.spawn(commands);
-            commands.entity(entity).insert(identity);
+            piece.spawn(commands).insert(identity);
         }
     }
 }

@@ -9,6 +9,14 @@ use games::chess::{
 use crate::PieceIcon;
 
 #[derive(WorldQuery)]
+pub struct BehaviorsQuery {
+    pub behavior: Option<&'static PatternBehavior>,
+    pub relay_behavior: Option<&'static RelayBehavior>,
+    pub mimic_behavior: Option<&'static MimicBehavior>,
+    pub mutation: Option<&'static Mutation>,
+}
+
+#[derive(WorldQuery)]
 pub struct PieceQuery {
     pub entity: Entity,
     pub position: &'static Position,
@@ -26,7 +34,7 @@ pub struct PieceData<'a> {
     pub position: &'a Position,
     pub team: &'a Team,
     pub actions: &'a Actions,
-    pub behavior: Option<&'a PatternBehavior>,
+    pub pattern_behavior: Option<&'a PatternBehavior>,
     pub relay_behavior: Option<&'a RelayBehavior>,
     pub mimic_behavior: Option<&'a MimicBehavior>,
     pub mutation: Option<&'a Mutation>,
@@ -40,7 +48,7 @@ impl<'a> From<PieceQueryItem<'a>> for PieceData<'a> {
             position: piece.position,
             team: piece.team,
             actions: piece.actions,
-            behavior: piece.behavior,
+            pattern_behavior: piece.behavior,
             relay_behavior: piece.relay_behavior,
             mimic_behavior: piece.mimic_behavior,
             mutation: piece.mutation,

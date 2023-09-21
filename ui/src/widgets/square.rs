@@ -4,7 +4,7 @@ use games::chess::board::Square;
 
 use crate::{icons::PieceIcon, query::PieceData};
 
-pub enum SquareHighlight {
+enum SquareHighlight {
     Selected,
     Targetable,
     CaptureTargetable,
@@ -31,24 +31,17 @@ impl SquareHighlight {
             None
         }
     }
-
-    pub fn color(self) -> Color32 {
-        match self {
-            SquareHighlight::Selected => Color32::from_rgb(140, 140, 20),
-            SquareHighlight::Targetable => Color32::from_rgba_unmultiplied(180, 70, 70, 130),
-            SquareHighlight::CaptureTargetable => Color32::from_rgba_unmultiplied(70, 70, 180, 130),
-        }
-    }
 }
 
 pub struct SquareWidget<'a> {
     square: Square,
     icon: Option<&'a PieceIcon>,
     highlight: Option<SquareHighlight>,
+    // TODO: scale: f32,
 }
 
 impl<'a> SquareWidget<'a> {
-    const WIDTH: f32 = 90.;
+    pub const WIDTH: f32 = 90.;
     const STROKE_WIDTH: f32 = 4.;
     const DARK_BG: Color32 = Color32::from_rgb(181, 136, 99);
     const LIGHT_BG: Color32 = Color32::from_rgb(240, 217, 181);
@@ -92,9 +85,7 @@ impl<'a> SquareWidget<'a> {
 impl<'a> Widget for SquareWidget<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
         let context = ui.ctx();
-
         let background_color = self.background_color();
-
         let mut button = match self.icon.unwrap_or(&PieceIcon::Character(' ')) {
             PieceIcon::Svg { image, .. } => {
                 // TODO: why is this not * 2.?

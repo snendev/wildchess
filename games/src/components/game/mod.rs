@@ -2,7 +2,9 @@ use bevy::prelude::{Commands, Component};
 
 use chess::board::{Rank, Square};
 
-#[derive(Clone, Component, Debug, Default)]
+use super::Clock;
+
+#[derive(Clone, Copy, Component, Debug, Default)]
 pub enum GameBoard {
     Chess,
     #[default]
@@ -43,10 +45,16 @@ pub enum WinCondition {
     RaceToRegion(Vec<Square>),
 }
 
+#[derive(Clone, Component, Debug, Default)]
+pub struct ClockConfiguration {
+    pub clock: Clock,
+}
+
 #[derive(Default)]
 pub struct GameSpawner {
     board: GameBoard,
     win_condition: WinCondition,
+    clock: Option<ClockConfiguration>,
     atomic: Option<Atomic>,
     crazyhouse: Option<Crazyhouse>,
     anti: Option<AntiGame>,
@@ -60,6 +68,12 @@ impl GameSpawner {
             win_condition,
             ..Default::default()
         }
+    }
+
+    #[must_use]
+    pub fn with_clock(mut self, clock: Clock) -> Self {
+        self.clock = Some(ClockConfiguration { clock });
+        self
     }
 
     #[must_use]
@@ -82,14 +96,18 @@ impl GameSpawner {
 
     pub fn spawn(self, commands: &mut Commands) {
         let entity = commands.spawn((self.board, self.win_condition)).id();
+        let mut builder = commands.entity(entity);
+        if let Some(clock) = self.clock {
+            builder.insert(clock);
+        }
         if self.atomic.is_some() {
-            commands.entity(entity).insert(Atomic);
+            builder.insert(Atomic);
         }
         if self.crazyhouse.is_some() {
-            commands.entity(entity).insert(Crazyhouse);
+            builder.insert(Crazyhouse);
         }
         if self.anti.is_some() {
-            commands.entity(entity).insert(AntiGame);
+            builder.insert(AntiGame);
         }
     }
 }
