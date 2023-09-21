@@ -139,8 +139,16 @@ to implement this much, but that might take a while.)
 
 #### Pieces
 
-Pieces are specified using a combination of components that
-
 #### Board / rule configurations
 
-Board layouts are currently implemented in the `layouts` directory.
+### Upcoming TODOs
+
+- Castling
+- Promotion icon changes
+- Gameover UI
+- Racing Kings Win Condition
+- Integrate Orientation more into the logic (will help extend to 4-player)
+- Behavior upgrades: Capture-chain (continue with pattern on capture) and
+  composed behaviors (e.g. pattern followed by orthogonal pattern)
+- Parameterizable wild configuration
+- Wild clock presets
