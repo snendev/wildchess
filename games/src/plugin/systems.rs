@@ -3,9 +3,10 @@ use bevy::prelude::{
 };
 
 use chess::{
+    actions::{Action, Actions},
     behavior::PieceBehaviorsBundle,
     board::Board,
-    pieces::{Action, Actions, Mutation, MutationCondition, Position, Royal},
+    pieces::{Mutation, MutationCondition, Position, Royal},
     team::Team,
 };
 use layouts::{ClassicalLayout, KnightRelayLayout, SuperRelayLayout, WildLayout};

@@ -4,8 +4,9 @@ use bevy::{
 };
 
 use crate::{
+    actions::{Action, Actions},
     board::{Board, Square},
-    pieces::{Action, Actions, Orientation, Position},
+    pieces::{Orientation, Position},
     team::Team,
 };
 

@@ -4,9 +4,10 @@ use bevy::{
 };
 
 use crate::{
+    actions::{Action, Actions},
     board::{Board, Square},
     pattern::Pattern,
-    pieces::{Action, Actions, Orientation, Position},
+    pieces::{Orientation, Position},
     team::Team,
 };
 

@@ -1,5 +1,6 @@
 use bevy::prelude::{App, Plugin};
 
+pub mod actions;
 pub mod behavior;
 pub mod board;
 pub mod pattern;
@@ -31,7 +32,7 @@ impl Plugin for ChessTypesPlugin {
             .register_type::<pattern::ABSymmetry>()
             .register_type::<pattern::TargetKind>()
             .register_type::<pieces::Position>()
-            .register_type::<pieces::Action>()
-            .register_type::<pieces::Actions>();
+            .register_type::<actions::Action>()
+            .register_type::<actions::Actions>();
     }
 }

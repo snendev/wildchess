@@ -1,6 +1,6 @@
 use bevy::{reflect::Reflect, utils::HashMap};
 
-use crate::{board::Square, pieces::Action, team::Team};
+use crate::{actions::Action, board::Square, team::Team};
 
 use super::{scanner::ScanTarget, TargetKind};
 

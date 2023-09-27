@@ -1,8 +1,9 @@
 use bevy::{ecs::query::WorldQuery, prelude::Entity};
 
 use games::chess::{
+    actions::Actions,
     behavior::{MimicBehavior, PatternBehavior, RelayBehavior},
-    pieces::{Actions, Mutation, Position},
+    pieces::{Mutation, Position},
     team::Team,
 };
 

@@ -2,7 +2,8 @@ use bevy::prelude::{Entity, EventReader, Query, ResMut, Resource};
 
 use games::{
     chess::{
-        pieces::{Action, Mutation, PieceDefinition, Royal},
+        actions::Action,
+        pieces::{Mutation, PieceDefinition, Royal},
         team::Team,
     },
     RequestMutationEvent,

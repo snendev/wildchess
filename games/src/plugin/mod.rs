@@ -4,8 +4,8 @@ use bevy::prelude::{
 };
 
 use chess::{
+    actions::Actions,
     behavior::{Behavior, EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior},
-    pieces::Actions,
     ChessTypesPlugin,
 };
 use layouts::ClassicalIdentity;

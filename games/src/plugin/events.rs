@@ -1,9 +1,6 @@
 use bevy::prelude::{Entity, Event};
 
-use chess::{
-    pieces::{Action, PieceDefinition},
-    team::Team,
-};
+use chess::{actions::Action, pieces::PieceDefinition, team::Team};
 
 #[derive(Event)]
 pub struct TurnEvent {

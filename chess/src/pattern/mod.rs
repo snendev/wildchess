@@ -3,8 +3,9 @@ use itertools::Either;
 use bevy::{prelude::Reflect, utils::HashMap};
 
 use crate::{
+    actions::Action,
     board::{Board, Rank, Square},
-    pieces::{Action, Orientation},
+    pieces::Orientation,
     team::Team,
 };
 

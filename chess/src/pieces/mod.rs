@@ -3,7 +3,7 @@ use bevy::{
     prelude::{Bundle, Commands, Name, Reflect},
 };
 
-use crate::{behavior::PieceBehaviors, team::Team};
+use crate::{actions::Actions, behavior::PieceBehaviors, team::Team};
 
 mod mutation;
 pub use mutation::{Mutation, MutationCondition, MutationRequired};
@@ -16,10 +16,6 @@ pub use position::Position;
 
 mod royal;
 pub use royal::Royal;
-
-// TODO move Action code
-mod actions;
-pub use actions::{Action, Actions};
 
 #[derive(Clone, Debug, Default, Bundle, Reflect)]
 pub struct PieceState {
