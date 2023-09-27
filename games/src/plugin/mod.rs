@@ -8,7 +8,6 @@ use chess::{
     behavior::{Behavior, EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior},
     ChessTypesPlugin,
 };
-use layouts::ClassicalIdentity;
 
 mod events;
 pub use events::{IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent};
@@ -60,9 +59,6 @@ impl Plugin for GameplayPlugin {
                     .chain(),
             )
             .add_systems(Update, systems::spawn_game_entities);
-
-        #[cfg(debug_assertions)]
-        app.register_type::<ClassicalIdentity>();
     }
 }
 

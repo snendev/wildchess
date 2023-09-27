@@ -8,10 +8,9 @@ use egui_extras::RetainedImage;
 use games::chess::{
     behavior::{PatternBehavior, RelayBehavior},
     pattern::Pattern,
-    pieces::Royal,
+    pieces::{PieceIdentity, Royal},
     team::Team,
 };
-use layouts::ClassicalIdentity;
 
 mod classical;
 
@@ -59,16 +58,16 @@ pub fn attach_piece_icons(
         (
             Entity,
             &Team,
+            &PieceIdentity,
             Option<&PatternBehavior>,
             Option<&RelayBehavior>,
             Option<&Royal>,
-            Option<&ClassicalIdentity>,
         ),
         Or<(Changed<PatternBehavior>, Changed<RelayBehavior>)>,
     >,
 ) {
     let mut icons = HashMap::<PieceIconHashKey, PieceIcon>::new();
-    for (entity, team, patterns, relays, maybe_royal, classical_identity) in piece_query.iter() {
+    for (entity, team, identity, patterns, relays, maybe_royal) in piece_query.iter() {
         let key = PieceIconHashKey {
             patterns,
             relays,
@@ -77,14 +76,7 @@ pub fn attach_piece_icons(
         };
         let icon = if let Some(icon) = icons.get(&key) {
             Some(icon)
-        } else if let Some(id) = classical_identity {
-            // if there is a known identity, use that as the icon
-            icons.insert(
-                key.clone(),
-                PieceIcon::Character(classical::piece_unicode(id, team)),
-            );
-            icons.get(&key)
-        } else {
+        } else if let PieceIdentity::Wild = identity {
             // otherwise create a new icon with the movement patterns
             // (or the relay patterns if no movement patterns exist)
             // TODO: don't construct this unnecessarily
@@ -98,6 +90,13 @@ pub fn attach_piece_icons(
             };
             let icon = PieceIcon::wild_svg(patterns, *team, maybe_royal.is_some());
             icons.insert(key.clone(), icon.clone());
+            icons.get(&key)
+        } else {
+            // if there is a known identity, use that as the icon
+            icons.insert(
+                key.clone(),
+                PieceIcon::Character(classical::piece_unicode(identity, team)),
+            );
             icons.get(&key)
         };
         if let Some(icon) = icon {

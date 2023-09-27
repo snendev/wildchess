@@ -5,6 +5,9 @@ use bevy::{
 
 use crate::{actions::Actions, behavior::PieceBehaviors, team::Team};
 
+mod identity;
+pub use identity::PieceIdentity;
+
 mod mutation;
 pub use mutation::{Mutation, MutationCondition, MutationRequired};
 
@@ -60,14 +63,16 @@ impl PieceBundle {
 #[derive(Clone, Debug, Default, Reflect)]
 pub struct PieceDefinition {
     pub behaviors: PieceBehaviors,
+    pub identity: PieceIdentity,
     pub mutation: Option<Mutation>,
     pub royal: Option<Royal>,
 }
 
 impl PieceDefinition {
-    pub fn new(behaviors: PieceBehaviors) -> Self {
+    pub fn new(behaviors: PieceBehaviors, identity: PieceIdentity) -> Self {
         PieceDefinition {
             behaviors,
+            identity,
             ..Default::default()
         }
     }
@@ -102,7 +107,11 @@ impl PieceSpecification {
             }
         ));
 
-        let mut builder = commands.spawn((PieceBundle::from_state(self.start_state), name));
+        let mut builder = commands.spawn((
+            PieceBundle::from_state(self.start_state),
+            self.piece.identity,
+            name,
+        ));
 
         if self.piece.royal.is_some() {
             builder.insert(Royal);

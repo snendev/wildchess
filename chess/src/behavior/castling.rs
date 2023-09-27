@@ -14,7 +14,17 @@ use super::Behavior;
 #[derive(Clone, Copy, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
 pub struct CastlingBehavior {
+    pub target_squares: [Square; 2],
     has_moved: bool,
+}
+
+impl CastlingBehavior {
+    pub fn new(target_squares: [Square; 2]) -> Self {
+        Self {
+            target_squares,
+            has_moved: bool,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Component, Debug, Default, Reflect)]

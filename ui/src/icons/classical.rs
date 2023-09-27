@@ -1,7 +1,9 @@
-use games::chess::team::Team::{self, Black, White};
-use layouts::ClassicalIdentity::{self, Bishop, King, Knight, Pawn, Queen, Rook};
+use games::chess::{
+    pieces::PieceIdentity::{self, Bishop, King, Knight, Pawn, Queen, Rook},
+    team::Team::{self, Black, White},
+};
 
-pub(crate) fn piece_unicode(piece: &ClassicalIdentity, team: &Team) -> char {
+pub(crate) fn piece_unicode(piece: &PieceIdentity, team: &Team) -> char {
     match (piece, team) {
         (King, White) => '\u{2654}',
         (King, Black) => '\u{265A}',
@@ -15,5 +17,6 @@ pub(crate) fn piece_unicode(piece: &ClassicalIdentity, team: &Team) -> char {
         (Knight, Black) => '\u{265E}',
         (Pawn, White) => '\u{2659}',
         (Pawn, Black) => '\u{265F}',
+        _ => 'X',
     }
 }

@@ -144,7 +144,7 @@ to implement this much, but that might take a while.)
 ### Upcoming TODOs
 
 - Castling
-- Promotion icon changes
+- Promotion triggering icon change
 - Gameover UI
 - Racing Kings Win Condition
 - Integrate Orientation more into the logic (will help extend to 4-player)

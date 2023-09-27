@@ -1,5 +1,5 @@
 mod classical;
-pub use classical::{ClassicalIdentity, ClassicalLayout};
+pub use classical::ClassicalLayout;
 mod knight_relay;
 pub use knight_relay::KnightRelayLayout;
 mod super_relay;
