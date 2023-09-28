@@ -10,15 +10,32 @@ use crate::{
     team::Team,
 };
 
-use super::Behavior;
+use crate::behavior::Behavior;
 
 #[derive(Clone, Copy, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
 pub struct MimicBehavior;
 
+#[derive(Clone, Component, Debug)]
+pub struct MimicActionsCache(Actions);
+
+impl From<Actions> for MimicActionsCache {
+    fn from(actions: Actions) -> Self {
+        MimicActionsCache(actions)
+    }
+}
+
+impl From<MimicActionsCache> for Actions {
+    fn from(cache: MimicActionsCache) -> Self {
+        cache.0
+    }
+}
+
 // Enable performing whatever Pattern was executed in the last turn
 impl Behavior for MimicBehavior {
-    fn add_actions_system(
+    type ActionsCache = MimicActionsCache;
+
+    fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         board_query: Query<&Board>,
         mut piece_query: Query<(
@@ -26,7 +43,7 @@ impl Behavior for MimicBehavior {
             &Position,
             &Orientation,
             &Team,
-            &mut Actions,
+            &mut MimicActionsCache,
         )>,
     ) {
         let Ok(board) = board_query.get_single() else {
@@ -39,16 +56,17 @@ impl Behavior for MimicBehavior {
             .collect();
 
         if let Some(last_action) = last_action {
-            for (mimic, position, orientation, team, mut actions) in piece_query.iter_mut() {
+            for (mimic, position, orientation, team, mut cache) in piece_query.iter_mut() {
                 if mimic.is_some() {
-                    actions.extend(Actions::new(last_action.using_pattern.search(
+                    *cache = Actions::new(last_action.using_pattern.search(
                         &position.0,
                         &orientation,
                         team,
                         board,
                         &pieces,
                         Some(&last_action),
-                    )))
+                    ))
+                    .into();
                 }
             }
         }

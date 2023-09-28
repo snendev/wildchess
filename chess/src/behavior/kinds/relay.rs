@@ -11,7 +11,7 @@ use crate::{
     team::Team,
 };
 
-use super::{Behavior, PatternBehavior};
+use crate::behavior::{Behavior, PatternBehavior};
 
 #[derive(Clone, Debug, Default, Component, PartialEq, Eq, Hash, Reflect)]
 #[reflect(Component)]
@@ -28,9 +28,26 @@ impl From<PatternBehavior> for RelayBehavior {
     }
 }
 
+#[derive(Clone, Component, Debug)]
+pub struct RelayActionsCache(Actions);
+
+impl From<Actions> for RelayActionsCache {
+    fn from(actions: Actions) -> Self {
+        RelayActionsCache(actions)
+    }
+}
+
+impl From<RelayActionsCache> for Actions {
+    fn from(cache: RelayActionsCache) -> Self {
+        cache.0
+    }
+}
+
 // Enable performing whatever Pattern was executed in the last turn
 impl Behavior for RelayBehavior {
-    fn add_actions_system(
+    type ActionsCache = RelayActionsCache;
+
+    fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         board_query: Query<&Board>,
         mut piece_query: Query<(
@@ -38,7 +55,7 @@ impl Behavior for RelayBehavior {
             &Position,
             &Orientation,
             &Team,
-            &mut Actions,
+            &mut RelayActionsCache,
         )>,
     ) {
         let Ok(board) = board_query.get_single() else {
@@ -73,7 +90,7 @@ impl Behavior for RelayBehavior {
             }
         }
 
-        for (_, position, orientation, team, mut actions) in piece_query.iter_mut() {
+        for (_, position, orientation, team, mut cache) in piece_query.iter_mut() {
             if let Some(patterns) = relay_pattern_map.remove(&position.0) {
                 let patterns = patterns
                     .into_iter()
@@ -85,14 +102,16 @@ impl Behavior for RelayBehavior {
                         }
                     })
                     .collect();
-                actions.extend(PatternBehavior::new(patterns).search(
-                    &position.0,
-                    &orientation,
-                    team,
-                    board,
-                    &pieces,
-                    last_action.as_ref(),
-                ))
+                *cache = PatternBehavior::new(patterns)
+                    .search(
+                        &position.0,
+                        &orientation,
+                        team,
+                        board,
+                        &pieces,
+                        last_action.as_ref(),
+                    )
+                    .into();
             }
         }
     }

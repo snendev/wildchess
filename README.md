@@ -148,7 +148,8 @@ to implement this much, but that might take a while.)
 - Gameover UI
 - Racing Kings Win Condition
 - Integrate Orientation more into the logic (will help extend to 4-player)
-- Behavior upgrades: Capture-chain (continue with pattern on capture) and
-  composed behaviors (e.g. pattern followed by orthogonal pattern)
-- Parameterizable wild configuration
-- Wild clock presets
+- Composite behaviors, e.g. "continue with pattern on capture" or "pattern
+  followed by orthogonal pattern"
+- Better "wild" games:
+  - Parameterizable wild configuration
+  - Wild clock presets

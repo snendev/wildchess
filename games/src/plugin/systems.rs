@@ -3,7 +3,7 @@ use bevy::prelude::{
 };
 
 use chess::{
-    actions::{Action, Actions},
+    actions::Action,
     behavior::PieceBehaviorsBundle,
     board::Board,
     pieces::{Mutation, MutationCondition, Position, Royal},
@@ -147,12 +147,6 @@ pub(super) fn end_turn(
             }
             commands.entity(player).insert(Turn);
         }
-    }
-}
-
-pub(super) fn clear_actions(mut piece_query: Query<&mut Actions>) {
-    for mut actions in piece_query.iter_mut() {
-        actions.clear();
     }
 }
 

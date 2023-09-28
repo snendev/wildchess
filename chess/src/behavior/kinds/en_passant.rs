@@ -11,11 +11,26 @@ use crate::{
     team::Team,
 };
 
-use super::Behavior;
+use crate::behavior::Behavior;
 
 #[derive(Clone, Copy, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
 pub struct EnPassantBehavior;
+
+#[derive(Clone, Component, Debug)]
+pub struct EnPassantActionsCache(Actions);
+
+impl From<Actions> for EnPassantActionsCache {
+    fn from(actions: Actions) -> Self {
+        EnPassantActionsCache(actions)
+    }
+}
+
+impl From<EnPassantActionsCache> for Actions {
+    fn from(cache: EnPassantActionsCache) -> Self {
+        cache.0
+    }
+}
 
 // store last turn
 // detect whether the piece has "stepped" on an attackable square
@@ -59,7 +74,9 @@ impl EnPassantBehavior {
 }
 
 impl Behavior for EnPassantBehavior {
-    fn add_actions_system(
+    type ActionsCache = EnPassantActionsCache;
+
+    fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         board_query: Query<&Board>,
         mut piece_query: Query<(
@@ -67,7 +84,7 @@ impl Behavior for EnPassantBehavior {
             &Position,
             &Orientation,
             &Team,
-            &mut Actions,
+            &mut EnPassantActionsCache,
         )>,
     ) {
         let Ok(board) = board_query.get_single() else {
@@ -81,16 +98,18 @@ impl Behavior for EnPassantBehavior {
             })
             .collect::<HashMap<_, _>>();
 
-        for (behavior, position, orientation, team, mut actions) in piece_query.iter_mut() {
+        for (behavior, position, orientation, team, mut cache) in piece_query.iter_mut() {
             if let Some(behavior) = behavior {
-                actions.extend(behavior.search(
-                    &position.0,
-                    &orientation,
-                    team,
-                    board,
-                    &en_passant_pieces,
-                    last_action.as_ref(),
-                ));
+                *cache = behavior
+                    .search(
+                        &position.0,
+                        &orientation,
+                        team,
+                        board,
+                        &en_passant_pieces,
+                        last_action.as_ref(),
+                    )
+                    .into();
             }
         }
     }

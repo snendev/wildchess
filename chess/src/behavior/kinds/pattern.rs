@@ -11,7 +11,7 @@ use crate::{
     team::Team,
 };
 
-use super::Behavior;
+use crate::behavior::Behavior;
 
 #[derive(Clone, Debug, Default, Component, PartialEq, Eq, Hash, Reflect)]
 #[reflect(Component)]
@@ -59,8 +59,25 @@ impl PatternBehavior {
     }
 }
 
+#[derive(Clone, Component, Debug)]
+pub struct PatternActionsCache(Actions);
+
+impl From<Actions> for PatternActionsCache {
+    fn from(actions: Actions) -> Self {
+        PatternActionsCache(actions)
+    }
+}
+
+impl From<PatternActionsCache> for Actions {
+    fn from(cache: PatternActionsCache) -> Self {
+        cache.0
+    }
+}
+
 impl Behavior for PatternBehavior {
-    fn add_actions_system(
+    type ActionsCache = PatternActionsCache;
+
+    fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         board_query: Query<&Board>,
         mut piece_query: Query<(
@@ -68,28 +85,29 @@ impl Behavior for PatternBehavior {
             &Position,
             &Orientation,
             &Team,
-            &mut Actions,
+            &mut PatternActionsCache,
         )>,
     ) {
         let Ok(board) = board_query.get_single() else {
             return;
         };
-
         let pieces: HashMap<Square, Team> = piece_query
             .iter()
             .map(|(_, position, _, team, _)| (position.0, *team))
             .collect();
 
-        for (behavior, position, orientation, team, mut actions) in piece_query.iter_mut() {
+        for (behavior, position, orientation, team, mut cache) in piece_query.iter_mut() {
             if let Some(behavior) = behavior {
-                actions.extend(behavior.search(
-                    &position.0,
-                    &orientation,
-                    team,
-                    board,
-                    &pieces,
-                    last_action.as_ref(),
-                ));
+                *cache = behavior
+                    .search(
+                        &position.0,
+                        &orientation,
+                        team,
+                        board,
+                        &pieces,
+                        last_action.as_ref(),
+                    )
+                    .into();
             }
         }
     }
