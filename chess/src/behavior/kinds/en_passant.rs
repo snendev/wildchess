@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Component, In, Query, Reflect, ReflectComponent},
+    prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent},
     utils::HashMap,
 };
 
@@ -78,13 +78,15 @@ impl Behavior for EnPassantBehavior {
 
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
+        mut commands: Commands,
         board_query: Query<&Board>,
         mut piece_query: Query<(
+            Entity,
             Option<&EnPassantBehavior>,
+            Option<&mut EnPassantActionsCache>,
             &Position,
             &Orientation,
             &Team,
-            &mut EnPassantActionsCache,
         )>,
     ) {
         let Ok(board) = board_query.get_single() else {
@@ -93,23 +95,26 @@ impl Behavior for EnPassantBehavior {
 
         let en_passant_pieces = piece_query
             .iter()
-            .map(|(en_passant, position, _, team, _)| {
+            .map(|(_, en_passant, _, position, _, team)| {
                 (position.0, (en_passant.map(|behavior| *behavior), *team))
             })
             .collect::<HashMap<_, _>>();
 
-        for (behavior, position, orientation, team, mut cache) in piece_query.iter_mut() {
+        for (entity, behavior, cache, position, orientation, team) in piece_query.iter_mut() {
             if let Some(behavior) = behavior {
-                *cache = behavior
-                    .search(
-                        &position.0,
-                        &orientation,
-                        team,
-                        board,
-                        &en_passant_pieces,
-                        last_action.as_ref(),
-                    )
-                    .into();
+                let actions = EnPassantActionsCache::from(behavior.search(
+                    &position.0,
+                    &orientation,
+                    team,
+                    board,
+                    &en_passant_pieces,
+                    last_action.as_ref(),
+                ));
+                if let Some(mut cache) = cache {
+                    *cache = actions;
+                } else {
+                    commands.entity(entity).insert(actions);
+                }
             }
         }
     }

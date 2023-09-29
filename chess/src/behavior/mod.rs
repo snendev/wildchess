@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Bundle, Component, In, Query},
+    prelude::{Bundle, Commands, Component, Entity, In, Query},
     reflect::Reflect,
 };
 
@@ -17,9 +17,9 @@ mod plugin;
 pub use plugin::{BehaviorsPlugin, BehaviorsSet};
 
 pub trait Behavior {
-    // Each behavior supplies is own sink for calculating actions
-    // this enables parallelizing these calculations since we don't need
-    // N exclusive references to `Actions`
+    // Each behavior supplies is own sink for calculating actions.
+    // This enables parallelizing these calculations since we don't need
+    // N exclusive references to `Actions`.
     type ActionsCache: Component + From<Actions> + Into<Actions>;
 
     // All Behaviors register this system in the first "bucket".
@@ -28,13 +28,15 @@ pub trait Behavior {
     // Be sure to clear the cache each time this system is run.
     fn calculate_actions_system(
         last_action: In<Option<Action>>,
+        commands: Commands,
         board_query: Query<&Board>,
         piece_query: Query<(
+            Entity,
             Option<&Self>,
+            Option<&mut Self::ActionsCache>,
             &Position,
             &Orientation,
             &Team,
-            &mut Self::ActionsCache,
         )>,
     ) where
         Self: Component + Sized;

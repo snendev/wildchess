@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Component, In, Query, Reflect, ReflectComponent},
+    prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent},
     utils::HashMap,
 };
 
@@ -79,13 +79,15 @@ impl Behavior for PatternBehavior {
 
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
+        mut commands: Commands,
         board_query: Query<&Board>,
         mut piece_query: Query<(
+            Entity,
             Option<&PatternBehavior>,
+            Option<&mut PatternActionsCache>,
             &Position,
             &Orientation,
             &Team,
-            &mut PatternActionsCache,
         )>,
     ) {
         let Ok(board) = board_query.get_single() else {
@@ -93,21 +95,24 @@ impl Behavior for PatternBehavior {
         };
         let pieces: HashMap<Square, Team> = piece_query
             .iter()
-            .map(|(_, position, _, team, _)| (position.0, *team))
+            .map(|(_, _, _, position, _, team)| (position.0, *team))
             .collect();
 
-        for (behavior, position, orientation, team, mut cache) in piece_query.iter_mut() {
+        for (entity, behavior, cache, position, orientation, team) in piece_query.iter_mut() {
             if let Some(behavior) = behavior {
-                *cache = behavior
-                    .search(
-                        &position.0,
-                        &orientation,
-                        team,
-                        board,
-                        &pieces,
-                        last_action.as_ref(),
-                    )
-                    .into();
+                let actions = PatternActionsCache::from(behavior.search(
+                    &position.0,
+                    &orientation,
+                    team,
+                    board,
+                    &pieces,
+                    last_action.as_ref(),
+                ));
+                if let Some(mut cache) = cache {
+                    *cache = actions;
+                } else {
+                    commands.entity(entity).insert(actions);
+                }
             }
         }
     }

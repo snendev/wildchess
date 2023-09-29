@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use bevy::prelude::{
-    apply_deferred, Added, App, Commands, Component, Entity, IntoSystem, IntoSystemConfigs,
-    IntoSystemSetConfigs, Plugin, PostUpdate, Query, SystemSet,
+    apply_deferred, App, IntoSystem, IntoSystemConfigs, IntoSystemSetConfigs, Plugin, PostUpdate,
+    Query, SystemSet,
 };
 
 use crate::{
@@ -41,17 +41,6 @@ where
     }
 }
 
-fn initialize_cache<B: Behavior + Component>(
-    mut commands: Commands,
-    query: Query<Entity, Added<B>>,
-) {
-    for entity in query.iter() {
-        commands
-            .entity(entity)
-            .insert(B::ActionsCache::from(Actions::default()));
-    }
-}
-
 fn clear_actions(mut piece_query: Query<&mut Actions>) {
     for mut actions in piece_query.iter_mut() {
         actions.clear();
@@ -71,44 +60,36 @@ where
                 BehaviorsInnerSet::PopulateCache,
                 BehaviorsInnerSet::PopulateActions,
             )
+                .chain()
                 .in_set(BehaviorsSet),
         )
         .add_systems(
             PostUpdate,
             (
+                clear_actions.in_set(BehaviorsInnerSet::PrepareFrame),
                 (
-                    initialize_cache::<PatternBehavior>,
-                    initialize_cache::<EnPassantBehavior>,
-                    initialize_cache::<MimicBehavior>,
-                    initialize_cache::<RelayBehavior>,
-                ),
-                apply_deferred, // TODO: remove
-                (
-                    clear_actions.in_set(BehaviorsInnerSet::PrepareFrame),
-                    (
-                        self.on_action
-                            .clone()
-                            .pipe(PatternBehavior::calculate_actions_system),
-                        self.on_action
-                            .clone()
-                            .pipe(EnPassantBehavior::calculate_actions_system),
-                        self.on_action
-                            .clone()
-                            .pipe(MimicBehavior::calculate_actions_system),
-                        self.on_action
-                            .clone()
-                            .pipe(RelayBehavior::calculate_actions_system),
-                    )
-                        .in_set(BehaviorsInnerSet::PopulateCache),
-                    (
-                        PatternBehavior::take_actions_system,
-                        EnPassantBehavior::take_actions_system,
-                        MimicBehavior::take_actions_system,
-                        RelayBehavior::take_actions_system,
-                    )
-                        .in_set(BehaviorsInnerSet::PopulateActions),
+                    self.on_action
+                        .clone()
+                        .pipe(PatternBehavior::calculate_actions_system),
+                    self.on_action
+                        .clone()
+                        .pipe(EnPassantBehavior::calculate_actions_system),
+                    self.on_action
+                        .clone()
+                        .pipe(MimicBehavior::calculate_actions_system),
+                    self.on_action
+                        .clone()
+                        .pipe(RelayBehavior::calculate_actions_system),
                 )
-                    .in_set(BehaviorsSet),
+                    .in_set(BehaviorsInnerSet::PopulateCache),
+                apply_deferred,
+                (
+                    PatternBehavior::take_actions_system,
+                    EnPassantBehavior::take_actions_system,
+                    MimicBehavior::take_actions_system,
+                    RelayBehavior::take_actions_system,
+                )
+                    .in_set(BehaviorsInnerSet::PopulateActions),
             )
                 .chain(),
         );

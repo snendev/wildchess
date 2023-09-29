@@ -55,6 +55,13 @@ impl Behavior for CastlingBehavior {
             .map(|(_, position, _, team, _)| (position.0, *team))
             .collect();
 
+        let mut targeted_squares_by_team: HashMap<Team, Vec<Square>> = HashMap::new();
+
+        for (_, position, orientation, team, mut actions) in piece_query.iter_mut() {
+            if castling.is_some() {
+                // TODO
+            }
+        }
         for (castling, position, orientation, team, mut actions) in piece_query.iter_mut() {
             if castling.is_some() {
                 // TODO

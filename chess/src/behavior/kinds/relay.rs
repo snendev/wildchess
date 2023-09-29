@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Component, In, Query, Reflect, ReflectComponent},
+    prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent},
     utils::HashMap,
 };
 
@@ -49,13 +49,15 @@ impl Behavior for RelayBehavior {
 
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
+        mut commands: Commands,
         board_query: Query<&Board>,
         mut piece_query: Query<(
+            Entity,
             Option<&RelayBehavior>,
+            Option<&mut RelayActionsCache>,
             &Position,
             &Orientation,
             &Team,
-            &mut RelayActionsCache,
         )>,
     ) {
         let Ok(board) = board_query.get_single() else {
@@ -64,14 +66,14 @@ impl Behavior for RelayBehavior {
 
         let pieces: HashMap<Square, Team> = piece_query
             .iter()
-            .map(|(_, position, _, team, _)| (position.0, *team))
+            .map(|(_, _, _, position, _, team)| (position.0, *team))
             .collect();
 
         // TODO: pre-filter this map so that it only stores the Squares with pieces on them
         // additionally, this could then only push patterns that match the appropriate team
         let mut relay_pattern_map: HashMap<Square, Vec<(Pattern, Team)>> = HashMap::new();
 
-        for (relay_behavior, position, orientation, team, _) in piece_query.iter_mut() {
+        for (_, relay_behavior, _, position, orientation, team) in piece_query.iter_mut() {
             if let Some(relay_behavior) = relay_behavior {
                 for pattern in relay_behavior.patterns.iter() {
                     for scan_target in
@@ -90,7 +92,7 @@ impl Behavior for RelayBehavior {
             }
         }
 
-        for (_, position, orientation, team, mut cache) in piece_query.iter_mut() {
+        for (entity, _, cache, position, orientation, team) in piece_query.iter_mut() {
             if let Some(patterns) = relay_pattern_map.remove(&position.0) {
                 let patterns = patterns
                     .into_iter()
@@ -102,16 +104,19 @@ impl Behavior for RelayBehavior {
                         }
                     })
                     .collect();
-                *cache = PatternBehavior::new(patterns)
-                    .search(
-                        &position.0,
-                        &orientation,
-                        team,
-                        board,
-                        &pieces,
-                        last_action.as_ref(),
-                    )
-                    .into();
+                let actions = RelayActionsCache::from(PatternBehavior::new(patterns).search(
+                    &position.0,
+                    &orientation,
+                    team,
+                    board,
+                    &pieces,
+                    last_action.as_ref(),
+                ));
+                if let Some(mut cache) = cache {
+                    *cache = actions;
+                } else {
+                    commands.entity(entity).insert(actions);
+                }
             }
         }
     }

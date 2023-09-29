@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Component, In, Query, Reflect, ReflectComponent},
+    prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent},
     utils::HashMap,
 };
 
@@ -37,13 +37,15 @@ impl Behavior for MimicBehavior {
 
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
+        mut commands: Commands,
         board_query: Query<&Board>,
         mut piece_query: Query<(
+            Entity,
             Option<&MimicBehavior>,
+            Option<&mut MimicActionsCache>,
             &Position,
             &Orientation,
             &Team,
-            &mut MimicActionsCache,
         )>,
     ) {
         let Ok(board) = board_query.get_single() else {
@@ -52,21 +54,26 @@ impl Behavior for MimicBehavior {
 
         let pieces: HashMap<Square, Team> = piece_query
             .iter()
-            .map(|(_, position, _, team, _)| (position.0, *team))
+            .map(|(_, _, _, position, _, team)| (position.0, *team))
             .collect();
 
         if let Some(last_action) = last_action {
-            for (mimic, position, orientation, team, mut cache) in piece_query.iter_mut() {
+            for (entity, mimic, cache, position, orientation, team) in piece_query.iter_mut() {
                 if mimic.is_some() {
-                    *cache = Actions::new(last_action.using_pattern.search(
-                        &position.0,
-                        &orientation,
-                        team,
-                        board,
-                        &pieces,
-                        Some(&last_action),
-                    ))
-                    .into();
+                    let actions =
+                        MimicActionsCache::from(Actions::new(last_action.using_pattern.search(
+                            &position.0,
+                            &orientation,
+                            team,
+                            board,
+                            &pieces,
+                            Some(&last_action),
+                        )));
+                    if let Some(mut cache) = cache {
+                        *cache = actions;
+                    } else {
+                        commands.entity(entity).insert(actions);
+                    }
                 }
             }
         }

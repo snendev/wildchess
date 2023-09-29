@@ -131,9 +131,9 @@ These win conditions interpret Royalty in various ways. In King of the Hill
 Chess, checkmate is also a win condition. In Racing Kings Chess, any moves that
 attack the enemy king are impossible. Games such as
 [Sternhalma](https://en.wikipedia.org/wiki/Sternhalma) could be considered a
-game of star-shaped hexagonal chess given the correct piece specification, if
-all pieces were also Royal under a racing-type win condition. (It would be cool
-to implement this much, but that might take a while.)
+game of star-shaped hexagonal chess given the correct piece specification, with
+all pieces Royal and a "racing" win condition. (It would be cool to implement
+this much, but that might take a while.)
 
 ### Implementation
 

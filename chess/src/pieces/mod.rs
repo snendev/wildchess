@@ -97,14 +97,8 @@ impl PieceSpecification {
         commands: &'a mut Commands<'w, 's>,
     ) -> EntityCommands<'w, 's, 'a> {
         let name = Name::new(format!(
-            "{:?} {}-{}",
-            self.start_state.team,
-            self.start_state.position.0,
-            if self.piece.royal.is_some() {
-                "King"
-            } else {
-                "Piece"
-            }
+            "{:?} {}-{:?}",
+            self.start_state.team, self.start_state.position.0, self.piece.identity,
         ));
 
         let mut builder = commands.spawn((
