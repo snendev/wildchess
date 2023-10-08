@@ -538,7 +538,7 @@ dependencies = [
  "bevy_render",
  "bevy_transform",
  "bevy_utils",
- "bitflags 2.3.3",
+ "bitflags 2.4.0",
  "radsort",
  "serde",
 ]
@@ -837,7 +837,7 @@ dependencies = [
  "bevy_transform",
  "bevy_utils",
  "bevy_window",
- "bitflags 2.3.3",
+ "bitflags 2.4.0",
  "bytemuck",
  "naga_oil",
  "radsort",
@@ -909,7 +909,7 @@ dependencies = [
  "bevy_transform",
  "bevy_utils",
  "bevy_window",
- "bitflags 2.3.3",
+ "bitflags 2.4.0",
  "bytemuck",
  "codespan-reporting",
  "downcast-rs",
@@ -985,7 +985,7 @@ dependencies = [
  "bevy_render",
  "bevy_transform",
  "bevy_utils",
- "bitflags 2.3.3",
+ "bitflags 2.4.0",
  "bytemuck",
  "fixedbitset",
  "guillotiere",
@@ -1201,9 +1201,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.3.3"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "630be753d4e58660abd17930c71b647fe46c27ea6b63cc59e1e3851406972e42"
+checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
 
 [[package]]
 name = "block"
@@ -1310,18 +1310,49 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bevy",
+ "bitflags 2.4.0",
+ "itertools",
  "thiserror",
 ]
 
 [[package]]
-name = "chess_gameplay"
+name = "chess_app_lib"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_egui",
+ "chess_ui",
+ "games",
+ "layouts",
+]
+
+[[package]]
+name = "chess_app_native"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "chess_app_lib",
+]
+
+[[package]]
+name = "chess_app_wasm"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "chess_app_lib",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "chess_ui"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_egui",
  "bevy_geppetto",
- "chess",
- "wild_board",
- "wildchess_ui",
+ "egui_extras",
+ "games",
+ "layouts",
 ]
 
 [[package]]
@@ -1375,16 +1406,6 @@ name = "clap_lex"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2da6da31387c7e4ef160ffab6d5e7f00c42626fe39aea70a7b0f1773f7dd6c1b"
-
-[[package]]
-name = "classical_board"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "chess",
- "itertools",
- "rand",
-]
 
 [[package]]
 name = "clipboard-win"
@@ -1908,6 +1929,17 @@ dependencies = [
  "parking",
  "pin-project-lite",
  "waker-fn",
+]
+
+[[package]]
+name = "games"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_geppetto",
+ "chess",
+ "chess_ui",
+ "layouts",
 ]
 
 [[package]]
@@ -2435,6 +2467,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a53776d271cfb873b17c618af0298445c88afc52837f3e948fa3fafd131f449"
 dependencies = [
  "arrayvec",
+]
+
+[[package]]
+name = "layouts"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "chess",
+ "rand",
 ]
 
 [[package]]
@@ -3316,7 +3357,7 @@ version = "0.38.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a962918ea88d644592894bc6dc55acc6c0956488adcebbfb6e273506b7fd6e5"
 dependencies = [
- "bitflags 2.3.3",
+ "bitflags 2.4.0",
  "errno",
  "libc",
  "linux-raw-sys",
@@ -4038,7 +4079,7 @@ checksum = "8f478237b4bf0d5b70a39898a66fa67ca3a007d79f2520485b8b0c3dfc46f8c2"
 dependencies = [
  "arrayvec",
  "bit-vec",
- "bitflags 2.3.3",
+ "bitflags 2.4.0",
  "codespan-reporting",
  "log",
  "naga",
@@ -4063,7 +4104,7 @@ dependencies = [
  "arrayvec",
  "ash",
  "bit-set",
- "bitflags 2.3.3",
+ "bitflags 2.4.0",
  "block",
  "core-graphics-types",
  "d3d12",
@@ -4101,7 +4142,7 @@ version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0c153280bb108c2979eb5c7391cb18c56642dd3c072e55f52065e13e2a1252a"
 dependencies = [
- "bitflags 2.3.3",
+ "bitflags 2.4.0",
  "js-sys",
  "web-sys",
 ]
@@ -4111,55 +4152,6 @@ name = "widestring"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "653f141f39ec16bba3c5abe400a0c60da7468261cc2cbf36805022876bc721a8"
-
-[[package]]
-name = "wild_board"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "chess",
- "itertools",
- "rand",
-]
-
-[[package]]
-name = "wildchess_app_lib"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "chess_gameplay",
- "wild_board",
- "wildchess_ui",
-]
-
-[[package]]
-name = "wildchess_app_native"
-version = "0.1.0"
-dependencies = [
- "cfg-if",
- "wildchess_app_lib",
-]
-
-[[package]]
-name = "wildchess_app_wasm"
-version = "0.1.0"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
- "wildchess_app_lib",
-]
-
-[[package]]
-name = "wildchess_ui"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_egui",
- "bevy_geppetto",
- "chess_gameplay",
- "classical_board",
- "egui_extras",
-]
 
 [[package]]
 name = "winapi"

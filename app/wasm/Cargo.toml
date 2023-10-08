@@ -1,5 +1,5 @@
 [package]
-name = "wildchess_app_wasm"
+name = "chess_app_wasm"
 version = "0.1.0"
 authors = ["Sean Sullivan <me@snen.dev>"]
 edition = "2021"
@@ -7,10 +7,10 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [lib]
-name = "wildchess_app_wasm"
+name = "chess_app_wasm"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wildchess_app_lib = { path = "../lib" }
+chess_app_lib = { path = "../lib" }
 cfg-if = { version = "1.0" }
-wasm-bindgen = { version = "0.2.84", features = [ "serde-serialize" ] }
+wasm-bindgen = { version = "0.2.84", features = ["serde-serialize"] }

@@ -1,14 +1,20 @@
-use bevy::prelude::{App, Plugin, Update};
+use bevy::prelude::{App, IntoSystemConfigs, Plugin, SystemSet, Update};
 
 pub use bevy_egui;
+
+mod widgets;
 
 mod icons;
 pub use icons::PieceIcon;
 
-pub(crate) mod promotion;
+pub(crate) mod mutation;
+pub(crate) mod query;
 
-mod ui;
-use ui::egui_chessboard;
+mod board_ui;
+use board_ui::egui_chessboard;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
+pub struct ChessUISet;
 
 pub struct EguiBoardUIPlugin;
 
@@ -17,14 +23,15 @@ impl Plugin for EguiBoardUIPlugin {
         if !app.is_plugin_added::<bevy_egui::EguiPlugin>() {
             app.add_plugins(bevy_egui::EguiPlugin);
         }
-        app.init_resource::<promotion::IntendedPromotion>()
+        app.init_resource::<mutation::IntendedMutation>()
             .add_systems(
                 Update,
                 (
-                    promotion::read_promotions,
+                    mutation::read_mutation_options,
                     icons::attach_piece_icons,
                     egui_chessboard,
-                ),
+                )
+                    .in_set(ChessUISet),
             );
     }
 }

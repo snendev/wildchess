@@ -1,16 +1,18 @@
 use bevy::{
-    prelude::{Changed, Commands, Component, Entity, Query},
+    prelude::{Changed, Commands, Component, Entity, Or, Query},
     utils::HashMap,
 };
 
 use egui_extras::RetainedImage;
 
-use chess_gameplay::chess::{
-    pieces::{Behavior, King},
+use games::chess::{
+    behavior::{PatternBehavior, RelayBehavior},
+    pattern::Pattern,
+    pieces::{PieceIdentity, Royal},
     team::Team,
 };
 
-// mod classical;
+mod classical;
 
 mod wild;
 use wild::wild_behavior_icon;
@@ -24,10 +26,6 @@ pub enum PieceIcon {
     Character(char),
 }
 
-// enforces an override icon in case the generated icons should not be used
-#[derive(Component)]
-pub struct IconOverride(PieceIcon);
-
 impl PieceIcon {
     pub fn svg(image: RetainedImage, source: String) -> Self {
         PieceIcon::Svg {
@@ -40,15 +38,16 @@ impl PieceIcon {
         PieceIcon::Character(character)
     }
 
-    pub fn wild_svg(behavior: &Behavior, team: Team, is_king: bool) -> Self {
-        let (generated_icon, icon_source) = wild_behavior_icon(behavior, team, is_king);
+    pub fn wild_svg(patterns: &Vec<Pattern>, team: Team, is_king: bool) -> Self {
+        let (generated_icon, icon_source) = wild_behavior_icon(patterns, team, is_king);
         PieceIcon::svg(generated_icon, icon_source)
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct PieceIconHashKey<'a> {
-    behavior: &'a Behavior,
+    patterns: Option<&'a PatternBehavior>,
+    relays: Option<&'a RelayBehavior>,
     team: &'a Team,
     is_king: bool,
 }
@@ -58,30 +57,46 @@ pub fn attach_piece_icons(
     piece_query: Query<
         (
             Entity,
-            &Behavior,
             &Team,
-            Option<&King>,
-            Option<&IconOverride>,
+            &PieceIdentity,
+            Option<&PatternBehavior>,
+            Option<&RelayBehavior>,
+            Option<&Royal>,
         ),
-        Changed<Behavior>,
+        Or<(Changed<PatternBehavior>, Changed<RelayBehavior>)>,
     >,
 ) {
     let mut icons = HashMap::<PieceIconHashKey, PieceIcon>::new();
-    for (entity, behavior, team, king, override_icon) in piece_query.iter() {
+    for (entity, team, identity, patterns, relays, maybe_royal) in piece_query.iter() {
         let key = PieceIconHashKey {
-            behavior,
+            patterns,
+            relays,
             team,
-            is_king: king.is_some(),
+            is_king: maybe_royal.is_some(),
         };
         let icon = if let Some(icon) = icons.get(&key) {
             Some(icon)
-        } else if let Some(override_icon) = override_icon {
-            icons.insert(key.clone(), override_icon.0.clone());
+        } else if let PieceIdentity::Wild = identity {
+            // otherwise create a new icon with the movement patterns
+            // (or the relay patterns if no movement patterns exist)
+            // TODO: don't construct this unnecessarily
+            let empty = Vec::new();
+            let patterns = if let Some(patterns) = patterns {
+                &patterns.patterns
+            } else if let Some(relays) = relays {
+                &relays.patterns
+            } else {
+                &empty
+            };
+            let icon = PieceIcon::wild_svg(patterns, *team, maybe_royal.is_some());
+            icons.insert(key.clone(), icon.clone());
             icons.get(&key)
         } else {
-            // default to creating a new icon
-            let icon = PieceIcon::wild_svg(behavior, *team, king.is_some());
-            icons.insert(key.clone(), icon.clone());
+            // if there is a known identity, use that as the icon
+            icons.insert(
+                key.clone(),
+                PieceIcon::Character(classical::piece_unicode(identity, team)),
+            );
             icons.get(&key)
         };
         if let Some(icon) = icon {

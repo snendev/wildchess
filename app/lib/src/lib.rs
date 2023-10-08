@@ -1,8 +1,15 @@
-use bevy::prelude::{App, DefaultPlugins, PluginGroup, Window, WindowPlugin};
+use bevy::prelude::{
+    any_with_component, not, App, DefaultPlugins, IntoSystemConfigs, IntoSystemSetConfig,
+    PluginGroup, SystemSet, Update, Window, WindowPlugin,
+};
 
-use chess_gameplay::GameplayPlugin;
-use wild_board::BoardPlugin;
-use wildchess_ui::EguiBoardUIPlugin;
+use chess_ui::{ChessUISet, EguiBoardUIPlugin};
+use games::{components::GameBoard, GameplayPlugin};
+
+mod home_ui;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
+pub struct HomeUISet;
 
 pub fn run_app(canvas: Option<String>) {
     App::default()
@@ -14,6 +21,12 @@ pub fn run_app(canvas: Option<String>) {
             }),
             ..Default::default()
         }))
-        .add_plugins((GameplayPlugin, BoardPlugin, EguiBoardUIPlugin))
+        .configure_set(
+            Update,
+            HomeUISet.run_if(not(any_with_component::<GameBoard>())),
+        )
+        .configure_set(Update, ChessUISet.run_if(any_with_component::<GameBoard>()))
+        .add_plugins((GameplayPlugin, EguiBoardUIPlugin))
+        .add_systems(Update, home_ui::home_menu.in_set(HomeUISet))
         .run();
 }
