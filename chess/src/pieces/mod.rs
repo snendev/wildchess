@@ -33,7 +33,6 @@ impl PieceState {
             team,
             position: start_position,
             orientation: team.orientation(),
-            ..Default::default()
         }
     }
 }

@@ -96,7 +96,7 @@ impl Behavior for EnPassantBehavior {
         let en_passant_pieces = piece_query
             .iter()
             .map(|(_, en_passant, _, position, _, team)| {
-                (position.0, (en_passant.map(|behavior| *behavior), *team))
+                (position.0, (en_passant.copied(), *team))
             })
             .collect::<HashMap<_, _>>();
 
@@ -104,7 +104,7 @@ impl Behavior for EnPassantBehavior {
             if let Some(behavior) = behavior {
                 let actions = EnPassantActionsCache::from(behavior.search(
                     &position.0,
-                    &orientation,
+                    orientation,
                     team,
                     board,
                     &en_passant_pieces,

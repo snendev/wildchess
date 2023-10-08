@@ -63,7 +63,7 @@ impl Behavior for MimicBehavior {
                     let actions =
                         MimicActionsCache::from(Actions::new(last_action.using_pattern.search(
                             &position.0,
-                            &orientation,
+                            orientation,
                             team,
                             board,
                             &pieces,

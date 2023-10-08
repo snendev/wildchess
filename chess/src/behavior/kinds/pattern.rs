@@ -102,7 +102,7 @@ impl Behavior for PatternBehavior {
             if let Some(behavior) = behavior {
                 let actions = PatternActionsCache::from(behavior.search(
                     &position.0,
-                    &orientation,
+                    orientation,
                     team,
                     board,
                     &pieces,

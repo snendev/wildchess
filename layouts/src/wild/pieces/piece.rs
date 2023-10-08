@@ -185,6 +185,7 @@ pub struct LegendaryBuilder;
 impl LegendaryBuilder {
     fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
+        #[allow(clippy::match_single_binding)]
         match rng.gen_range(0..=2) {
             // dragon
             _ => PatternBehavior::default()

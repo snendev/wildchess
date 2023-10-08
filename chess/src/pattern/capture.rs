@@ -66,18 +66,18 @@ impl CaptureRules {
 
         match self.pattern {
             CapturePattern::CaptureByDisplacement => {
-                if is_capturable_target(&target) {
+                if is_capturable_target(target) {
                     capture_squares.push(*target);
                 }
             }
             CapturePattern::CaptureInPassing => {
                 // this can also capture by displacement
-                if is_capturable_target(&target) {
+                if is_capturable_target(target) {
                     capture_squares.push(*target);
                 }
                 // and can capture in passing
                 if let Some(last_action) = last_action {
-                    if last_action.scanned_squares.contains(&target)
+                    if last_action.scanned_squares.contains(target)
                         && is_capturable_target(&last_action.landing_square)
                     {
                         capture_squares.push(last_action.landing_square);
@@ -92,7 +92,7 @@ impl CaptureRules {
                 }
             }
             CapturePattern::CaptureAtRange => {
-                if is_capturable_target(&target) {
+                if is_capturable_target(target) {
                     capture_squares.push(*target);
                 }
             }

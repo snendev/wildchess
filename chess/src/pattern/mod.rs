@@ -196,13 +196,11 @@ impl Pattern {
 
         if let Some(capture) = self.capture {
             let captures = capture.get_captures(&scan_target, my_team, pieces, last_action);
-            if capture.must_capture() && captures.is_empty() {
-                None
-            } else if capture.pattern != CapturePattern::CaptureByDisplacement
-                && colliding_piece.is_some()
-            {
-                None
-            } else if colliding_piece.is_some_and(|team| !capture.target.matches(my_team, team)) {
+            let invalid_capture = (capture.must_capture() && captures.is_empty())
+                || (capture.pattern != CapturePattern::CaptureByDisplacement
+                    && colliding_piece.is_some())
+                || (colliding_piece.is_some_and(|team| !capture.target.matches(my_team, team)));
+            if invalid_capture {
                 None
             } else {
                 let landing_square = match capture.pattern {

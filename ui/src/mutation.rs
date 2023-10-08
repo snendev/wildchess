@@ -11,6 +11,7 @@ use games::{
 
 use crate::PieceIcon;
 
+#[allow(clippy::type_complexity)]
 #[derive(Default, Resource)]
 pub struct IntendedMutation(pub Option<(Entity, Action, Vec<(PieceIcon, PieceDefinition)>)>);
 

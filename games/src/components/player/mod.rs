@@ -1,8 +1,10 @@
+use bevy::prelude::{Bundle, Component};
+
 mod clock;
 pub use clock::Clock;
 
-mod player;
-pub use player::Player;
-
 mod turn;
 pub use turn::Turn;
+
+#[derive(Component)]
+pub struct Player;

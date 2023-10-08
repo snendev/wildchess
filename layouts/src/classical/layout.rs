@@ -36,7 +36,7 @@ impl ClassicalLayout {
                     .map(|(team, square)| PieceSpecification::new(king(), team, square.into())),
             )
             .chain(
-                squares_by_team(1, (0..8).map(|file| File::from(file))).map(|(team, square)| {
+                squares_by_team(1, (0..8).map(File::from)).map(|(team, square)| {
                     PieceSpecification::new(
                         pawn(match team {
                             Team::White => Rank::EIGHT,

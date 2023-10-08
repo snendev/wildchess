@@ -52,6 +52,7 @@ struct PieceIconHashKey<'a> {
     is_king: bool,
 }
 
+#[allow(clippy::type_complexity)]
 pub fn attach_piece_icons(
     mut commands: Commands,
     piece_query: Query<

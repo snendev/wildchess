@@ -26,6 +26,7 @@ pub trait Behavior {
     // It calculates the available `Actions` for each piece and stores that in its
     // `Self::ActionsCache` sink component.
     // Be sure to clear the cache each time this system is run.
+    #[allow(clippy::type_complexity)]
     fn calculate_actions_system(
         last_action: In<Option<Action>>,
         commands: Commands,

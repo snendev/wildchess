@@ -111,15 +111,11 @@ pub(super) fn execute_turn_mutations(
             }
 
             if let Some(mutation_behavior) = &mutated_piece.behaviors.en_passant {
-                commands
-                    .entity(event.entity)
-                    .insert(mutation_behavior.clone());
+                commands.entity(event.entity).insert(*mutation_behavior);
             }
 
             if let Some(mutation_behavior) = &mutated_piece.behaviors.mimic {
-                commands
-                    .entity(event.entity)
-                    .insert(mutation_behavior.clone());
+                commands.entity(event.entity).insert(*mutation_behavior);
             }
 
             if let Some(mutation_behavior) = &mutated_piece.behaviors.relay {
@@ -131,6 +127,7 @@ pub(super) fn execute_turn_mutations(
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub(super) fn end_turn(
     mut players_query: Query<(Entity, Option<&mut Clock>, Option<&Turn>), With<Player>>,
     mut commands: Commands,
@@ -160,7 +157,9 @@ pub(super) fn detect_gameover(
     mut gameover_writer: EventWriter<GameoverEvent>,
 ) {
     // TODO: enable running multiple boards
-    let Ok((_game_entity, win_condition)) = game_query.get_single() else { return; };
+    let Ok((_game_entity, win_condition)) = game_query.get_single() else {
+        return;
+    };
 
     match win_condition {
         WinCondition::RoyalCaptureAll => {

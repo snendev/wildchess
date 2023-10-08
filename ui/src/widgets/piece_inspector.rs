@@ -109,7 +109,7 @@ fn describe_step(step: Step) -> String {
             } else if symmetry.intersects(RSymmetry::diagonal_backward()) {
                 directions.push("diagonal-backward")
             }
-            format!("{}", directions.join(", "))
+            directions.join(", ").to_string()
         }
         Step::TwoDim(a, b, _symmetry) => format!("{}-by-{}", a, b,),
     }

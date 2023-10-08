@@ -106,7 +106,7 @@ impl Behavior for RelayBehavior {
                     .collect();
                 let actions = RelayActionsCache::from(PatternBehavior::new(patterns).search(
                     &position.0,
-                    &orientation,
+                    orientation,
                     team,
                     board,
                     &pieces,

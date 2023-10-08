@@ -23,6 +23,7 @@ use crate::{
 
 // TODO: custom WorldQuery to slim this fn signature
 // it could use a little organization
+#[allow(clippy::type_complexity)]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn egui_chessboard(
     piece_query: Query<PieceQuery>,
@@ -113,7 +114,7 @@ pub(crate) fn egui_chessboard(
                 }
 
                 if let Some(piece) = last_selected_square.and_then(|square| pieces.get(&square)) {
-                    ui.add(PieceInspectorWidget::new(&piece));
+                    ui.add(PieceInspectorWidget::new(piece));
                 }
             });
         });
