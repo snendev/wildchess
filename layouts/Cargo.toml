@@ -5,5 +5,4 @@ edition = "2021"
 
 [dependencies]
 chess = { path = "../chess" }
-bevy = { version = "0.11" }
-rand = { version = "0.8.5 " }
+rand = { version = "0.8.5" }

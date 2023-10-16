@@ -13,6 +13,5 @@ pub use turn::Turn;
 #[derive(Component)]
 pub struct Player;
 
-// TODO: use this
 #[derive(Clone, Copy, Component, Debug)]
-pub struct InGame(Entity);
+pub struct InGame(pub Entity);

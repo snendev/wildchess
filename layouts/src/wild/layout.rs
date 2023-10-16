@@ -1,7 +1,5 @@
 use rand::{thread_rng, Rng};
 
-use bevy::prelude::Commands;
-
 use chess::{
     behavior::PatternBehavior,
     board::{File, Rank},
@@ -14,7 +12,7 @@ use crate::{utils::squares_by_team, wild::PieceBuilder};
 pub struct WildLayout;
 
 impl WildLayout {
-    pub fn spawn_pieces(commands: &mut Commands) {
+    pub fn pieces() -> impl Iterator<Item = PieceSpecification> {
         let piece_set = random_pieces();
 
         let pawn_promotion_options = vec![
@@ -36,32 +34,32 @@ impl WildLayout {
             },
         ];
 
-        for piece in squares_by_team(0, [File::A, File::H].into_iter())
-            .map(|(team, square)| {
+        squares_by_team(0, [File::A, File::H].into_iter())
+            .map(move |(team, square)| {
                 PieceSpecification::new(piece(piece_set.pieces.0.clone()), team, square.into())
             })
             .chain(
-                squares_by_team(0, [File::B, File::G].into_iter()).map(|(team, square)| {
+                squares_by_team(0, [File::B, File::G].into_iter()).map(move |(team, square)| {
                     PieceSpecification::new(piece(piece_set.pieces.1.clone()), team, square.into())
                 }),
             )
             .chain(
-                squares_by_team(0, [File::C, File::F].into_iter()).map(|(team, square)| {
+                squares_by_team(0, [File::C, File::F].into_iter()).map(move |(team, square)| {
                     PieceSpecification::new(piece(piece_set.pieces.2.clone()), team, square.into())
                 }),
             )
             .chain(
-                squares_by_team(0, std::iter::once(File::D)).map(|(team, square)| {
+                squares_by_team(0, std::iter::once(File::D)).map(move |(team, square)| {
                     PieceSpecification::new(piece(piece_set.pieces.3.clone()), team, square.into())
                 }),
             )
             .chain(
-                squares_by_team(0, std::iter::once(File::E)).map(|(team, square)| {
+                squares_by_team(0, std::iter::once(File::E)).map(move |(team, square)| {
                     PieceSpecification::new(king(piece_set.king.clone()), team, square.into())
                 }),
             )
             .chain(
-                squares_by_team(1, (0..8).map(File::from)).map(|(team, square)| {
+                squares_by_team(1, (0..8).map(File::from)).map(move |(team, square)| {
                     PieceSpecification::new(
                         pawn(
                             piece_set.pawn.clone(),
@@ -78,9 +76,6 @@ impl WildLayout {
                     )
                 }),
             )
-        {
-            piece.spawn(commands);
-        }
     }
 }
 

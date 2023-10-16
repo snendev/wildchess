@@ -6,12 +6,12 @@ use chess::{
     actions::Action,
     behavior::PieceBehaviorsBundle,
     board::Board,
-    pieces::{Mutation, MutationCondition, Position, Royal},
+    pieces::{Mutation, MutationCondition, PieceSpecification, Position, Royal},
     team::Team,
 };
 use layouts::{ClassicalLayout, KnightRelayLayout, SuperRelayLayout, WildLayout};
 
-use crate::components::{Clock, ClockConfiguration, GameBoard, Player, Turn, WinCondition};
+use crate::components::{Clock, ClockConfiguration, GameBoard, InGame, Player, Turn, WinCondition};
 
 use super::{
     events::GameoverEvent, IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent,
@@ -220,29 +220,33 @@ pub(super) fn spawn_game_entities(
     mut commands: Commands,
     query: Query<(Entity, &GameBoard, Option<&ClockConfiguration>), Added<GameBoard>>,
 ) {
-    for (entity, game_board, clock) in query.iter() {
+    for (game_entity, game_board, clock) in query.iter() {
         let board = match game_board {
             GameBoard::Chess
             | GameBoard::WildChess
             | GameBoard::KnightRelayChess
             | GameBoard::SuperRelayChess => Board::chess_board(),
         };
-        commands.entity(entity).insert(board);
+        commands.spawn((board, InGame(game_entity)));
 
-        let mut white = commands.spawn((Player, Team::White, Turn));
+        let mut white = commands.spawn((Player, Team::White, InGame(game_entity), Turn));
         if let Some(ClockConfiguration { clock }) = clock {
             white.insert(clock.clone());
         }
-        let mut black = commands.spawn((Player, Team::Black));
+        let mut black = commands.spawn((Player, Team::Black, InGame(game_entity)));
         if let Some(ClockConfiguration { clock }) = clock {
             black.insert(clock.clone());
         }
 
-        match game_board {
-            GameBoard::Chess => ClassicalLayout::spawn_pieces(&mut commands),
-            GameBoard::WildChess => WildLayout::spawn_pieces(&mut commands),
-            GameBoard::KnightRelayChess => KnightRelayLayout::spawn_pieces(&mut commands),
-            GameBoard::SuperRelayChess => SuperRelayLayout::spawn_pieces(&mut commands),
+        let pieces: Box<dyn Iterator<Item = PieceSpecification>> = match game_board {
+            GameBoard::Chess => Box::new(ClassicalLayout::pieces()),
+            GameBoard::WildChess => Box::new(WildLayout::pieces()),
+            GameBoard::KnightRelayChess => Box::new(KnightRelayLayout::pieces()),
+            GameBoard::SuperRelayChess => Box::new(SuperRelayLayout::pieces()),
+        };
+
+        for piece in pieces {
+            piece.spawn(&mut commands).insert(InGame(game_entity));
         }
     }
 }

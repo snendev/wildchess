@@ -1,5 +1,3 @@
-use bevy::prelude::Commands;
-
 use chess::{
     behavior::RelayBehavior,
     board::{File, Rank},
@@ -14,8 +12,8 @@ use crate::{classical::pieces, utils::squares_by_team};
 pub struct SuperRelayLayout;
 
 impl SuperRelayLayout {
-    pub fn spawn_pieces(commands: &mut Commands) {
-        for piece in squares_by_team(0, [File::A, File::H].into_iter())
+    pub fn pieces() -> impl Iterator<Item = PieceSpecification> {
+        squares_by_team(0, [File::A, File::H].into_iter())
             .map(|(team, square)| PieceSpecification::new(rook(), team, square.into()))
             .chain(
                 squares_by_team(0, [File::B, File::G].into_iter())
@@ -45,9 +43,6 @@ impl SuperRelayLayout {
                     )
                 }),
             )
-        {
-            piece.spawn(commands);
-        }
     }
 }
 

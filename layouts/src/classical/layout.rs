@@ -1,5 +1,3 @@
-use bevy::prelude::Commands;
-
 use chess::{
     behavior::{EnPassantBehavior, PieceBehaviors},
     board::{File, Rank},
@@ -16,8 +14,8 @@ use crate::utils::squares_by_team;
 pub struct ClassicalLayout;
 
 impl ClassicalLayout {
-    pub fn spawn_pieces(commands: &mut Commands) {
-        for piece in squares_by_team(0, [File::A, File::H].into_iter())
+    pub fn pieces() -> impl Iterator<Item = PieceSpecification> {
+        squares_by_team(0, [File::A, File::H].into_iter())
             .map(|(team, square)| PieceSpecification::new(rook(), team, square.into()))
             .chain(
                 squares_by_team(0, [File::B, File::G].into_iter())
@@ -47,9 +45,6 @@ impl ClassicalLayout {
                     )
                 }),
             )
-        {
-            piece.spawn(commands);
-        }
     }
 }
 
