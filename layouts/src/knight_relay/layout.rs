@@ -1,39 +1,42 @@
 use chess::{
     behavior::{PieceBehaviors, RelayBehavior},
-    board::{Board, File, Rank},
-    pieces::{
-        Mutation, MutationCondition, PieceDefinition, PieceIdentity, PieceSpecification, Royal,
-    },
+    board::{File, Rank, Square},
+    pieces::{Mutation, MutationCondition, PieceDefinition, PieceIdentity, Royal},
 };
 
-use crate::{classical::pieces, utils::squares_by_team};
+use crate::{classical::pieces, PieceSpecification};
 
 pub struct KnightRelayLayout;
 
 impl KnightRelayLayout {
-    pub fn pieces<'a>(board: &'a Board) -> impl Iterator<Item = PieceSpecification> + 'a {
-        squares_by_team(0, board, [File::A, File::H].into_iter())
-            .map(|(team, square)| PieceSpecification::new(rook(), team, square.into()))
+    pub fn pieces() -> Vec<PieceSpecification> {
+        [File::A, File::H]
+            .into_iter()
+            .map(|file| PieceSpecification::new(rook(), Square::new(file, Rank::ONE)))
             .chain(
-                squares_by_team(0, board, [File::B, File::G].into_iter())
-                    .map(|(team, square)| PieceSpecification::new(knight(), team, square.into())),
+                [File::B, File::G]
+                    .into_iter()
+                    .map(|file| PieceSpecification::new(knight(), Square::new(file, Rank::ONE))),
             )
             .chain(
-                squares_by_team(0, board, [File::C, File::F].into_iter())
-                    .map(|(team, square)| PieceSpecification::new(bishop(), team, square.into())),
+                [File::C, File::F]
+                    .into_iter()
+                    .map(|file| PieceSpecification::new(bishop(), Square::new(file, Rank::ONE))),
             )
             .chain(
-                squares_by_team(0, board, std::iter::once(File::D))
-                    .map(|(team, square)| PieceSpecification::new(queen(), team, square.into())),
+                std::iter::once(File::D)
+                    .map(|file| PieceSpecification::new(queen(), Square::new(file, Rank::ONE))),
             )
             .chain(
-                squares_by_team(0, board, std::iter::once(File::E))
-                    .map(|(team, square)| PieceSpecification::new(king(), team, square.into())),
+                std::iter::once(File::E)
+                    .map(|file| PieceSpecification::new(king(), Square::new(file, Rank::ONE))),
             )
             .chain(
-                squares_by_team(1, board, (0..8).map(File::from))
-                    .map(|(team, square)| PieceSpecification::new(pawn(), team, square.into())),
+                (0..8)
+                    .map(File::from)
+                    .map(|file| PieceSpecification::new(pawn(), Square::new(file, Rank::TWO))),
             )
+            .collect()
     }
 }
 

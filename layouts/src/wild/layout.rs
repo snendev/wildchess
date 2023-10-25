@@ -1,48 +1,33 @@
-use chess::{
-    board::{Board, File},
-    pieces::PieceSpecification,
-};
+use chess::board::{File, Rank, Square};
 
-use crate::{utils::squares_by_team, wild::random_pieces};
+use crate::{wild::random_pieces, PieceSpecification};
 
 pub struct WildLayout;
 
 impl WildLayout {
-    pub fn pieces<'a>(board: &'a Board) -> impl Iterator<Item = PieceSpecification> + 'a {
+    pub fn pieces() -> Vec<PieceSpecification> {
         let piece_set = random_pieces();
 
-        squares_by_team(0, board, [File::A, File::H].into_iter())
-            .map(move |(team, square)| {
-                PieceSpecification::new(piece_set.major.clone(), team, square.into())
+        [File::A, File::H]
+            .into_iter()
+            .map(move |file| {
+                PieceSpecification::new(piece_set.major.clone(), Square::new(file, Rank::ONE))
             })
-            .chain(
-                squares_by_team(0, board, [File::B, File::G].into_iter()).map(
-                    move |(team, square)| {
-                        PieceSpecification::new(piece_set.minor1.clone(), team, square.into())
-                    },
-                ),
-            )
-            .chain(
-                squares_by_team(0, board, [File::C, File::F].into_iter()).map(
-                    move |(team, square)| {
-                        PieceSpecification::new(piece_set.minor2.clone(), team, square.into())
-                    },
-                ),
-            )
-            .chain(squares_by_team(0, board, std::iter::once(File::D)).map(
-                move |(team, square)| {
-                    PieceSpecification::new(piece_set.elite.clone(), team, square.into())
-                },
-            ))
-            .chain(squares_by_team(0, board, std::iter::once(File::E)).map(
-                move |(team, square)| {
-                    PieceSpecification::new(piece_set.king.clone(), team, square.into())
-                },
-            ))
-            .chain(
-                squares_by_team(1, board, (0..8).map(File::from)).map(move |(team, square)| {
-                    PieceSpecification::new(piece_set.pawn.clone(), team, square.into())
-                }),
-            )
+            .chain([File::B, File::G].into_iter().map(move |file| {
+                PieceSpecification::new(piece_set.minor1.clone(), Square::new(file, Rank::ONE))
+            }))
+            .chain([File::C, File::F].into_iter().map(move |file| {
+                PieceSpecification::new(piece_set.minor2.clone(), Square::new(file, Rank::ONE))
+            }))
+            .chain(std::iter::once(File::D).map(move |file| {
+                PieceSpecification::new(piece_set.elite.clone(), Square::new(file, Rank::ONE))
+            }))
+            .chain(std::iter::once(File::E).map(move |file| {
+                PieceSpecification::new(piece_set.king.clone(), Square::new(file, Rank::ONE))
+            }))
+            .chain((0..8).map(File::from).map(move |file| {
+                PieceSpecification::new(piece_set.pawn.clone(), Square::new(file, Rank::TWO))
+            }))
+            .collect()
     }
 }

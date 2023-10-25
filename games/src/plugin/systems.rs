@@ -1,21 +1,89 @@
 use bevy::prelude::{
-    info, Added, Commands, Entity, EventReader, EventWriter, Query, Res, Time, With,
+    info, Added, Commands, Entity, EventReader, EventWriter, Name, Query, Res, Time, With,
 };
 
 use chess::{
     actions::Action,
     behavior::PieceBehaviorsBundle,
     board::{Board, OnBoard},
-    pieces::{Mutation, MutationCondition, PieceSpecification, Position, Royal},
+    pieces::{Mutation, MutationCondition, PieceBundle, Position, Royal},
     team::Team,
 };
-use layouts::{ClassicalLayout, KnightRelayLayout, SuperRelayLayout, WildLayout};
+use layouts::{
+    ClassicalLayout, KnightRelayLayout, PieceSpecification, SuperRelayLayout, WildLayout,
+};
 
 use crate::components::{Clock, ClockConfiguration, GameBoard, InGame, Player, Turn, WinCondition};
 
 use super::{
     events::GameoverEvent, IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent,
 };
+
+pub(super) fn spawn_game_entities(
+    mut commands: Commands,
+    query: Query<(Entity, &GameBoard, Option<&ClockConfiguration>), Added<GameBoard>>,
+) {
+    for (game_entity, game_board, clock) in query.iter() {
+        let board = match game_board {
+            GameBoard::Chess
+            | GameBoard::WildChess
+            | GameBoard::KnightRelayChess
+            | GameBoard::SuperRelayChess => Board::chess_board(),
+        };
+        let board_entity = commands.spawn((board, InGame(game_entity))).id();
+
+        let pieces_per_player = match game_board {
+            GameBoard::Chess => ClassicalLayout::pieces(),
+            GameBoard::WildChess => WildLayout::pieces(),
+            GameBoard::KnightRelayChess => KnightRelayLayout::pieces(),
+            GameBoard::SuperRelayChess => SuperRelayLayout::pieces(),
+        };
+
+        for team in [Team::White, Team::Black].into_iter() {
+            let mut player_builder =
+                commands.spawn((Player, team, team.orientation(), InGame(game_entity), Turn));
+            if let Some(ClockConfiguration { clock }) = clock {
+                player_builder.insert(clock.clone());
+            }
+
+            for PieceSpecification {
+                piece,
+                start_square,
+            } in pieces_per_player.iter()
+            {
+                let start_square = start_square.reorient(team.orientation(), &board);
+                let name = Name::new(format!("{:?} {}-{:?}", team, start_square, piece.identity));
+
+                let mut piece_builder = commands.spawn((
+                    name,
+                    piece.identity,
+                    PieceBundle::new(start_square.into(), team),
+                    InGame(game_entity),
+                    OnBoard(board_entity),
+                ));
+
+                if piece.royal.is_some() {
+                    piece_builder.insert(Royal);
+                }
+                if let Some(mutation) = &piece.mutation {
+                    piece_builder.insert(mutation.clone());
+                }
+                if let Some(behavior) = piece.behaviors.en_passant {
+                    piece_builder.insert(behavior);
+                }
+                if let Some(behavior) = piece.behaviors.mimic {
+                    piece_builder.insert(behavior);
+                }
+                if let Some(behavior) = &piece.behaviors.pattern {
+                    piece_builder.insert(behavior.clone());
+                }
+                if let Some(behavior) = &piece.behaviors.relay {
+                    piece_builder.insert(behavior.clone());
+                }
+            }
+        }
+    }
+}
 
 pub(super) fn detect_turn(
     board_query: Query<&Board>,
@@ -242,54 +310,6 @@ pub fn log_gameover_events(mut gameovers: EventReader<GameoverEvent>) {
     for gameover in gameovers.iter() {
         info!("Team {:?} won!", gameover.winner);
         // TODO: display this somewhere
-    }
-}
-
-pub(super) fn spawn_game_entities(
-    mut commands: Commands,
-    query: Query<(Entity, &GameBoard, Option<&ClockConfiguration>), Added<GameBoard>>,
-) {
-    for (game_entity, game_board, clock) in query.iter() {
-        let board = match game_board {
-            GameBoard::Chess
-            | GameBoard::WildChess
-            | GameBoard::KnightRelayChess
-            | GameBoard::SuperRelayChess => Board::chess_board(),
-        };
-        let board_entity = commands.spawn((board, InGame(game_entity))).id();
-
-        let mut white = commands.spawn((
-            Player,
-            Team::White,
-            Team::White.orientation(),
-            InGame(game_entity),
-            Turn,
-        ));
-        if let Some(ClockConfiguration { clock }) = clock {
-            white.insert(clock.clone());
-        }
-        let mut black = commands.spawn((
-            Player,
-            Team::Black,
-            Team::Black.orientation(),
-            InGame(game_entity),
-        ));
-        if let Some(ClockConfiguration { clock }) = clock {
-            black.insert(clock.clone());
-        }
-
-        let pieces: Box<dyn Iterator<Item = PieceSpecification>> = match game_board {
-            GameBoard::Chess => Box::new(ClassicalLayout::pieces(&board)),
-            GameBoard::WildChess => Box::new(WildLayout::pieces(&board)),
-            GameBoard::KnightRelayChess => Box::new(KnightRelayLayout::pieces(&board)),
-            GameBoard::SuperRelayChess => Box::new(SuperRelayLayout::pieces(&board)),
-        };
-
-        for piece in pieces {
-            piece
-                .spawn(&mut commands)
-                .insert((InGame(game_entity), OnBoard(board_entity)));
-        }
     }
 }
 

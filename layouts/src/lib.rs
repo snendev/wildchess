@@ -1,3 +1,5 @@
+use chess::{board::Square, pieces::PieceDefinition};
+
 mod classical;
 pub use classical::ClassicalLayout;
 mod knight_relay;
@@ -7,4 +9,18 @@ pub use super_relay::SuperRelayLayout;
 mod wild;
 pub use wild::WildLayout;
 
-pub(crate) mod utils;
+// Defines how to position a piece relative to a player's starting orientation
+#[derive(Clone, Debug, Default)]
+pub struct PieceSpecification {
+    pub piece: PieceDefinition,
+    pub start_square: Square,
+}
+
+impl PieceSpecification {
+    pub fn new(piece: PieceDefinition, start_square: Square) -> Self {
+        Self {
+            piece,
+            start_square,
+        }
+    }
+}
