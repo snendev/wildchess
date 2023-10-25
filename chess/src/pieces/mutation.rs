@@ -5,6 +5,7 @@ use crate::board::Rank;
 use super::PieceDefinition;
 
 // AKA "Promotion", but named Mutation in case of more general purposes
+// TODO: split condition and required into separate component types and systems?
 #[derive(Clone, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
 pub struct Mutation {
@@ -21,7 +22,8 @@ pub struct Mutation {
 
 #[derive(Clone, Debug, Reflect)]
 pub enum MutationCondition {
-    Rank(Rank),
+    // rank is local to team orientation
+    LocalRank(Rank),
     OnCapture,
     // TODO: Region
     // TODO: ?????
@@ -29,7 +31,7 @@ pub enum MutationCondition {
 
 impl Default for MutationCondition {
     fn default() -> Self {
-        MutationCondition::Rank(Rank::default())
+        MutationCondition::LocalRank(Rank::EIGHT)
     }
 }
 

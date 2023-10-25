@@ -5,7 +5,7 @@ use bevy::prelude::{
 use chess::{
     actions::Action,
     behavior::PieceBehaviorsBundle,
-    board::Board,
+    board::{Board, OnBoard},
     pieces::{Mutation, MutationCondition, PieceSpecification, Position, Royal},
     team::Team,
 };
@@ -18,26 +18,44 @@ use super::{
 };
 
 pub(super) fn detect_turn(
-    piece_query: Query<&Mutation>,
+    board_query: Query<&Board>,
+    piece_query: Query<(&Team, &Mutation, &OnBoard)>,
     mut move_reader: EventReader<IssueMoveEvent>,
     mut mutation_reader: EventReader<IssueMutationEvent>,
     mut mutation_request_writer: EventWriter<RequestMutationEvent>,
     mut turn_writer: EventWriter<TurnEvent>,
 ) {
-    for IssueMoveEvent(entity, action) in move_reader.iter() {
-        if let Ok(mutation) = piece_query.get(*entity) {
+    for IssueMoveEvent {
+        piece,
+        game,
+        action,
+    } in move_reader.iter()
+    {
+        if let Ok((team, mutation, on_board)) = piece_query.get(*piece) {
             match mutation.condition {
-                MutationCondition::Rank(rank) => {
-                    if rank != action.landing_square.rank {
-                        turn_writer.send(TurnEvent::action(*entity, action.clone()));
+                MutationCondition::LocalRank(rank) => {
+                    let Ok(board) = board_query.get(on_board.0) else {
+                        continue;
+                    };
+                    let reoriented_rank = action
+                        .landing_square
+                        .reorient(team.orientation(), board)
+                        .rank;
+                    if rank != reoriented_rank {
+                        turn_writer.send(TurnEvent::action(*piece, *game, action.clone()));
                     } else if mutation.to_piece.len() == 1 {
                         turn_writer.send(TurnEvent::mutation(
-                            *entity,
+                            *piece,
+                            *game,
                             action.clone(),
                             mutation.to_piece.first().unwrap().clone(),
                         ));
                     } else {
-                        mutation_request_writer.send(RequestMutationEvent(*entity, action.clone()));
+                        mutation_request_writer.send(RequestMutationEvent {
+                            piece: *piece,
+                            game: *game,
+                            action: action.clone(),
+                        });
                     }
                 }
                 MutationCondition::OnCapture => {
@@ -45,11 +63,22 @@ pub(super) fn detect_turn(
                 }
             }
         } else {
-            turn_writer.send(TurnEvent::action(*entity, action.clone()));
+            turn_writer.send(TurnEvent::action(*piece, *game, action.clone()));
         }
     }
-    for IssueMutationEvent(entity, action, piece) in mutation_reader.iter() {
-        turn_writer.send(TurnEvent::mutation(*entity, action.clone(), piece.clone()));
+    for IssueMutationEvent {
+        piece,
+        game,
+        action,
+        piece_definition,
+    } in mutation_reader.iter()
+    {
+        turn_writer.send(TurnEvent::mutation(
+            *piece,
+            *game,
+            action.clone(),
+            piece_definition.clone(),
+        ));
     }
 }
 
@@ -59,14 +88,14 @@ pub(super) fn execute_turn_movement(
     mut turn_reader: EventReader<TurnEvent>,
 ) {
     for event in turn_reader.iter() {
-        if let Ok((_, mut current_square)) = piece_query.get_mut(event.entity) {
+        if let Ok((_, mut current_square)) = piece_query.get_mut(event.piece) {
             current_square.0 = event.action.landing_square;
         }
 
         for capture_square in event.action.captures.iter() {
             if let Some(captured_piece) =
                 piece_query.iter().find_map(|(capture_entity, position)| {
-                    if *position == (*capture_square).into() && capture_entity != event.entity {
+                    if *position == (*capture_square).into() && capture_entity != event.piece {
                         Some(capture_entity)
                     } else {
                         None
@@ -88,39 +117,39 @@ pub(super) fn execute_turn_mutations(
         if let Some(mutated_piece) = &event.mutation {
             // remove any existing behaviors and mutation
             commands
-                .entity(event.entity)
+                .entity(event.piece)
                 .remove::<PieceBehaviorsBundle>();
-            commands.entity(event.entity).remove::<Mutation>();
-            commands.entity(event.entity).remove::<Royal>();
+            commands.entity(event.piece).remove::<Mutation>();
+            commands.entity(event.piece).remove::<Royal>();
 
             // add subsequent mutation if specified
             if let Some(new_mutation) = &mutated_piece.mutation {
-                commands.entity(event.entity).insert(new_mutation.clone());
+                commands.entity(event.piece).insert(new_mutation.clone());
             }
 
             // add Royal if specified
             if mutated_piece.royal.is_some() {
-                commands.entity(event.entity).insert(Royal);
+                commands.entity(event.piece).insert(Royal);
             }
 
             // add all specified behaviors
             if let Some(mutation_behavior) = &mutated_piece.behaviors.pattern {
                 commands
-                    .entity(event.entity)
+                    .entity(event.piece)
                     .insert(mutation_behavior.clone());
             }
 
             if let Some(mutation_behavior) = &mutated_piece.behaviors.en_passant {
-                commands.entity(event.entity).insert(*mutation_behavior);
+                commands.entity(event.piece).insert(*mutation_behavior);
             }
 
             if let Some(mutation_behavior) = &mutated_piece.behaviors.mimic {
-                commands.entity(event.entity).insert(*mutation_behavior);
+                commands.entity(event.piece).insert(*mutation_behavior);
             }
 
             if let Some(mutation_behavior) = &mutated_piece.behaviors.relay {
                 commands
-                    .entity(event.entity)
+                    .entity(event.piece)
                     .insert(mutation_behavior.clone());
             }
         }
@@ -227,26 +256,39 @@ pub(super) fn spawn_game_entities(
             | GameBoard::KnightRelayChess
             | GameBoard::SuperRelayChess => Board::chess_board(),
         };
-        commands.spawn((board, InGame(game_entity)));
+        let board_entity = commands.spawn((board, InGame(game_entity))).id();
 
-        let mut white = commands.spawn((Player, Team::White, InGame(game_entity), Turn));
+        let mut white = commands.spawn((
+            Player,
+            Team::White,
+            Team::White.orientation(),
+            InGame(game_entity),
+            Turn,
+        ));
         if let Some(ClockConfiguration { clock }) = clock {
             white.insert(clock.clone());
         }
-        let mut black = commands.spawn((Player, Team::Black, InGame(game_entity)));
+        let mut black = commands.spawn((
+            Player,
+            Team::Black,
+            Team::Black.orientation(),
+            InGame(game_entity),
+        ));
         if let Some(ClockConfiguration { clock }) = clock {
             black.insert(clock.clone());
         }
 
         let pieces: Box<dyn Iterator<Item = PieceSpecification>> = match game_board {
-            GameBoard::Chess => Box::new(ClassicalLayout::pieces()),
-            GameBoard::WildChess => Box::new(WildLayout::pieces()),
-            GameBoard::KnightRelayChess => Box::new(KnightRelayLayout::pieces()),
-            GameBoard::SuperRelayChess => Box::new(SuperRelayLayout::pieces()),
+            GameBoard::Chess => Box::new(ClassicalLayout::pieces(&board)),
+            GameBoard::WildChess => Box::new(WildLayout::pieces(&board)),
+            GameBoard::KnightRelayChess => Box::new(KnightRelayLayout::pieces(&board)),
+            GameBoard::SuperRelayChess => Box::new(SuperRelayLayout::pieces(&board)),
         };
 
         for piece in pieces {
-            piece.spawn(&mut commands).insert(InGame(game_entity));
+            piece
+                .spawn(&mut commands)
+                .insert((InGame(game_entity), OnBoard(board_entity)));
         }
     }
 }

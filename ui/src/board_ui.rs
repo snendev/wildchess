@@ -104,13 +104,18 @@ pub(crate) fn egui_chessboard(
                 }
 
                 let mut selected_mutation = None;
-                if let Some((_, _, icons)) = intended_mutation.0.as_ref() {
+                if let Some((_, icons)) = intended_mutation.0.as_ref() {
                     render_mutation_options(ui, &mut selected_mutation, icons);
                 }
 
-                if let Some(piece) = selected_mutation {
-                    let (entity, action, _) = intended_mutation.0.take().unwrap();
-                    mutation_writer.send(IssueMutationEvent(entity, action, piece));
+                if let Some(piece_definition) = selected_mutation {
+                    let (event, _) = intended_mutation.0.take().unwrap();
+                    mutation_writer.send(IssueMutationEvent {
+                        piece: event.piece,
+                        game: event.game,
+                        action: event.action,
+                        piece_definition,
+                    });
                 }
 
                 if let Some(piece) = last_selected_square.and_then(|square| pieces.get(&square)) {
@@ -131,7 +136,11 @@ fn handle_clicked_square(
         if let Some(action) = piece.actions.get(&selected_square) {
             if let Some(team) = team_with_turn {
                 if piece.team == team {
-                    return Some(IssueMoveEvent(piece.entity, action.clone()));
+                    return Some(IssueMoveEvent {
+                        piece: piece.entity,
+                        game: piece.in_game.0,
+                        action: action.clone(),
+                    });
                 }
             }
         }

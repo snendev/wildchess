@@ -7,6 +7,7 @@ use bevy::prelude::{Component, Reflect, ReflectComponent};
 #[derive(Clone, Copy, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
 pub enum PieceIdentity {
+    // The default: implies that this piece does not fit an existing stereotype
     #[default]
     Wild,
     // Somewhat universal

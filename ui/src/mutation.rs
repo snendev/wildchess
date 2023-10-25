@@ -1,8 +1,7 @@
-use bevy::prelude::{Entity, EventReader, Query, ResMut, Resource};
+use bevy::prelude::{EventReader, Query, ResMut, Resource};
 
 use games::{
     chess::{
-        actions::Action,
         pieces::{Mutation, PieceDefinition, Royal},
         team::Team,
     },
@@ -13,7 +12,7 @@ use crate::PieceIcon;
 
 #[allow(clippy::type_complexity)]
 #[derive(Default, Resource)]
-pub struct IntendedMutation(pub Option<(Entity, Action, Vec<(PieceIcon, PieceDefinition)>)>);
+pub struct IntendedMutation(pub Option<(RequestMutationEvent, Vec<(PieceIcon, PieceDefinition)>)>);
 
 pub fn read_mutation_options(
     mut intended_mutation: ResMut<IntendedMutation>,
@@ -21,11 +20,10 @@ pub fn read_mutation_options(
     piece_query: Query<(&Mutation, &Team, Option<&Royal>)>,
 ) {
     for event in mutation_reader.iter() {
-        let entity = event.0;
+        let entity = event.piece;
         if let Ok((mutation, team, maybe_royal)) = piece_query.get(entity) {
             intended_mutation.0 = Some((
-                entity,
-                event.1.clone(),
+                event.clone(),
                 mutation
                     .to_piece
                     .iter()

@@ -3,6 +3,10 @@ use thiserror::Error;
 
 use bevy::prelude::Reflect;
 
+use crate::{pieces::Orientation, team::Team};
+
+use super::Board;
+
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Reflect)]
 pub struct File(pub u16);
 
@@ -16,6 +20,18 @@ impl File {
     pub const G: Self = File(6);
     pub const H: Self = File(7);
     pub const I: Self = File(8);
+
+    pub fn checked_add(&self, delta: i16) -> Option<File> {
+        let current: u16 = self.into();
+        current
+            .checked_add_signed(delta)
+            .and_then(|next| next.try_into().ok())
+    }
+
+    // TODO: safer arithmetic
+    pub fn reverse(&self, max: File) -> File {
+        File(max.0 - self.0)
+    }
 }
 
 #[derive(Debug, Error)]
@@ -72,15 +88,6 @@ impl From<&File> for u16 {
     }
 }
 
-impl File {
-    pub fn checked_add(&self, delta: i16) -> Option<File> {
-        let current: u16 = self.into();
-        current
-            .checked_add_signed(delta)
-            .and_then(|next| next.try_into().ok())
-    }
-}
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
 pub struct Rank(pub u16);
 
@@ -97,8 +104,23 @@ impl Rank {
     pub const EIGHT: Self = Rank(7);
     pub const NINE: Self = Rank(8);
 
-    pub fn reverse(&self, height: u16) -> Rank {
-        Rank(height - self.0)
+    pub fn checked_add(&self, delta: i16) -> Option<Rank> {
+        let current: u16 = self.into();
+        current
+            .checked_add_signed(delta)
+            .and_then(|next| next.try_into().ok())
+    }
+
+    // TODO: safer arithmetic
+    pub fn reverse(&self, max: Rank) -> Rank {
+        Rank(max.0 - self.0)
+    }
+
+    // TODO: is this the right place for this code?
+    pub fn back_rank(team: Team, board: &Board) -> Rank {
+        Square::new(File::H, Rank::EIGHT)
+            .reorient(team.orientation(), board)
+            .rank
     }
 }
 
@@ -164,15 +186,6 @@ impl From<&Rank> for u16 {
     }
 }
 
-impl Rank {
-    pub fn checked_add(&self, delta: i16) -> Option<Rank> {
-        let current: u16 = self.into();
-        current
-            .checked_add_signed(delta)
-            .and_then(|next| next.try_into().ok())
-    }
-}
-
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Reflect)]
 pub struct Square {
     pub file: File,
@@ -225,6 +238,22 @@ impl Square {
 
     fn is_in_bounds(&self, max: &Square) -> bool {
         self.rank <= max.rank && self.file <= max.file
+    }
+
+    // TODO: share more code with Orientation::orient
+    pub fn reorient(&self, orientation: Orientation, board: &Board) -> Self {
+        match orientation {
+            Orientation::Up => Square::new(self.file, self.rank),
+            Orientation::Down => Square::new(
+                self.file.reverse(board.size.file),
+                self.rank.reverse(board.size.rank),
+            ),
+            Orientation::Left => Square::new(File(self.rank.0), Rank(self.file.0)),
+            Orientation::Right => Square::new(
+                File(self.file.reverse(board.size.file).0),
+                Rank(self.rank.reverse(board.size.rank).0),
+            ),
+        }
     }
 
     pub fn checked_add(&self, x: i16, y: i16, max: &Square) -> Option<Square> {

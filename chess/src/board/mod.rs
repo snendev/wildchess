@@ -1,4 +1,4 @@
-use bevy::{prelude::Component, reflect::Reflect};
+use bevy::prelude::{Component, Entity, Reflect};
 
 mod square;
 pub use square::{File, Rank, Square};
@@ -29,6 +29,9 @@ impl Board {
         }
     }
 }
+
+#[derive(Clone, Copy, Component, Debug, Reflect)]
+pub struct OnBoard(pub Entity);
 
 #[derive(Clone, Debug)]
 pub struct BoardIterator<'a> {

@@ -1,10 +1,9 @@
 use chess::{
     behavior::{EnPassantBehavior, PieceBehaviors},
-    board::{File, Rank},
+    board::{Board, File, Rank},
     pieces::{
         Mutation, MutationCondition, PieceDefinition, PieceIdentity, PieceSpecification, Royal,
     },
-    team::Team,
 };
 
 use super::pieces;
@@ -14,36 +13,28 @@ use crate::utils::squares_by_team;
 pub struct ClassicalLayout;
 
 impl ClassicalLayout {
-    pub fn pieces() -> impl Iterator<Item = PieceSpecification> {
-        squares_by_team(0, [File::A, File::H].into_iter())
+    pub fn pieces<'a>(board: &'a Board) -> impl Iterator<Item = PieceSpecification> + 'a {
+        squares_by_team(0, board, [File::A, File::H].into_iter())
             .map(|(team, square)| PieceSpecification::new(rook(), team, square.into()))
             .chain(
-                squares_by_team(0, [File::B, File::G].into_iter())
+                squares_by_team(0, board, [File::B, File::G].into_iter())
                     .map(|(team, square)| PieceSpecification::new(knight(), team, square.into())),
             )
             .chain(
-                squares_by_team(0, [File::C, File::F].into_iter())
+                squares_by_team(0, board, [File::C, File::F].into_iter())
                     .map(|(team, square)| PieceSpecification::new(bishop(), team, square.into())),
             )
             .chain(
-                squares_by_team(0, std::iter::once(File::D))
+                squares_by_team(0, board, std::iter::once(File::D))
                     .map(|(team, square)| PieceSpecification::new(queen(), team, square.into())),
             )
             .chain(
-                squares_by_team(0, std::iter::once(File::E))
+                squares_by_team(0, board, std::iter::once(File::E))
                     .map(|(team, square)| PieceSpecification::new(king(), team, square.into())),
             )
             .chain(
-                squares_by_team(1, (0..8).map(File::from)).map(|(team, square)| {
-                    PieceSpecification::new(
-                        pawn(match team {
-                            Team::White => Rank::EIGHT,
-                            Team::Black => Rank::ONE,
-                        }),
-                        team,
-                        square.into(),
-                    )
-                }),
+                squares_by_team(1, board, (0..8).map(File::from))
+                    .map(|(team, square)| PieceSpecification::new(pawn(), team, square.into())),
             )
     }
 }
@@ -57,7 +48,7 @@ fn king() -> PieceDefinition {
     }
 }
 
-fn pawn(promotion_rank: Rank) -> PieceDefinition {
+fn pawn() -> PieceDefinition {
     PieceDefinition {
         behaviors: PieceBehaviors {
             pattern: pieces::pawn().into(),
@@ -65,7 +56,7 @@ fn pawn(promotion_rank: Rank) -> PieceDefinition {
             ..Default::default()
         },
         mutation: Some(Mutation {
-            condition: MutationCondition::Rank(promotion_rank),
+            condition: MutationCondition::LocalRank(Rank::EIGHT),
             to_piece: vec![queen(), rook(), bishop(), knight()],
             ..Default::default()
         }),

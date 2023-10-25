@@ -1,10 +1,13 @@
 use bevy::{ecs::query::WorldQuery, prelude::Entity};
 
-use games::chess::{
-    actions::Actions,
-    behavior::{MimicBehavior, PatternBehavior, RelayBehavior},
-    pieces::{Mutation, Position},
-    team::Team,
+use games::{
+    chess::{
+        actions::Actions,
+        behavior::{MimicBehavior, PatternBehavior, RelayBehavior},
+        pieces::{Mutation, Position},
+        team::Team,
+    },
+    components::InGame,
 };
 
 use crate::PieceIcon;
@@ -20,6 +23,7 @@ pub struct BehaviorsQuery {
 #[derive(WorldQuery)]
 pub struct PieceQuery {
     pub entity: Entity,
+    pub in_game: &'static InGame,
     pub position: &'static Position,
     pub team: &'static Team,
     pub actions: &'static Actions,
@@ -32,6 +36,7 @@ pub struct PieceQuery {
 
 pub struct PieceData<'a> {
     pub entity: Entity,
+    pub in_game: &'a InGame,
     pub position: &'a Position,
     pub team: &'a Team,
     pub actions: &'a Actions,
@@ -46,6 +51,7 @@ impl<'a> From<PieceQueryItem<'a>> for PieceData<'a> {
     fn from(piece: PieceQueryItem<'a>) -> Self {
         PieceData {
             entity: piece.entity,
+            in_game: piece.in_game,
             position: piece.position,
             team: piece.team,
             actions: piece.actions,

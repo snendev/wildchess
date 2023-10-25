@@ -1,4 +1,4 @@
-use bevy::prelude::{Component, Entity};
+use bevy::prelude::{Component, Entity, Reflect};
 
 mod game;
 pub use game::{
@@ -13,5 +13,5 @@ pub use turn::Turn;
 #[derive(Component)]
 pub struct Player;
 
-#[derive(Clone, Copy, Component, Debug)]
+#[derive(Clone, Copy, Component, Debug, Reflect)]
 pub struct InGame(pub Entity);

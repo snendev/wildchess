@@ -4,7 +4,7 @@ use bevy::{prelude::Reflect, utils::HashMap};
 
 use crate::{
     actions::Action,
-    board::{Board, Rank, Square},
+    board::{Board, File, Rank, Square},
     pieces::Orientation,
     team::Team,
 };
@@ -244,10 +244,9 @@ impl Pattern {
         last_action: Option<&Action>,
     ) -> HashMap<Square, Action> {
         if let Some(rank_constraint) = &self.constraints.from_rank {
-            let allowed_rank = match my_team {
-                Team::White => rank_constraint.0,
-                Team::Black => rank_constraint.0.reverse(board.size.rank.0),
-            };
+            let allowed_rank = Square::new(File(rank_constraint.0 .0), rank_constraint.0)
+                .reorient(my_team.orientation(), board)
+                .rank;
             if origin.rank != allowed_rank {
                 return HashMap::new();
             }
