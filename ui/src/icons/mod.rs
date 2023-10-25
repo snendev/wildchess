@@ -42,6 +42,18 @@ impl PieceIcon {
         let (generated_icon, icon_source) = wild_behavior_icon(patterns, team, is_king);
         PieceIcon::svg(generated_icon, icon_source)
     }
+
+    pub fn from_behaviors(
+        patterns: Option<&PatternBehavior>,
+        relays: Option<&RelayBehavior>,
+        team: Team,
+        is_royal: bool,
+    ) -> Self {
+        let patterns = patterns
+            .map(|behavior| &behavior.patterns)
+            .or(relays.map(|behavior| &behavior.patterns));
+        PieceIcon::wild_svg(patterns.unwrap_or(&Vec::new()), team, is_royal)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -80,16 +92,7 @@ pub fn attach_piece_icons(
         } else if let PieceIdentity::Wild = identity {
             // otherwise create a new icon with the movement patterns
             // (or the relay patterns if no movement patterns exist)
-            // TODO: don't construct this unnecessarily
-            let empty = Vec::new();
-            let patterns = if let Some(patterns) = patterns {
-                &patterns.patterns
-            } else if let Some(relays) = relays {
-                &relays.patterns
-            } else {
-                &empty
-            };
-            let icon = PieceIcon::wild_svg(patterns, *team, maybe_royal.is_some());
+            let icon = PieceIcon::from_behaviors(patterns, relays, *team, maybe_royal.is_some());
             icons.insert(key.clone(), icon.clone());
             icons.get(&key)
         } else {

@@ -10,7 +10,7 @@ pub(crate) fn wild_behavior_icon(
     team: Team,
     is_king: bool,
 ) -> (RetainedImage, String) {
-    let svg_source = build_svg(patterns.clone(), team, is_king);
+    let svg_source = build_svg(patterns, team, is_king);
     (
         RetainedImage::from_svg_str(
             format!("svg-{:?}-{:?}", team, patterns),
@@ -24,7 +24,7 @@ pub(crate) fn wild_behavior_icon(
 
 // svg generation utilities
 
-fn build_svg(patterns: Vec<Pattern>, team: Team, is_king: bool) -> String {
+fn build_svg(patterns: &Vec<Pattern>, team: Team, is_king: bool) -> String {
     format!(
         r#"<svg
     width="1000"
@@ -225,7 +225,7 @@ fn arrow(position: NodePosition, color_hex: &str) -> String {
     }
 }
 
-fn pattern_nodes(pattern: Pattern, team: Team) -> String {
+fn pattern_nodes(pattern: &Pattern, team: Team) -> String {
     let color_hex = match pattern.capture.map(|capture| capture.mode) {
         None => "#0000ff",
         Some(CaptureMode::CanCapture) => "#000000",
@@ -252,7 +252,7 @@ fn pattern_nodes(pattern: Pattern, team: Team) -> String {
 }
 
 // builds a set of symbols to decorate the piece tile with patterns that describe its behavior options
-fn behavior_nodes(patterns: Vec<Pattern>, team: Team) -> String {
+fn behavior_nodes(patterns: &Vec<Pattern>, team: Team) -> String {
     patterns
         .into_iter()
         .map(|pattern| pattern_nodes(pattern, team))

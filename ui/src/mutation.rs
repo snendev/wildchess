@@ -28,18 +28,13 @@ pub fn read_mutation_options(
                     .to_piece
                     .iter()
                     .map(move |option| {
-                        // TODO: don't construct this unnecessarily
-                        let empty = Vec::new();
-                        let patterns_to_display = if let Some(behavior) = &option.behaviors.pattern
-                        {
-                            &behavior.patterns
-                        } else if let Some(behavior) = &option.behaviors.relay {
-                            &behavior.patterns
-                        } else {
-                            &empty
-                        };
                         (
-                            PieceIcon::wild_svg(patterns_to_display, *team, maybe_royal.is_some()),
+                            PieceIcon::from_behaviors(
+                                option.behaviors.pattern.as_ref(),
+                                option.behaviors.relay.as_ref(),
+                                *team,
+                                maybe_royal.is_some(),
+                            ),
                             option.clone(),
                         )
                     })
