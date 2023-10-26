@@ -5,16 +5,16 @@ use chess::{actions::Action, pieces::PieceDefinition, team::Team};
 #[derive(Event)]
 pub struct TurnEvent {
     pub piece: Entity,
-    pub game: Entity,
+    pub board: Entity,
     pub action: Action,
     pub mutation: Option<PieceDefinition>,
 }
 
 impl TurnEvent {
-    pub fn action(piece: Entity, game: Entity, action: Action) -> Self {
+    pub fn action(piece: Entity, board: Entity, action: Action) -> Self {
         TurnEvent {
             piece,
-            game,
+            board,
             action,
             mutation: None,
         }
@@ -22,13 +22,13 @@ impl TurnEvent {
 
     pub fn mutation(
         piece: Entity,
-        game: Entity,
+        board: Entity,
         action: Action,
         mutated_piece: PieceDefinition,
     ) -> Self {
         TurnEvent {
             piece,
-            game,
+            board,
             action,
             mutation: Some(mutated_piece),
         }
@@ -38,7 +38,7 @@ impl TurnEvent {
 #[derive(Event)]
 pub struct IssueMoveEvent {
     pub piece: Entity,
-    pub game: Entity,
+    pub board: Entity,
     pub action: Action,
 }
 
@@ -46,14 +46,14 @@ pub struct IssueMoveEvent {
 #[derive(Clone, Event)]
 pub struct RequestMutationEvent {
     pub piece: Entity,
-    pub game: Entity,
+    pub board: Entity,
     pub action: Action,
 }
 
 #[derive(Clone, Event)]
 pub struct IssueMutationEvent {
     pub piece: Entity,
-    pub game: Entity,
+    pub board: Entity,
     pub action: Action,
     pub piece_definition: PieceDefinition,
 }

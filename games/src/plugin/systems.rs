@@ -95,7 +95,7 @@ pub(super) fn detect_turn(
 ) {
     for IssueMoveEvent {
         piece,
-        game,
+        board: board_entity,
         action,
     } in move_reader.iter()
     {
@@ -110,18 +110,18 @@ pub(super) fn detect_turn(
                         .reorient(team.orientation(), board)
                         .rank;
                     if rank != reoriented_rank {
-                        turn_writer.send(TurnEvent::action(*piece, *game, action.clone()));
+                        turn_writer.send(TurnEvent::action(*piece, *board_entity, action.clone()));
                     } else if mutation.to_piece.len() == 1 {
                         turn_writer.send(TurnEvent::mutation(
                             *piece,
-                            *game,
+                            *board_entity,
                             action.clone(),
                             mutation.to_piece.first().unwrap().clone(),
                         ));
                     } else {
                         mutation_request_writer.send(RequestMutationEvent {
                             piece: *piece,
-                            game: *game,
+                            board: *board_entity,
                             action: action.clone(),
                         });
                     }
@@ -131,19 +131,19 @@ pub(super) fn detect_turn(
                 }
             }
         } else {
-            turn_writer.send(TurnEvent::action(*piece, *game, action.clone()));
+            turn_writer.send(TurnEvent::action(*piece, *board_entity, action.clone()));
         }
     }
     for IssueMutationEvent {
         piece,
-        game,
+        board,
         action,
         piece_definition,
     } in mutation_reader.iter()
     {
         turn_writer.send(TurnEvent::mutation(
             *piece,
-            *game,
+            *board,
             action.clone(),
             piece_definition.clone(),
         ));
@@ -152,23 +152,28 @@ pub(super) fn detect_turn(
 
 pub(super) fn execute_turn_movement(
     mut commands: Commands,
-    mut piece_query: Query<(Entity, &mut Position)>,
+    mut piece_query: Query<(Entity, &mut Position, &OnBoard)>,
     mut turn_reader: EventReader<TurnEvent>,
 ) {
     for event in turn_reader.iter() {
-        if let Ok((_, mut current_square)) = piece_query.get_mut(event.piece) {
+        if let Ok((_, mut current_square, _)) = piece_query.get_mut(event.piece) {
             current_square.0 = event.action.landing_square;
         }
 
         for capture_square in event.action.captures.iter() {
             if let Some(captured_piece) =
-                piece_query.iter().find_map(|(capture_entity, position)| {
-                    if *position == (*capture_square).into() && capture_entity != event.piece {
-                        Some(capture_entity)
-                    } else {
-                        None
-                    }
-                })
+                piece_query
+                    .iter()
+                    .find_map(|(capture_entity, position, board)| {
+                        if *position == (*capture_square).into()
+                            && capture_entity != event.piece
+                            && event.board == board.0
+                        {
+                            Some(capture_entity)
+                        } else {
+                            None
+                        }
+                    })
             {
                 // TODO: should this despawn, or is there a good reason to keep the entity around?
                 commands.entity(captured_piece).remove::<Position>();
@@ -250,58 +255,59 @@ pub(super) fn last_action(mut reader: EventReader<TurnEvent>) -> Option<Action> 
 
 pub(super) fn detect_gameover(
     game_query: Query<(Entity, &WinCondition)>,
-    royal_query: Query<(&Team, Option<&Position>), With<Royal>>,
+    royal_query: Query<(&InGame, &Team, Option<&Position>), With<Royal>>,
     mut gameover_writer: EventWriter<GameoverEvent>,
 ) {
-    // TODO: enable running multiple boards
-    let Ok((_game_entity, win_condition)) = game_query.get_single() else {
-        return;
-    };
-
-    match win_condition {
-        WinCondition::RoyalCaptureAll => {
-            let all_captured = |current_team: Team| {
-                royal_query
-                    .iter()
-                    .filter(|(team, position)| **team == current_team && position.is_some())
-                    .count()
-                    == 0
-            };
-            if all_captured(Team::White) {
-                gameover_writer.send(GameoverEvent {
-                    winner: Team::Black,
-                })
+    for (game_entity, win_condition) in game_query.iter() {
+        match win_condition {
+            WinCondition::RoyalCaptureAll => {
+                let all_captured = |current_team: Team| {
+                    royal_query
+                        .iter()
+                        .filter(|(in_game, team, position)| {
+                            in_game.0 == game_entity && **team == current_team && position.is_some()
+                        })
+                        .count()
+                        == 0
+                };
+                if all_captured(Team::White) {
+                    gameover_writer.send(GameoverEvent {
+                        winner: Team::Black,
+                    })
+                }
+                if all_captured(Team::Black) {
+                    gameover_writer.send(GameoverEvent {
+                        winner: Team::White,
+                    })
+                }
             }
-            if all_captured(Team::Black) {
-                gameover_writer.send(GameoverEvent {
-                    winner: Team::White,
-                })
+            WinCondition::RoyalCapture => {
+                let any_captured = |current_team: Team| {
+                    royal_query
+                        .iter()
+                        .filter(|(in_game, team, position)| {
+                            in_game.0 == game_entity && **team == current_team && position.is_none()
+                        })
+                        .count()
+                        > 0
+                };
+                if any_captured(Team::White) {
+                    gameover_writer.send(GameoverEvent {
+                        winner: Team::Black,
+                    })
+                }
+                if any_captured(Team::Black) {
+                    gameover_writer.send(GameoverEvent {
+                        winner: Team::White,
+                    })
+                }
             }
-        }
-        WinCondition::RoyalCapture => {
-            let any_captured = |current_team: Team| {
-                royal_query
-                    .iter()
-                    .filter(|(team, position)| **team == current_team && position.is_none())
-                    .count()
-                    > 0
-            };
-            if any_captured(Team::White) {
-                gameover_writer.send(GameoverEvent {
-                    winner: Team::Black,
-                })
+            WinCondition::RaceToRank(_rank) => {
+                unimplemented!("TODO: Implement Racing Kings!")
             }
-            if any_captured(Team::Black) {
-                gameover_writer.send(GameoverEvent {
-                    winner: Team::White,
-                })
+            WinCondition::RaceToRegion(_goal_squares) => {
+                unimplemented!("TODO: Implement Racing Kings!")
             }
-        }
-        WinCondition::RaceToRank(_rank) => {
-            unimplemented!("TODO: Implement Racing Kings!")
-        }
-        WinCondition::RaceToRegion(_goal_squares) => {
-            unimplemented!("TODO: Implement Racing Kings!")
         }
     }
 }

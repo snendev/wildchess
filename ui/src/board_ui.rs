@@ -112,7 +112,7 @@ pub(crate) fn egui_chessboard(
                     let (event, _) = intended_mutation.0.take().unwrap();
                     mutation_writer.send(IssueMutationEvent {
                         piece: event.piece,
-                        game: event.game,
+                        board: event.board,
                         action: event.action,
                         piece_definition,
                     });
@@ -138,7 +138,7 @@ fn handle_clicked_square(
                 if piece.team == team {
                     return Some(IssueMoveEvent {
                         piece: piece.entity,
-                        game: piece.in_game.0,
+                        board: piece.on_board.0,
                         action: action.clone(),
                     });
                 }
