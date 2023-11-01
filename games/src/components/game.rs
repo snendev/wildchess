@@ -5,6 +5,9 @@ use chess::board::{Rank, Square};
 use super::Clock;
 
 #[derive(Clone, Copy, Component, Debug, Default)]
+pub struct Game;
+
+#[derive(Clone, Copy, Component, Debug, Default)]
 pub enum GameBoard {
     Chess,
     #[default]
@@ -52,6 +55,7 @@ pub struct ClockConfiguration {
 
 #[derive(Default)]
 pub struct GameSpawner {
+    game: Game,
     board: GameBoard,
     win_condition: WinCondition,
     clock: Option<ClockConfiguration>,
@@ -95,7 +99,9 @@ impl GameSpawner {
     }
 
     pub fn spawn(self, commands: &mut Commands) {
-        let entity = commands.spawn((self.board, self.win_condition)).id();
+        let entity = commands
+            .spawn((self.game, self.board, self.win_condition))
+            .id();
         let mut builder = commands.entity(entity);
         if let Some(clock) = self.clock {
             builder.insert(clock);

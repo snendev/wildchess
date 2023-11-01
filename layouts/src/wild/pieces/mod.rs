@@ -12,7 +12,7 @@ mod piece;
 
 // Piece identity described by the starting squares
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub(self) struct PieceBuilder;
+struct PieceBuilder;
 
 // Game properties to randomly divide amongst pieces:
 // ALWAYS have at least:

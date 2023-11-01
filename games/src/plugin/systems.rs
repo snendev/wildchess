@@ -1,5 +1,5 @@
 use bevy::prelude::{
-    info, Added, Commands, Entity, EventReader, EventWriter, Name, Query, Res, Time, With,
+    debug, info, Added, Commands, Entity, EventReader, EventWriter, Name, Query, Res, Time, With,
 };
 
 use chess::{
@@ -13,7 +13,10 @@ use layouts::{
     ClassicalLayout, KnightRelayLayout, PieceSpecification, SuperRelayLayout, WildLayout,
 };
 
-use crate::components::{Clock, ClockConfiguration, GameBoard, InGame, Player, Turn, WinCondition};
+use crate::components::{
+    ActionHistory, Clock, ClockConfiguration, Game, GameBoard, HasTurn, History, InGame, Player,
+    Ply, WinCondition,
+};
 
 use super::{
     events::GameoverEvent, IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent,
@@ -24,6 +27,12 @@ pub(super) fn spawn_game_entities(
     query: Query<(Entity, &GameBoard, Option<&ClockConfiguration>), Added<GameBoard>>,
 ) {
     for (game_entity, game_board, clock) in query.iter() {
+        // add move history to the game
+        commands
+            .entity(game_entity)
+            .insert((Ply::default(), ActionHistory::default()));
+
+        // create an entity to manage board properties
         let board = match game_board {
             GameBoard::Chess
             | GameBoard::WildChess
@@ -32,6 +41,7 @@ pub(super) fn spawn_game_entities(
         };
         let board_entity = commands.spawn((board, InGame(game_entity))).id();
 
+        // spawn all game pieces
         let pieces_per_player = match game_board {
             GameBoard::Chess => ClassicalLayout::pieces(),
             GameBoard::WildChess => WildLayout::pieces(),
@@ -41,7 +51,10 @@ pub(super) fn spawn_game_entities(
 
         for team in [Team::White, Team::Black].into_iter() {
             let mut player_builder =
-                commands.spawn((Player, team, team.orientation(), InGame(game_entity), Turn));
+                commands.spawn((Player, team, team.orientation(), InGame(game_entity)));
+            if team == Team::White {
+                player_builder.insert(HasTurn);
+            }
             if let Some(ClockConfiguration { clock }) = clock {
                 player_builder.insert(clock.clone());
             }
@@ -60,6 +73,7 @@ pub(super) fn spawn_game_entities(
                     PieceBundle::new(start_square.into(), team),
                     InGame(game_entity),
                     OnBoard(board_entity),
+                    History::<Position>::default(),
                 ));
 
                 if piece.royal.is_some() {
@@ -86,42 +100,51 @@ pub(super) fn spawn_game_entities(
 }
 
 pub(super) fn detect_turn(
+    game_query: Query<&Ply, With<Game>>,
     board_query: Query<&Board>,
-    piece_query: Query<(&Team, &Mutation, &OnBoard)>,
+    piece_query: Query<(&Team, &OnBoard, &InGame, Option<&Mutation>)>,
     mut move_reader: EventReader<IssueMoveEvent>,
     mut mutation_reader: EventReader<IssueMutationEvent>,
     mut mutation_request_writer: EventWriter<RequestMutationEvent>,
     mut turn_writer: EventWriter<TurnEvent>,
 ) {
-    for IssueMoveEvent {
-        piece,
-        board: board_entity,
-        action,
-    } in move_reader.iter()
-    {
-        if let Ok((team, mutation, on_board)) = piece_query.get(*piece) {
+    for IssueMoveEvent { piece, action } in move_reader.iter() {
+        let Ok((team, on_board, in_game, mutation)) = piece_query.get(*piece) else {
+            continue;
+        };
+        let Ok(ply) = game_query.get(in_game.0) else {
+            continue;
+        };
+        if let Some(mutation) = mutation {
+            let Ok(board) = board_query.get(on_board.0) else {
+                continue;
+            };
             match mutation.condition {
                 MutationCondition::LocalRank(rank) => {
-                    let Ok(board) = board_query.get(on_board.0) else {
-                        continue;
-                    };
                     let reoriented_rank = action
                         .landing_square
                         .reorient(team.orientation(), board)
                         .rank;
                     if rank != reoriented_rank {
-                        turn_writer.send(TurnEvent::action(*piece, *board_entity, action.clone()));
+                        turn_writer.send(TurnEvent::action(
+                            *ply,
+                            *piece,
+                            on_board.0,
+                            in_game.0,
+                            action.clone(),
+                        ));
                     } else if mutation.to_piece.len() == 1 {
                         turn_writer.send(TurnEvent::mutation(
+                            *ply,
                             *piece,
-                            *board_entity,
+                            on_board.0,
+                            in_game.0,
                             action.clone(),
                             mutation.to_piece.first().unwrap().clone(),
                         ));
                     } else {
                         mutation_request_writer.send(RequestMutationEvent {
                             piece: *piece,
-                            board: *board_entity,
                             action: action.clone(),
                         });
                     }
@@ -131,19 +154,33 @@ pub(super) fn detect_turn(
                 }
             }
         } else {
-            turn_writer.send(TurnEvent::action(*piece, *board_entity, action.clone()));
+            turn_writer.send(TurnEvent::action(
+                *ply,
+                *piece,
+                on_board.0,
+                in_game.0,
+                action.clone(),
+            ));
         }
     }
+    // TODO make a separate system
     for IssueMutationEvent {
         piece,
-        board,
         action,
         piece_definition,
     } in mutation_reader.iter()
     {
+        let Ok((_, on_board, in_game, _)) = piece_query.get(*piece) else {
+            continue;
+        };
+        let Ok(ply) = game_query.get(in_game.0) else {
+            continue;
+        };
         turn_writer.send(TurnEvent::mutation(
+            *ply,
             *piece,
-            *board,
+            on_board.0,
+            in_game.0,
             action.clone(),
             piece_definition.clone(),
         ));
@@ -175,7 +212,8 @@ pub(super) fn execute_turn_movement(
                         }
                     })
             {
-                // TODO: should this despawn, or is there a good reason to keep the entity around?
+                // keep the entity around so that we can maintain its position history
+                // and visualize it when viewing old ply
                 commands.entity(captured_piece).remove::<Position>();
             }
         }
@@ -231,7 +269,7 @@ pub(super) fn execute_turn_mutations(
 
 #[allow(clippy::type_complexity)]
 pub(super) fn end_turn(
-    mut players_query: Query<(Entity, Option<&mut Clock>, Option<&Turn>), With<Player>>,
+    mut players_query: Query<(Entity, Option<&mut Clock>, Option<&HasTurn>), With<Player>>,
     mut commands: Commands,
 ) {
     for (player, clock, my_turn) in players_query.iter_mut() {
@@ -239,13 +277,41 @@ pub(super) fn end_turn(
             if let Some(mut clock) = clock {
                 clock.pause();
             }
-            commands.entity(player).remove::<Turn>();
+            commands.entity(player).remove::<HasTurn>();
         } else {
             if let Some(mut clock) = clock {
                 clock.unpause();
             }
-            commands.entity(player).insert(Turn);
+            commands.entity(player).insert(HasTurn);
         }
+    }
+}
+
+pub(super) fn track_turn_history(
+    mut game_query: Query<(&mut Ply, &mut ActionHistory), With<Game>>,
+    mut turn_reader: EventReader<TurnEvent>,
+) {
+    for TurnEvent {
+        ply,
+        piece,
+        game,
+        action,
+        ..
+    } in turn_reader.iter()
+    {
+        let Ok((mut game_ply, mut history)) = game_query.get_mut(*game) else {
+            continue;
+        };
+        // TODO: in a future with 4-player, does this lead to bugs?
+        if *game_ply != *ply {
+            debug!(
+                "Turn ply {:?} does not match current game ply {:?}",
+                *ply, *game_ply
+            );
+            continue;
+        }
+        history.push(*piece, action.clone());
+        game_ply.increment();
     }
 }
 

@@ -1,16 +1,18 @@
+use itertools::Itertools;
+
 use bevy::{
-    prelude::{EventWriter, Local, Query, ResMut, With},
+    prelude::{info, Entity, EventWriter, Query, Reflect, Res, ResMut, Resource, With},
     utils::HashMap,
 };
 
 use bevy_egui::{
-    egui::{CentralPanel, RichText, Ui},
+    egui::{CentralPanel, Color32, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui},
     EguiContexts,
 };
 
 use games::{
     chess::{board::Square, pieces::PieceDefinition, team::Team},
-    components::{Clock, Player, Turn},
+    components::{ActionHistory, Clock, HasTurn, Player, Ply},
     IssueMoveEvent, IssueMutationEvent,
 };
 
@@ -21,19 +23,110 @@ use crate::{
     widgets::{BoardWidget, ClockWidget, PieceInspectorWidget, SquareWidget},
 };
 
-// TODO: custom WorldQuery to slim this fn signature
-// it could use a little organization
-#[allow(clippy::type_complexity)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn egui_chessboard(
-    piece_query: Query<PieceQuery>,
-    player_query: Query<(&Team, Option<&Clock>, Option<&Turn>), With<Player>>,
+#[derive(Clone, Copy, Debug, Default, Resource, Reflect)]
+pub(crate) struct SelectedSquare(Option<Square>);
+
+#[derive(Clone, Copy, Debug, Default, Resource, Reflect)]
+pub(crate) struct SelectedHistoricalPly(Option<Ply>);
+
+#[derive(Clone, Copy, Debug, Default, Resource, Reflect)]
+pub(crate) struct SelectedGame(pub Option<Entity>);
+
+pub(crate) fn egui_history_panel(
     mut contexts: EguiContexts,
-    mut move_writer: EventWriter<IssueMoveEvent>,
-    mut intended_mutation: ResMut<IntendedMutation>,
-    mut mutation_writer: EventWriter<IssueMutationEvent>,
-    mut last_selected_square: Local<Option<Square>>,
+    games_query: Query<&ActionHistory>,
+    selected_game: Res<SelectedGame>,
+    mut selected_ply: ResMut<SelectedHistoricalPly>,
 ) {
+    let Some(history) = selected_game.0.and_then(|game| games_query.get(game).ok()) else {
+        return;
+    };
+    let total_count = history.len();
+
+    TopBottomPanel::top("Move history")
+        .resizable(true)
+        .show(contexts.ctx_mut(), |ui| {
+            ui.label(RichText::new("Moves").size(36.));
+            ui.add_space(20.);
+            ui.set_min_height(300.);
+            ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .max_height(280.)
+                .show(ui, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.set_width(150.);
+                        for chunk in &history.iter().enumerate().chunks(2) {
+                            // for now there are only two players
+                            ui.horizontal(|ui| {
+                                for (index, (_entity, action)) in chunk.into_iter() {
+                                    let square = action.landing_square;
+                                    let text = RichText::new(square.to_string())
+                                        .size(28.)
+                                        .strong()
+                                        .color(Color32::BLACK);
+                                    let is_current_ply = index == total_count - 1;
+                                    let selected = selected_ply
+                                        .0
+                                        .is_some_and(|ply| ply == Ply::new(index + 1))
+                                        || (selected_ply.0.is_none() && is_current_ply);
+                                    if ui.selectable_label(selected, text).clicked() && !selected {
+                                        selected_ply.0 = if is_current_ply {
+                                            None
+                                        } else {
+                                            Some(Ply::new(index + 1))
+                                        }
+                                    };
+                                }
+                            });
+                        }
+                    });
+                });
+            ui.add_space(20.);
+
+            ui.horizontal(|ui| {
+                if ui
+                    .button(RichText::new("<").size(32.).strong().color(Color32::BLACK))
+                    .clicked()
+                {
+                    if let Some(ply) = &mut selected_ply.0 {
+                        ply.decrement();
+                        info!("{:?}", ply);
+                    } else if total_count > 0 {
+                        selected_ply.0 = Some(Ply::new(total_count - 1));
+                    }
+                }
+                if ui
+                    .button(RichText::new(">").size(32.).strong().color(Color32::BLACK))
+                    .clicked()
+                {
+                    if selected_ply
+                        .0
+                        .is_some_and(|ply| ply < Ply::new(total_count - 1))
+                    {
+                        selected_ply.0.as_mut().unwrap().increment();
+                    } else {
+                        selected_ply.0 = None;
+                    }
+                }
+            });
+
+            ui.add_space(20.);
+        });
+}
+
+#[allow(clippy::type_complexity)]
+pub(crate) fn egui_information_panel(
+    mut contexts: EguiContexts,
+    piece_query: Query<PieceQuery>,
+    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>), With<Player>>,
+    mut mutation_writer: EventWriter<IssueMutationEvent>,
+    mut intended_mutation: ResMut<IntendedMutation>,
+    selected_square: Res<SelectedSquare>,
+    selected_game: Res<SelectedGame>,
+) {
+    let Some(current_game) = selected_game.0 else {
+        return;
+    };
     let team_with_turn = player_query
         .iter()
         .find_map(|(team, _, turn)| turn.map(|_| team));
@@ -61,35 +154,19 @@ pub(crate) fn egui_chessboard(
 
     let pieces: HashMap<Square, PieceData> = piece_query
         .into_iter()
-        .map(|query| (query.position.0, query.into()))
+        .filter_map(|item| {
+            if item.in_game.0 == current_game {
+                Some((item.position.0, item.into()))
+            } else {
+                None
+            }
+        })
         .collect();
 
     CentralPanel::default().show(contexts.ctx_mut(), |ui| {
-        ui.horizontal(|ui| {
-            let mut board_selection = None;
-
-            ui.add(BoardWidget::new(
-                &pieces,
-                *last_selected_square,
-                &mut board_selection,
-            ));
-
-            if let Some(selected_square) = board_selection {
-                // remove any mutation selection
-                intended_mutation.0.take();
-
-                if let Some(turn_event) = handle_clicked_square(
-                    selected_square,
-                    &mut last_selected_square,
-                    &pieces,
-                    team_with_turn,
-                ) {
-                    move_writer.send(turn_event);
-                }
-            }
-
-            ui.separator();
-            ui.vertical(|ui| {
+        ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
                 if let Some(clock) = upper_clock {
                     ui.add(ClockWidget::new(clock));
                 }
@@ -112,18 +189,90 @@ pub(crate) fn egui_chessboard(
                     let (event, _) = intended_mutation.0.take().unwrap();
                     mutation_writer.send(IssueMutationEvent {
                         piece: event.piece,
-                        board: event.board,
                         action: event.action,
                         piece_definition,
                     });
                 }
 
-                if let Some(piece) = last_selected_square.and_then(|square| pieces.get(&square)) {
+                if let Some(piece) = selected_square.0.and_then(|square| pieces.get(&square)) {
                     ui.add(PieceInspectorWidget::new(piece));
                 }
             });
-        });
     });
+}
+
+// TODO: custom WorldQuery to slim this fn signature
+// it could use a little organization
+#[allow(clippy::type_complexity)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn egui_chessboard(
+    mut contexts: EguiContexts,
+    piece_query: Query<PieceQuery>,
+    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>), With<Player>>,
+    mut move_writer: EventWriter<IssueMoveEvent>,
+    mut intended_mutation: ResMut<IntendedMutation>,
+    mut last_selected_square: ResMut<SelectedSquare>,
+    selected_game: Res<SelectedGame>,
+    selected_ply: Res<SelectedHistoricalPly>,
+) {
+    let Some(current_game) = selected_game.0 else {
+        return;
+    };
+    let team_with_turn = player_query
+        .iter()
+        .find_map(|(team, _, turn)| turn.map(|_| team));
+
+    let pieces: HashMap<Square, PieceData> = piece_query
+        .into_iter()
+        .filter_map(|item| {
+            if let Some(ply) = selected_ply.0 {
+                item.to_historical_piece_data(&ply)
+            } else {
+                Some(PieceData::from(item))
+            }
+        })
+        .filter_map(|item| {
+            if item.in_game.0 == current_game {
+                Some((item.position.0, item))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let selected_square = if selected_ply.0.is_some() {
+        None
+    } else {
+        last_selected_square.0
+    };
+
+    SidePanel::left("chessboard")
+        .resizable(false)
+        .show(contexts.ctx_mut(), |ui| {
+            let mut board_selection = None;
+
+            ui.add(BoardWidget::new(
+                &pieces,
+                selected_square,
+                &mut board_selection,
+            ));
+
+            if selected_ply.0.is_none() {
+                if let Some(selected_square) = board_selection {
+                    // remove any mutation selection
+                    intended_mutation.0.take();
+
+                    if let Some(turn_event) = handle_clicked_square(
+                        selected_square,
+                        &mut last_selected_square.0,
+                        &pieces,
+                        team_with_turn,
+                    ) {
+                        move_writer.send(turn_event);
+                    }
+                }
+            }
+        });
 }
 
 fn handle_clicked_square(
@@ -136,9 +285,9 @@ fn handle_clicked_square(
         if let Some(action) = piece.actions.get(&selected_square) {
             if let Some(team) = team_with_turn {
                 if piece.team == team {
+                    *last_selected_square = None;
                     return Some(IssueMoveEvent {
                         piece: piece.entity,
-                        board: piece.on_board.0,
                         action: action.clone(),
                     });
                 }

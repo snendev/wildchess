@@ -2,13 +2,13 @@ use bevy::prelude::{Component, Entity, Reflect};
 
 mod game;
 pub use game::{
-    AntiGame, Atomic, ClockConfiguration, Crazyhouse, GameBoard, GameSpawner, WinCondition,
+    AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameSpawner, WinCondition,
 };
 mod clock;
 pub use clock::Clock;
 
-mod turn;
-pub use turn::Turn;
+mod turns;
+pub use turns::{ActionHistory, HasTurn, History, Ply};
 
 #[derive(Component)]
 pub struct Player;

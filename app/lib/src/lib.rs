@@ -4,7 +4,7 @@ use bevy::prelude::{
 };
 
 use chess_ui::{ChessUISet, EguiBoardUIPlugin};
-use games::{components::GameBoard, GameplayPlugin};
+use games::{components::Game, GameplayPlugin};
 
 mod home_ui;
 
@@ -21,11 +21,8 @@ pub fn run_app(canvas: Option<String>) {
             }),
             ..Default::default()
         }))
-        .configure_set(
-            Update,
-            HomeUISet.run_if(not(any_with_component::<GameBoard>())),
-        )
-        .configure_set(Update, ChessUISet.run_if(any_with_component::<GameBoard>()))
+        .configure_set(Update, HomeUISet.run_if(not(any_with_component::<Game>())))
+        .configure_set(Update, ChessUISet.run_if(any_with_component::<Game>()))
         .add_plugins((GameplayPlugin, EguiBoardUIPlugin))
         .add_systems(Update, home_ui::home_menu.in_set(HomeUISet))
         .run();

@@ -1352,6 +1352,7 @@ dependencies = [
  "bevy_geppetto",
  "egui_extras",
  "games",
+ "itertools",
  "layouts",
 ]
 

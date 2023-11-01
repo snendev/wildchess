@@ -24,7 +24,7 @@ pub(crate) fn wild_behavior_icon(
 
 // svg generation utilities
 
-fn build_svg(patterns: &Vec<Pattern>, team: Team, is_king: bool) -> String {
+fn build_svg(patterns: &[Pattern], team: Team, is_king: bool) -> String {
     format!(
         r#"<svg
     width="1000"
@@ -252,9 +252,9 @@ fn pattern_nodes(pattern: &Pattern, team: Team) -> String {
 }
 
 // builds a set of symbols to decorate the piece tile with patterns that describe its behavior options
-fn behavior_nodes(patterns: &Vec<Pattern>, team: Team) -> String {
+fn behavior_nodes(patterns: &[Pattern], team: Team) -> String {
     patterns
-        .into_iter()
+        .iter()
         .map(|pattern| pattern_nodes(pattern, team))
         .collect::<Vec<_>>()
         .join("\n")
