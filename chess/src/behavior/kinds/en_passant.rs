@@ -95,9 +95,7 @@ impl Behavior for EnPassantBehavior {
 
         let en_passant_pieces = piece_query
             .iter()
-            .map(|(_, en_passant, _, position, _, team)| {
-                (position.0, (en_passant.copied(), *team))
-            })
+            .map(|(_, en_passant, _, position, _, team)| (position.0, (en_passant.copied(), *team)))
             .collect::<HashMap<_, _>>();
 
         for (entity, behavior, cache, position, orientation, team) in piece_query.iter_mut() {
@@ -138,6 +136,10 @@ mod test {
         Square::new(File::B, Rank::FOUR)
     }
 
+    fn previous_move_square() -> Square {
+        Square::new(File::B, Rank::TWO)
+    }
+
     fn en_passant_scenario_board(
         attackable_piece_team: Team,
     ) -> HashMap<Square, (Option<EnPassantBehavior>, Team)> {
@@ -159,6 +161,7 @@ mod test {
 
     fn last_action() -> Action {
         Action::movement(
+            previous_move_square(),
             en_passant_capture_square(),
             Orientation::Down,
             vec![Square::new(File::B, Rank::FIVE)],
@@ -168,6 +171,7 @@ mod test {
 
     fn en_passant_action() -> Action {
         Action::capture(
+            origin(),
             en_passant_target_square(),
             Orientation::Up,
             vec![],

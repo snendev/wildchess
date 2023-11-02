@@ -7,6 +7,7 @@ use crate::{board::Square, pattern::Pattern, pieces::Orientation};
 
 #[derive(Clone, Debug, Default, PartialEq, Reflect)]
 pub struct Action {
+    pub from_square: Square,
     pub landing_square: Square,
     pub landing_orientation: Orientation,
     pub scanned_squares: Vec<Square>,
@@ -16,12 +17,14 @@ pub struct Action {
 
 impl Action {
     pub fn movement(
+        from_square: Square,
         landing_square: Square,
         landing_orientation: Orientation,
         scanned_squares: Vec<Square>,
         pattern: Pattern,
     ) -> Self {
         Action {
+            from_square,
             landing_square,
             landing_orientation,
             captures: vec![],
@@ -31,6 +34,7 @@ impl Action {
     }
 
     pub fn capture(
+        from_square: Square,
         landing_square: Square,
         landing_orientation: Orientation,
         scanned_squares: Vec<Square>,
@@ -38,6 +42,7 @@ impl Action {
         captures: Vec<Square>,
     ) -> Self {
         Action {
+            from_square,
             landing_square,
             landing_orientation,
             scanned_squares,

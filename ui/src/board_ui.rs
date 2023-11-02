@@ -59,8 +59,13 @@ pub(crate) fn egui_history_panel(
                             // for now there are only two players
                             ui.horizontal(|ui| {
                                 for (index, (_entity, action)) in chunk.into_iter() {
-                                    let square = action.landing_square;
-                                    let text = RichText::new(square.to_string())
+                                    let move_text = format!(
+                                        "{}{}{}",
+                                        action.from_square,
+                                        if action.captures.is_empty() { "-" } else { "x" },
+                                        action.landing_square
+                                    );
+                                    let text = RichText::new(move_text)
                                         .size(28.)
                                         .strong()
                                         .color(Color32::BLACK);

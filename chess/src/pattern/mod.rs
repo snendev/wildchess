@@ -211,6 +211,7 @@ impl Pattern {
                     landing_square,
                     // N.B. not always actually a capture, if captures is empty
                     Action::capture(
+                        *origin,
                         landing_square,
                         *orientation,
                         scan_target.scanned_squares,
@@ -225,6 +226,7 @@ impl Pattern {
             Some((
                 scan_target.target,
                 Action::movement(
+                    *origin,
                     scan_target.target,
                     *orientation,
                     scan_target.scanned_squares,
