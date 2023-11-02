@@ -16,7 +16,7 @@ impl SquareHighlight {
         selected_piece: Option<&PieceData<'_>>,
     ) -> Option<Self> {
         if let Some(piece) = selected_piece {
-            if piece.position.0 == target_square {
+            if piece.position.is_some() && piece.position.unwrap().0 == target_square {
                 Some(SquareHighlight::Selected)
             } else if let Some(action) = piece.actions.get(&target_square) {
                 if action.captures.is_empty() {

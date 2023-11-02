@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use bevy::{
-    prelude::{info, Entity, EventWriter, Query, Reflect, Res, ResMut, Resource, With},
+    prelude::{Entity, EventWriter, Query, Reflect, Res, ResMut, Resource, With},
     utils::HashMap,
 };
 
@@ -95,7 +95,6 @@ pub(crate) fn egui_history_panel(
                 {
                     if let Some(ply) = &mut selected_ply.0 {
                         ply.decrement();
-                        info!("{:?}", ply);
                     } else if total_count > 0 {
                         selected_ply.0 = Some(Ply::new(total_count - 1));
                     }
@@ -160,8 +159,8 @@ pub(crate) fn egui_information_panel(
     let pieces: HashMap<Square, PieceData> = piece_query
         .into_iter()
         .filter_map(|item| {
-            if item.in_game.0 == current_game {
-                Some((item.position.0, item.into()))
+            if item.in_game.0 == current_game && item.position.is_some() {
+                Some((item.position.unwrap().0, item.into()))
             } else {
                 None
             }
@@ -229,16 +228,16 @@ pub(crate) fn egui_chessboard(
 
     let pieces: HashMap<Square, PieceData> = piece_query
         .into_iter()
-        .filter_map(|item| {
+        .map(|item| {
             if let Some(ply) = selected_ply.0 {
                 item.to_historical_piece_data(&ply)
             } else {
-                Some(PieceData::from(item))
+                item.into()
             }
         })
         .filter_map(|item| {
-            if item.in_game.0 == current_game {
-                Some((item.position.0, item))
+            if item.in_game.0 == current_game && item.position.is_some() {
+                Some((item.position.unwrap().0, item))
             } else {
                 None
             }

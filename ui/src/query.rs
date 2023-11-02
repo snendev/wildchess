@@ -26,7 +26,7 @@ pub struct PieceQuery {
     pub entity: Entity,
     pub in_game: &'static InGame,
     pub on_board: &'static OnBoard,
-    pub position: &'static Position,
+    pub position: Option<&'static Position>,
     pub team: &'static Team,
     pub actions: &'static Actions,
     pub behavior: Option<&'static PatternBehavior>,
@@ -44,9 +44,9 @@ pub struct PieceData<'a> {
     pub entity: Entity,
     pub in_game: &'a InGame,
     pub on_board: &'a OnBoard,
-    pub position: &'a Position,
     pub team: &'a Team,
     pub actions: &'a Actions,
+    pub position: Option<&'a Position>,
     pub pattern_behavior: Option<&'a PatternBehavior>,
     pub relay_behavior: Option<&'a RelayBehavior>,
     pub mimic_behavior: Option<&'a MimicBehavior>,
@@ -73,27 +73,25 @@ impl<'a> From<PieceQueryItem<'a>> for PieceData<'a> {
 }
 
 impl<'a> PieceQueryItem<'a> {
-    pub fn to_historical_piece_data(&self, ply: &Ply) -> Option<PieceData<'a>> {
-        self.position_history
-            .get_previous_nearest(ply)
-            .map(|position| PieceData {
-                entity: self.entity,
-                in_game: self.in_game,
-                on_board: self.on_board,
-                position,
-                team: self.team,
-                actions: self.actions,
-                pattern_behavior: self
-                    .behavior_history
-                    .and_then(|behavior| behavior.get_previous_nearest(ply)),
-                relay_behavior: self
-                    .relay_behavior_history
-                    .and_then(|behavior| behavior.get_previous_nearest(ply)),
-                mimic_behavior: self
-                    .mimic_behavior_history
-                    .and_then(|behavior| behavior.get_previous_nearest(ply)),
-                mutation: self.mutation,
-                icon: self.icon,
-            })
+    pub fn to_historical_piece_data(&self, ply: &Ply) -> PieceData<'a> {
+        PieceData {
+            entity: self.entity,
+            in_game: self.in_game,
+            on_board: self.on_board,
+            position: self.position_history.get_previous_nearest(ply),
+            team: self.team,
+            actions: self.actions,
+            pattern_behavior: self
+                .behavior_history
+                .and_then(|behavior| behavior.get_previous_nearest(ply)),
+            relay_behavior: self
+                .relay_behavior_history
+                .and_then(|behavior| behavior.get_previous_nearest(ply)),
+            mimic_behavior: self
+                .mimic_behavior_history
+                .and_then(|behavior| behavior.get_previous_nearest(ply)),
+            mutation: self.mutation,
+            icon: self.icon,
+        }
     }
 }
