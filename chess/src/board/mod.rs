@@ -3,6 +3,9 @@ use bevy::prelude::{Component, Entity, Reflect};
 mod square;
 pub use square::{File, Rank, Square};
 
+#[derive(Clone, Copy, Component, Debug, Reflect)]
+pub struct OnBoard(pub Entity);
+
 #[derive(Clone, Copy, Component, Debug, Default, Reflect)]
 pub struct Board {
     pub size: Square,

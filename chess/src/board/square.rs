@@ -244,15 +244,11 @@ impl Square {
     pub fn reorient(&self, orientation: Orientation, board: &Board) -> Self {
         match orientation {
             Orientation::Up => Square::new(self.file, self.rank),
-            Orientation::Down => Square::new(
-                self.file.reverse(board.size.file),
-                self.rank.reverse(board.size.rank),
-            ),
+            Orientation::Down => Square::new(self.file, self.rank.reverse(board.size.rank)),
             Orientation::Left => Square::new(File(self.rank.0), Rank(self.file.0)),
-            Orientation::Right => Square::new(
-                File(self.file.reverse(board.size.file).0),
-                Rank(self.rank.reverse(board.size.rank).0),
-            ),
+            Orientation::Right => {
+                Square::new(File(self.file.reverse(board.size.file).0), self.rank)
+            }
         }
     }
 
