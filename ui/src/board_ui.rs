@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use bevy::{
-    prelude::{Entity, EventWriter, Query, Reflect, Res, ResMut, Resource, With},
+    prelude::{info, Entity, EventWriter, Query, Reflect, Res, ResMut, Resource, With},
     utils::HashMap,
 };
 
@@ -287,14 +287,12 @@ fn handle_clicked_square(
 ) -> Option<IssueMoveEvent> {
     if let Some(piece) = (*last_selected_square).and_then(|square| pieces.get(&square)) {
         if let Some(action) = piece.actions.get(&selected_square) {
-            if let Some(team) = team_with_turn {
-                if piece.team == team {
-                    *last_selected_square = None;
-                    return Some(IssueMoveEvent {
-                        piece: piece.entity,
-                        action: action.clone(),
-                    });
-                }
+            if team_with_turn.is_some_and(|team| piece.team == team) {
+                *last_selected_square = None;
+                return Some(IssueMoveEvent {
+                    piece: piece.entity,
+                    action: action.clone(),
+                });
             }
         }
     }
