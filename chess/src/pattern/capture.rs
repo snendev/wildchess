@@ -1,4 +1,7 @@
-use bevy::{reflect::Reflect, utils::HashMap};
+use bevy::{
+    reflect::Reflect,
+    utils::{HashMap, HashSet},
+};
 
 use crate::{actions::Action, board::Square, team::Team};
 
@@ -50,13 +53,14 @@ impl CaptureRules {
         my_team: &Team,
         pieces: &HashMap<Square, Team>,
         last_action: Option<&Action>,
-    ) -> Vec<Square> {
+    ) -> CaptureData {
         let ScanTarget {
             target,
             scanned_squares,
         } = scan_target;
 
-        let mut capture_squares = vec![];
+        let mut threatened_squares = HashSet::new();
+        let mut capture_squares = HashSet::new();
 
         let is_capturable_target = |target: &Square| {
             pieces
@@ -66,38 +70,50 @@ impl CaptureRules {
 
         match self.pattern {
             CapturePattern::CaptureByDisplacement => {
+                threatened_squares.insert(*target);
                 if is_capturable_target(target) {
-                    capture_squares.push(*target);
+                    capture_squares.insert(*target);
                 }
             }
             CapturePattern::CaptureInPassing => {
                 // this can also capture by displacement
+                threatened_squares.insert(*target);
                 if is_capturable_target(target) {
-                    capture_squares.push(*target);
+                    capture_squares.insert(*target);
                 }
                 // and can capture in passing
                 if let Some(last_action) = last_action {
                     if last_action.scanned_squares.contains(target)
-                        && is_capturable_target(&last_action.landing_square)
+                        && is_capturable_target(&last_action.movement.to())
                     {
-                        capture_squares.push(last_action.landing_square);
+                        capture_squares.insert(last_action.movement.to());
                     }
                 }
             }
             CapturePattern::CaptureByOvertake => {
                 for square in scanned_squares {
+                    threatened_squares.insert(*target);
                     if is_capturable_target(square) {
-                        capture_squares.push(*square);
+                        capture_squares.insert(*square);
                     }
                 }
             }
             CapturePattern::CaptureAtRange => {
+                threatened_squares.insert(*target);
                 if is_capturable_target(target) {
-                    capture_squares.push(*target);
+                    capture_squares.insert(*target);
                 }
             }
         }
 
-        capture_squares
+        CaptureData {
+            threats: threatened_squares,
+            captures: capture_squares,
+        }
     }
+}
+
+pub struct CaptureData {
+    pub threats: HashSet<Square>,
+    pub captures: HashSet<Square>,
 }

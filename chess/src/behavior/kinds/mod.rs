@@ -1,5 +1,8 @@
 // TODO:
-// mod castling;
+mod castling;
+pub(crate) use castling::disable_on_move;
+pub use castling::{CastlingBehavior, CastlingTarget};
+
 // mod mirror;
 // mod rotation;
 

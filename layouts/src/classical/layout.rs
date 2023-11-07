@@ -1,5 +1,5 @@
 use chess::{
-    behavior::{EnPassantBehavior, PieceBehaviors},
+    behavior::{CastlingBehavior, CastlingTarget, EnPassantBehavior, PieceBehaviors},
     board::{File, Rank, Square},
     pieces::{Mutation, MutationCondition, PieceDefinition, PieceIdentity, Royal},
 };
@@ -44,7 +44,11 @@ impl ClassicalLayout {
 
 fn king() -> PieceDefinition {
     PieceDefinition {
-        behaviors: pieces::king().into(),
+        behaviors: PieceBehaviors {
+            pattern: Some(pieces::king()),
+            castling: Some(CastlingBehavior),
+            ..Default::default()
+        },
         royal: Some(Royal),
         identity: PieceIdentity::King,
         ..Default::default()
@@ -69,7 +73,14 @@ fn pawn() -> PieceDefinition {
 }
 
 fn rook() -> PieceDefinition {
-    PieceDefinition::new(pieces::rook().into(), PieceIdentity::Rook)
+    PieceDefinition::new(
+        PieceBehaviors {
+            pattern: Some(pieces::rook()),
+            castling_target: Some(CastlingTarget),
+            ..Default::default()
+        },
+        PieceIdentity::Rook,
+    )
 }
 
 fn knight() -> PieceDefinition {

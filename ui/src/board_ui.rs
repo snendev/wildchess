@@ -61,9 +61,9 @@ pub(crate) fn egui_history_panel(
                                 for (index, (_entity, action)) in chunk.into_iter() {
                                     let move_text = format!(
                                         "{}{}{}",
-                                        action.from_square,
+                                        action.movement.from,
                                         if action.captures.is_empty() { "-" } else { "x" },
-                                        action.landing_square
+                                        action.movement.to,
                                     );
                                     let text = RichText::new(move_text)
                                         .size(28.)

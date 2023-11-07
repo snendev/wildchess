@@ -4,7 +4,7 @@ use bevy::prelude::{
 
 use chess::{
     actions::Action,
-    behavior::PieceBehaviorsBundle,
+    behavior::{BoardPieceCache, BoardThreatsCache, PieceBehaviorsBundle},
     board::{Board, OnBoard},
     pieces::{Mutation, MutationCondition, PieceBundle, Position, Royal},
     team::Team,
@@ -39,7 +39,15 @@ pub(super) fn spawn_game_entities(
             | GameBoard::KnightRelayChess
             | GameBoard::SuperRelayChess => Board::chess_board(),
         };
-        let board_entity = commands.spawn((board, InGame(game_entity))).id();
+        // TODO: Some sort of board bundle?
+        let board_entity = commands
+            .spawn((
+                board,
+                InGame(game_entity),
+                BoardPieceCache::default(),
+                BoardThreatsCache::default(),
+            ))
+            .id();
 
         // spawn all game pieces
         let pieces_per_player = match game_board {
@@ -82,9 +90,6 @@ pub(super) fn spawn_game_entities(
                 if let Some(mutation) = &piece.mutation {
                     piece_builder.insert(mutation.clone());
                 }
-                if let Some(behavior) = piece.behaviors.en_passant {
-                    piece_builder.insert(behavior);
-                }
                 if let Some(behavior) = piece.behaviors.mimic {
                     piece_builder.insert(behavior);
                 }
@@ -93,6 +98,15 @@ pub(super) fn spawn_game_entities(
                 }
                 if let Some(behavior) = &piece.behaviors.relay {
                     piece_builder.insert(behavior.clone());
+                }
+                if let Some(behavior) = piece.behaviors.en_passant {
+                    piece_builder.insert(behavior);
+                }
+                if let Some(behavior) = piece.behaviors.castling {
+                    piece_builder.insert(behavior);
+                }
+                if let Some(behavior) = piece.behaviors.castling_target {
+                    piece_builder.insert(behavior);
                 }
             }
         }
@@ -121,10 +135,8 @@ pub(super) fn detect_turn(
             };
             match mutation.condition {
                 MutationCondition::LocalRank(rank) => {
-                    let reoriented_rank = action
-                        .landing_square
-                        .reorient(team.orientation(), board)
-                        .rank;
+                    let reoriented_rank =
+                        action.movement.to.reorient(team.orientation(), board).rank;
                     if rank != reoriented_rank {
                         turn_writer.send(TurnEvent::action(
                             *ply,
@@ -194,7 +206,13 @@ pub(super) fn execute_turn_movement(
 ) {
     for event in turn_reader.iter() {
         if let Ok((_, mut current_square, _)) = piece_query.get_mut(event.piece) {
-            current_square.0 = event.action.landing_square;
+            current_square.0 = event.action.movement.to;
+        }
+
+        for (entity, additional_movement) in event.action.side_effects.iter() {
+            if let Ok((_, mut current_square, _)) = piece_query.get_mut(*entity) {
+                current_square.0 = additional_movement.to;
+            }
         }
 
         for capture_square in event.action.captures.iter() {

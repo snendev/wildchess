@@ -1,11 +1,9 @@
-use bevy::{
-    prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent},
-    utils::HashMap,
-};
+use bevy::prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent};
 
 use crate::{
     actions::{Action, Actions},
-    board::{Board, Square},
+    behavior::BoardPieceCache,
+    board::Board,
     pieces::{Orientation, Position},
     team::Team,
 };
@@ -38,7 +36,7 @@ impl Behavior for MimicBehavior {
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<&Board>,
+        board_query: Query<(&Board, &BoardPieceCache)>,
         mut piece_query: Query<(
             Entity,
             Option<&MimicBehavior>,
@@ -48,32 +46,32 @@ impl Behavior for MimicBehavior {
             &Team,
         )>,
     ) {
-        let Ok(board) = board_query.get_single() else {
+        let Ok((board, pieces)) = board_query.get_single() else {
             return;
         };
 
-        let pieces: HashMap<Square, Team> = piece_query
-            .iter()
-            .map(|(_, _, _, position, _, team)| (position.0, *team))
-            .collect();
+        let Some(last_action) = last_action else {
+            return;
+        };
 
-        if let Some(last_action) = last_action {
-            for (entity, mimic, cache, position, orientation, team) in piece_query.iter_mut() {
-                if mimic.is_some() {
-                    let actions =
-                        MimicActionsCache::from(Actions::new(last_action.using_pattern.search(
-                            &position.0,
-                            orientation,
-                            team,
-                            board,
-                            &pieces,
-                            Some(&last_action),
-                        )));
-                    if let Some(mut cache) = cache {
-                        *cache = actions;
-                    } else {
-                        commands.entity(entity).insert(actions);
-                    }
+        let Some(using_pattern) = &last_action.using_pattern else {
+            return;
+        };
+
+        for (entity, mimic, cache, position, orientation, team) in piece_query.iter_mut() {
+            if mimic.is_some() {
+                let actions = MimicActionsCache::from(Actions::new(using_pattern.search(
+                    &position.0,
+                    orientation,
+                    team,
+                    board,
+                    &pieces.teams,
+                    Some(&last_action),
+                )));
+                if let Some(mut cache) = cache {
+                    *cache = actions;
+                } else {
+                    commands.entity(entity).insert(actions);
                 }
             }
         }

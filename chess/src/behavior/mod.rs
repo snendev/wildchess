@@ -10,8 +10,14 @@ use crate::{
     team::Team,
 };
 
+pub mod caches;
+pub use caches::{BoardPieceCache, BoardThreat, BoardThreatsCache};
+
 mod kinds;
-pub use kinds::{EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior};
+pub use kinds::{
+    CastlingBehavior, CastlingTarget, EnPassantBehavior, MimicBehavior, PatternBehavior,
+    RelayBehavior,
+};
 
 mod plugin;
 pub use plugin::{BehaviorsPlugin, BehaviorsSet};
@@ -30,7 +36,7 @@ pub trait Behavior {
     fn calculate_actions_system(
         last_action: In<Option<Action>>,
         commands: Commands,
-        board_query: Query<&Board>,
+        board_query: Query<(&Board, &BoardPieceCache)>,
         piece_query: Query<(
             Entity,
             Option<&Self>,
@@ -78,6 +84,8 @@ pub struct PieceBehaviors {
     pub en_passant: Option<EnPassantBehavior>,
     pub mimic: Option<MimicBehavior>,
     pub relay: Option<RelayBehavior>,
+    pub castling: Option<CastlingBehavior>,
+    pub castling_target: Option<CastlingTarget>,
 }
 
 impl From<PatternBehavior> for PieceBehaviors {

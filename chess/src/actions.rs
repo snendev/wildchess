@@ -1,18 +1,47 @@
 use bevy::{
-    prelude::{Component, Reflect, ReflectComponent},
-    utils::HashMap,
+    prelude::{Component, Entity, Reflect, ReflectComponent},
+    utils::{HashMap, HashSet},
 };
 
 use crate::{board::Square, pattern::Pattern, pieces::Orientation};
 
 #[derive(Clone, Debug, Default, PartialEq, Reflect)]
+pub struct Movement {
+    pub from: Square,
+    pub to: Square,
+    pub orientation: Orientation,
+}
+
+impl Movement {
+    pub fn new(from: Square, to: Square, orientation: Orientation) -> Self {
+        Self {
+            from,
+            to,
+            orientation,
+        }
+    }
+
+    pub fn from(&self) -> Square {
+        self.from
+    }
+
+    pub fn to(&self) -> Square {
+        self.to
+    }
+
+    pub fn orientation(&self) -> Orientation {
+        self.orientation
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Reflect)]
 pub struct Action {
-    pub from_square: Square,
-    pub landing_square: Square,
-    pub landing_orientation: Orientation,
+    pub movement: Movement,
+    pub side_effects: Vec<(Entity, Movement)>,
     pub scanned_squares: Vec<Square>,
-    pub using_pattern: Pattern,
-    pub captures: Vec<Square>,
+    pub using_pattern: Option<Pattern>,
+    pub captures: HashSet<Square>,
+    pub threats: HashSet<Square>,
 }
 
 impl Action {
@@ -21,40 +50,24 @@ impl Action {
         landing_square: Square,
         landing_orientation: Orientation,
         scanned_squares: Vec<Square>,
-        pattern: Pattern,
+        pattern: Option<Pattern>,
     ) -> Self {
         Action {
-            from_square,
-            landing_square,
-            landing_orientation,
-            captures: vec![],
+            movement: Movement {
+                from: from_square,
+                to: landing_square,
+                orientation: landing_orientation,
+            },
             scanned_squares,
             using_pattern: pattern,
-        }
-    }
-
-    pub fn capture(
-        from_square: Square,
-        landing_square: Square,
-        landing_orientation: Orientation,
-        scanned_squares: Vec<Square>,
-        pattern: Pattern,
-        captures: Vec<Square>,
-    ) -> Self {
-        Action {
-            from_square,
-            landing_square,
-            landing_orientation,
-            scanned_squares,
-            using_pattern: pattern,
-            captures,
+            ..Default::default()
         }
     }
 }
 
 #[derive(Clone, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
-pub struct Actions(HashMap<Square, Action>);
+pub struct Actions(pub HashMap<Square, Action>);
 
 impl Actions {
     pub fn new(map: HashMap<Square, Action>) -> Self {

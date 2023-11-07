@@ -127,8 +127,6 @@ impl Rank {
 #[derive(Debug, Error)]
 enum RankParseError {
     #[error("Invalid rank: `{0}`")]
-    Int(u16),
-    #[error("Invalid rank: `{0}`")]
     Char(char),
 }
 
@@ -161,22 +159,9 @@ impl From<&Rank> for char {
     }
 }
 
-impl TryFrom<u16> for Rank {
-    type Error = AnyError;
-
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Rank::ONE),
-            1 => Ok(Rank::TWO),
-            2 => Ok(Rank::THREE),
-            3 => Ok(Rank::FOUR),
-            4 => Ok(Rank::FIVE),
-            5 => Ok(Rank::SIX),
-            6 => Ok(Rank::SEVEN),
-            7 => Ok(Rank::EIGHT),
-            8 => Ok(Rank::NINE),
-            _ => Err(AnyError::new(RankParseError::Int(value))),
-        }
+impl From<u16> for Rank {
+    fn from(value: u16) -> Self {
+        Rank(value)
     }
 }
 
@@ -208,7 +193,7 @@ impl TryFrom<(char, char)> for Square {
     type Error = AnyError;
 
     fn try_from((file, rank): (char, char)) -> Result<Self, Self::Error> {
-        Ok(Square::new(rank.try_into()?, file.try_into()?))
+        Ok(Square::new(file.try_into()?, rank.try_into()?))
     }
 }
 
@@ -217,15 +202,13 @@ impl TryFrom<&str> for Square {
 
     fn try_from(text: &str) -> Result<Self, Self::Error> {
         let mut chars = text.chars();
-        (
-            chars.next().ok_or(SquareParseError {
-                text: text.to_string(),
-            })?,
-            chars.next().ok_or(SquareParseError {
-                text: text.to_string(),
-            })?,
-        )
-            .try_into()
+        let file = chars.next().ok_or(SquareParseError {
+            text: text.to_string(),
+        })?;
+        let rank = chars.next().ok_or(SquareParseError {
+            text: text.to_string(),
+        })?;
+        (file, rank).try_into()
     }
 }
 

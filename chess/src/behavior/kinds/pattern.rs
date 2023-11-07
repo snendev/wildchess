@@ -5,6 +5,7 @@ use bevy::{
 
 use crate::{
     actions::{Action, Actions},
+    behavior::BoardPieceCache,
     board::{Board, Square},
     pattern::Pattern,
     pieces::{Orientation, Position},
@@ -80,7 +81,7 @@ impl Behavior for PatternBehavior {
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<&Board>,
+        board_query: Query<(&Board, &BoardPieceCache)>,
         mut piece_query: Query<(
             Entity,
             Option<&PatternBehavior>,
@@ -90,13 +91,9 @@ impl Behavior for PatternBehavior {
             &Team,
         )>,
     ) {
-        let Ok(board) = board_query.get_single() else {
+        let Ok((board, pieces)) = board_query.get_single() else {
             return;
         };
-        let pieces: HashMap<Square, Team> = piece_query
-            .iter()
-            .map(|(_, _, _, position, _, team)| (position.0, *team))
-            .collect();
 
         for (entity, behavior, cache, position, orientation, team) in piece_query.iter_mut() {
             if let Some(behavior) = behavior {
@@ -105,7 +102,7 @@ impl Behavior for PatternBehavior {
                     orientation,
                     team,
                     board,
-                    &pieces,
+                    &pieces.teams,
                     last_action.as_ref(),
                 ));
                 if let Some(mut cache) = cache {

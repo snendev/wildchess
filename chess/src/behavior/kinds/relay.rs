@@ -5,6 +5,7 @@ use bevy::{
 
 use crate::{
     actions::{Action, Actions},
+    behavior::BoardPieceCache,
     board::{Board, Square},
     pattern::Pattern,
     pieces::{Orientation, Position},
@@ -50,7 +51,7 @@ impl Behavior for RelayBehavior {
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<&Board>,
+        board_query: Query<(&Board, &BoardPieceCache)>,
         mut piece_query: Query<(
             Entity,
             Option<&RelayBehavior>,
@@ -60,14 +61,9 @@ impl Behavior for RelayBehavior {
             &Team,
         )>,
     ) {
-        let Ok(board) = board_query.get_single() else {
+        let Ok((board, pieces)) = board_query.get_single() else {
             return;
         };
-
-        let pieces: HashMap<Square, Team> = piece_query
-            .iter()
-            .map(|(_, _, _, position, _, team)| (position.0, *team))
-            .collect();
 
         // TODO: pre-filter this map so that it only stores the Squares with pieces on them
         // additionally, this could then only push patterns that match the appropriate team
@@ -79,7 +75,7 @@ impl Behavior for RelayBehavior {
                     for scan_target in
                         pattern
                             .scanner
-                            .scan(&position.0, *orientation, team, board, &pieces)
+                            .scan(&position.0, *orientation, team, board, &pieces.teams)
                     {
                         if let Some(patterns) = relay_pattern_map.get_mut(&scan_target.target) {
                             patterns.push((pattern.clone(), *team));
@@ -109,7 +105,7 @@ impl Behavior for RelayBehavior {
                     orientation,
                     team,
                     board,
-                    &pieces,
+                    &pieces.teams,
                     last_action.as_ref(),
                 ));
                 if let Some(mut cache) = cache {

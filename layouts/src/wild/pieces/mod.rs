@@ -1,7 +1,7 @@
 use rand::{thread_rng, Rng};
 
 use chess::{
-    behavior::PatternBehavior,
+    behavior::{CastlingBehavior, CastlingTarget, PatternBehavior, PieceBehaviors},
     board::Rank,
     pieces::{Mutation, MutationCondition, PieceDefinition, Royal},
 };
@@ -49,10 +49,22 @@ pub fn random_pieces() -> WildPieceSet {
     let mut current_value: u32 = 0;
 
     // pieces
-    let major: PieceDefinition = piece(PieceBuilder::generate_piece(max_value, &mut current_value));
-    let minor1 = piece(PieceBuilder::generate_piece(max_value, &mut current_value));
-    let minor2 = piece(PieceBuilder::generate_piece(max_value, &mut current_value));
-    let elite = piece(PieceBuilder::generate_piece(max_value, &mut current_value));
+    let major: PieceDefinition = piece(
+        PieceBuilder::generate_piece(max_value, &mut current_value),
+        Some(CastlingTarget),
+    );
+    let minor1 = piece(
+        PieceBuilder::generate_piece(max_value, &mut current_value),
+        None,
+    );
+    let minor2 = piece(
+        PieceBuilder::generate_piece(max_value, &mut current_value),
+        None,
+    );
+    let elite = piece(
+        PieceBuilder::generate_piece(max_value, &mut current_value),
+        None,
+    );
 
     // pawns
     let pawn_promotion_options = vec![major.clone(), minor1.clone(), minor2.clone(), elite.clone()];
@@ -70,16 +82,24 @@ pub fn random_pieces() -> WildPieceSet {
     }
 }
 
-fn piece(behavior: PatternBehavior) -> PieceDefinition {
+fn piece(behavior: PatternBehavior, castling_target: Option<CastlingTarget>) -> PieceDefinition {
     PieceDefinition {
-        behaviors: behavior.into(),
+        behaviors: PieceBehaviors {
+            pattern: Some(behavior),
+            castling_target,
+            ..Default::default()
+        },
         ..Default::default()
     }
 }
 
 fn king(behavior: PatternBehavior) -> PieceDefinition {
     PieceDefinition {
-        behaviors: behavior.into(),
+        behaviors: PieceBehaviors {
+            pattern: Some(behavior),
+            castling: Some(CastlingBehavior),
+            ..Default::default()
+        },
         royal: Some(Royal),
         ..Default::default()
     }

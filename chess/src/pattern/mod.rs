@@ -3,7 +3,7 @@ use itertools::Either;
 use bevy::{prelude::Reflect, utils::HashMap};
 
 use crate::{
-    actions::Action,
+    actions::{Action, Movement},
     board::{Board, File, Rank, Square},
     pieces::Orientation,
     team::Team,
@@ -17,6 +17,8 @@ mod targets;
 pub use targets::TargetKind;
 mod scanner;
 pub use scanner::{ScanMode, ScanTarget, Scanner};
+
+use self::capture::CaptureData;
 
 // The calculation type for board searches
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Reflect)]
@@ -195,7 +197,8 @@ impl Pattern {
         let colliding_piece = pieces.get(&scan_target.target);
 
         if let Some(capture) = self.capture {
-            let captures = capture.get_captures(&scan_target, my_team, pieces, last_action);
+            let CaptureData { captures, threats } =
+                capture.get_captures(&scan_target, my_team, pieces, last_action);
             let invalid_capture = (capture.must_capture() && captures.is_empty())
                 || (capture.pattern != CapturePattern::CaptureByDisplacement
                     && colliding_piece.is_some())
@@ -210,14 +213,14 @@ impl Pattern {
                 Some((
                     landing_square,
                     // N.B. not always actually a capture, if captures is empty
-                    Action::capture(
-                        *origin,
-                        landing_square,
-                        *orientation,
-                        scan_target.scanned_squares,
-                        self.clone(),
+                    Action {
+                        movement: Movement::new(*origin, landing_square, *orientation),
+                        scanned_squares: scan_target.scanned_squares,
+                        using_pattern: Some(self.clone()),
                         captures,
-                    ),
+                        threats,
+                        side_effects: vec![],
+                    },
                 ))
             }
         } else if colliding_piece.is_some() {
@@ -230,7 +233,7 @@ impl Pattern {
                     scan_target.target,
                     *orientation,
                     scan_target.scanned_squares,
-                    self.clone(),
+                    Some(self.clone()),
                 ),
             ))
         }
@@ -367,7 +370,7 @@ mod test {
         assert_eq!(
             results
                 .get(&capture_square)
-                .and_then(|action| action.captures.first()),
+                .and_then(|action| action.captures.iter().next()),
             Some(&capture_square),
             "c2 Bishop cannot capture enemy piece on g6 when it should!",
         );

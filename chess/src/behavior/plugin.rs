@@ -1,8 +1,7 @@
 use std::marker::PhantomData;
 
 use bevy::prelude::{
-    apply_deferred, App, IntoSystem, IntoSystemConfigs, IntoSystemSetConfigs, Plugin, PostUpdate,
-    Query, SystemSet,
+    apply_deferred, App, IntoSystem, IntoSystemConfigs, Plugin, PostUpdate, Query, SystemSet,
 };
 
 use crate::{
@@ -10,16 +9,13 @@ use crate::{
     behavior::{Behavior, EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior},
 };
 
+use super::{
+    kinds::disable_on_move, BoardPieceCache, BoardThreatsCache, CastlingBehavior, CastlingTarget,
+};
+
 // N.B. Use this to configure run conditions so that actions are not calculated every frame
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
 pub struct BehaviorsSet;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
-enum BehaviorsInnerSet {
-    PrepareFrame,
-    PopulateCache,
-    PopulateActions,
-}
 
 pub struct BehaviorsPlugin<System, Params>
 where
@@ -53,20 +49,10 @@ where
     Params: Send + Sync + 'static,
 {
     fn build(&self, app: &mut App) {
-        app.configure_sets(
+        app.add_systems(
             PostUpdate,
             (
-                BehaviorsInnerSet::PrepareFrame,
-                BehaviorsInnerSet::PopulateCache,
-                BehaviorsInnerSet::PopulateActions,
-            )
-                .chain()
-                .in_set(BehaviorsSet),
-        )
-        .add_systems(
-            PostUpdate,
-            (
-                clear_actions.in_set(BehaviorsInnerSet::PrepareFrame),
+                (clear_actions, BoardPieceCache::track_pieces),
                 (
                     self.on_action
                         .clone()
@@ -80,18 +66,23 @@ where
                     self.on_action
                         .clone()
                         .pipe(RelayBehavior::calculate_actions_system),
-                )
-                    .in_set(BehaviorsInnerSet::PopulateCache),
+                ),
                 apply_deferred,
                 (
                     PatternBehavior::take_actions_system,
                     EnPassantBehavior::take_actions_system,
                     MimicBehavior::take_actions_system,
                     RelayBehavior::take_actions_system,
-                )
-                    .in_set(BehaviorsInnerSet::PopulateActions),
+                ),
+                BoardThreatsCache::track_pieces,
+                CastlingBehavior::calculate_actions_system,
+                (
+                    disable_on_move::<CastlingTarget>,
+                    disable_on_move::<CastlingBehavior>,
+                ),
             )
-                .chain(),
+                .chain()
+                .in_set(BehaviorsSet),
         );
     }
 }

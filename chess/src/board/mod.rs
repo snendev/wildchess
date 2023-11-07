@@ -33,9 +33,6 @@ impl Board {
     }
 }
 
-#[derive(Clone, Copy, Component, Debug, Reflect)]
-pub struct OnBoard(pub Entity);
-
 #[derive(Clone, Debug)]
 pub struct BoardIterator<'a> {
     board: &'a Board,

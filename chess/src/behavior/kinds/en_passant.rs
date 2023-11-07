@@ -5,6 +5,7 @@ use bevy::{
 
 use crate::{
     actions::{Action, Actions},
+    behavior::BoardPieceCache,
     board::{Board, Square},
     pattern::Pattern,
     pieces::{Orientation, Position},
@@ -63,7 +64,8 @@ impl EnPassantBehavior {
                 .filter_map(|(square, action)| {
                     action
                         .captures
-                        .first()
+                        .iter()
+                        .next()
                         .and_then(|capture| pieces.get(capture))
                         .and_then(|(en_passant, _)| *en_passant)
                         .map(|_| (square, action))
@@ -79,7 +81,7 @@ impl Behavior for EnPassantBehavior {
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<&Board>,
+        board_query: Query<(&Board, &BoardPieceCache)>,
         mut piece_query: Query<(
             Entity,
             Option<&EnPassantBehavior>,
@@ -89,7 +91,7 @@ impl Behavior for EnPassantBehavior {
             &Team,
         )>,
     ) {
-        let Ok(board) = board_query.get_single() else {
+        let Ok((board, _pieces)) = board_query.get_single() else {
             return;
         };
 
@@ -120,7 +122,12 @@ impl Behavior for EnPassantBehavior {
 
 #[cfg(test)]
 mod test {
-    use crate::board::{File, Rank};
+    use bevy::utils::HashSet;
+
+    use crate::{
+        actions::Movement,
+        board::{File, Rank},
+    };
 
     use super::*;
 
@@ -165,19 +172,19 @@ mod test {
             en_passant_capture_square(),
             Orientation::Down,
             vec![Square::new(File::B, Rank::FIVE)],
-            Pattern::forward(),
+            Some(Pattern::forward()),
         )
     }
 
     fn en_passant_action() -> Action {
-        Action::capture(
-            origin(),
-            en_passant_target_square(),
-            Orientation::Up,
-            vec![],
-            Pattern::en_passant(),
-            vec![en_passant_capture_square()],
-        )
+        let mut captures = HashSet::new();
+        captures.insert(en_passant_capture_square());
+        Action {
+            movement: Movement::new(origin(), en_passant_target_square(), Orientation::Up),
+            using_pattern: Some(Pattern::en_passant()),
+            captures,
+            ..Default::default()
+        }
     }
 
     #[test]
