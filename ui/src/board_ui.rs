@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use bevy::{
-    prelude::{info, Entity, EventWriter, Query, Reflect, Res, ResMut, Resource, With},
+    prelude::{Entity, EventWriter, Query, Reflect, Res, ResMut, Resource, With},
     utils::HashMap,
 };
 
