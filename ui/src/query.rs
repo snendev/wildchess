@@ -38,6 +38,7 @@ pub struct PieceQuery {
     pub behavior_history: Option<&'static History<PatternBehavior>>,
     pub relay_behavior_history: Option<&'static History<RelayBehavior>>,
     pub mimic_behavior_history: Option<&'static History<MimicBehavior>>,
+    pub icon_history: Option<&'static History<PieceIcon<'static>>>,
 }
 
 pub struct PieceData<'a> {
@@ -91,7 +92,9 @@ impl<'a> PieceQueryItem<'a> {
                 .mimic_behavior_history
                 .and_then(|behavior| behavior.get_previous_nearest(ply)),
             mutation: self.mutation,
-            icon: self.icon,
+            icon: self
+                .icon_history
+                .and_then(|icon| icon.get_previous_nearest(ply)),
         }
     }
 }

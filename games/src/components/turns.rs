@@ -100,7 +100,7 @@ impl<T> History<T> {
             .and_then(|(_, value)| value.as_ref())
     }
 
-    pub(crate) fn track_component_system(
+    pub fn track_component_system(
         mut commands: Commands,
         game_query: Query<&Ply, With<Game>>,
         mut history_query: Query<(&InGame, Option<&mut History<T>>)>,

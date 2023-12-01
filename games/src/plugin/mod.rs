@@ -42,6 +42,7 @@ impl Plugin for GameplayPlugin {
             (
                 systems::detect_gameover.run_if(on_event::<TurnEvent>()),
                 systems::log_gameover_events.run_if(on_event::<TurnEvent>()),
+                // TODO: should this only be in UI? probably!
                 History::<Position>::track_component_system,
                 History::<PatternBehavior>::track_component_system,
                 History::<MimicBehavior>::track_component_system,

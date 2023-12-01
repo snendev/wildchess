@@ -7,7 +7,7 @@ pub use bevy_egui;
 mod widgets;
 
 mod icons;
-use games::components::Game;
+use games::components::{Game, History};
 pub use icons::PieceIcon;
 
 pub(crate) mod mutation;
@@ -38,6 +38,7 @@ impl Plugin for EguiBoardUIPlugin {
                 (
                     mutation::read_mutation_options,
                     PieceIcon::attach_icons_system,
+                    History::<PieceIcon>::track_component_system,
                     set_game,
                     (egui_chessboard, egui_history_panel, egui_information_panel).chain(),
                 )
