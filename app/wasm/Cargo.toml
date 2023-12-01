@@ -13,4 +13,4 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 chess_app_lib = { path = "../lib" }
 cfg-if = { version = "1.0" }
-wasm-bindgen = { version = "0.2.84", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.89", features = ["serde-serialize"] }
