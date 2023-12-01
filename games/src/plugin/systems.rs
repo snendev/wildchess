@@ -1,5 +1,6 @@
-use bevy::prelude::{
-    debug, info, Added, Commands, Entity, EventReader, EventWriter, Name, Query, Res, Time, With,
+use bevy::{
+    log::{debug, info},
+    prelude::{Added, Commands, Entity, EventReader, EventWriter, Name, Query, Res, Time, With},
 };
 
 use chess::{
@@ -122,7 +123,7 @@ pub(super) fn detect_turn(
     mut mutation_request_writer: EventWriter<RequestMutationEvent>,
     mut turn_writer: EventWriter<TurnEvent>,
 ) {
-    for IssueMoveEvent { piece, action } in move_reader.iter() {
+    for IssueMoveEvent { piece, action } in move_reader.read() {
         let Ok((team, on_board, in_game, mutation)) = piece_query.get(*piece) else {
             continue;
         };
@@ -180,7 +181,7 @@ pub(super) fn detect_turn(
         piece,
         action,
         piece_definition,
-    } in mutation_reader.iter()
+    } in mutation_reader.read()
     {
         let Ok((_, on_board, in_game, _)) = piece_query.get(*piece) else {
             continue;
@@ -204,7 +205,7 @@ pub(super) fn execute_turn_movement(
     mut piece_query: Query<(Entity, &mut Position, &OnBoard)>,
     mut turn_reader: EventReader<TurnEvent>,
 ) {
-    for event in turn_reader.iter() {
+    for event in turn_reader.read() {
         if let Ok((_, mut current_square, _)) = piece_query.get_mut(event.piece) {
             current_square.0 = event.action.movement.to;
         }
@@ -242,7 +243,7 @@ pub(super) fn execute_turn_mutations(
     mut commands: Commands,
     mut turn_reader: EventReader<TurnEvent>,
 ) {
-    for event in turn_reader.iter() {
+    for event in turn_reader.read() {
         if let Some(mutated_piece) = &event.mutation {
             // remove any existing behaviors and mutation
             commands
@@ -315,7 +316,7 @@ pub(super) fn track_turn_history(
         game,
         action,
         ..
-    } in turn_reader.iter()
+    } in turn_reader.read()
     {
         let Ok((mut game_ply, mut history)) = game_query.get_mut(*game) else {
             continue;
@@ -334,7 +335,7 @@ pub(super) fn track_turn_history(
 }
 
 pub(super) fn last_action(mut reader: EventReader<TurnEvent>) -> Option<Action> {
-    reader.iter().last().map(|event| event.action.clone())
+    reader.read().last().map(|event| event.action.clone())
 }
 
 pub(super) fn detect_gameover(
@@ -397,7 +398,7 @@ pub(super) fn detect_gameover(
 }
 
 pub fn log_gameover_events(mut gameovers: EventReader<GameoverEvent>) {
-    for gameover in gameovers.iter() {
+    for gameover in gameovers.read() {
         info!("Team {:?} won!", gameover.winner);
         // TODO: display this somewhere
     }

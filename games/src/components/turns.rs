@@ -124,7 +124,7 @@ impl<T> History<T> {
                 commands.entity(entity).insert(history);
             }
         }
-        for entity in removed_data_entities.iter() {
+        for entity in removed_data_entities.read() {
             let Ok((in_game, history)) = history_query.get_mut(entity) else {
                 continue;
             };

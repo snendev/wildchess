@@ -1,30 +1,11 @@
-use egui_extras::RetainedImage;
-
 use games::chess::{
     pattern::{CaptureMode, Pattern},
     team::Team,
 };
 
-pub(crate) fn wild_behavior_icon(
-    patterns: &Vec<Pattern>,
-    team: Team,
-    is_king: bool,
-) -> (RetainedImage, String) {
-    let svg_source = build_svg(patterns, team, is_king);
-    (
-        RetainedImage::from_svg_str(
-            format!("svg-{:?}-{:?}", team, patterns),
-            svg_source.as_str(),
-        )
-        // issues building the svg are developer-error, panic so that we can catch these errors
-        .unwrap(),
-        svg_source,
-    )
-}
-
 // svg generation utilities
 
-fn build_svg(patterns: &[Pattern], team: Team, is_king: bool) -> String {
+pub(crate) fn wild_behavior_icon(patterns: &[Pattern], team: Team, is_king: bool) -> String {
     format!(
         r#"<svg
     width="1000"

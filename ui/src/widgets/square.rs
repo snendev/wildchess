@@ -1,4 +1,5 @@
-use bevy_egui::egui::{Button, Color32, Response, RichText, Stroke, Ui, Vec2, Widget};
+use bevy_egui::egui::{Button, Color32, Image, Response, RichText, Stroke, Ui, Widget};
+use egui_extras::install_image_loaders;
 
 use games::chess::board::Square;
 
@@ -35,7 +36,7 @@ impl SquareHighlight {
 
 pub struct SquareWidget<'a> {
     square: Square,
-    icon: Option<&'a PieceIcon>,
+    icon: Option<&'a PieceIcon<'a>>,
     highlight: Option<SquareHighlight>,
     // TODO: scale: f32,
 }
@@ -84,14 +85,17 @@ impl<'a> SquareWidget<'a> {
 
 impl<'a> Widget for SquareWidget<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let context = ui.ctx();
+        install_image_loaders(ui.ctx());
         let background_color = self.background_color();
         let mut button = match self.icon.unwrap_or(&PieceIcon::Character(' ')) {
             PieceIcon::Svg { image, .. } => {
                 // TODO: why is this not * 2.?
                 const R: f32 = SquareWidget::WIDTH - SquareWidget::STROKE_WIDTH * 3.;
-                Button::image_and_text(image.texture_id(context), Vec2::new(R, R), "")
-                    .fill(background_color)
+                Button::image_and_text(
+                    Image::new(image.clone()).fit_to_exact_size((R, R).into()),
+                    "",
+                )
+                .fill(background_color)
             }
             PieceIcon::Character(character) => {
                 let text = RichText::new(*character)

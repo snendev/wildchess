@@ -33,7 +33,7 @@ pub struct PieceQuery {
     pub relay_behavior: Option<&'static RelayBehavior>,
     pub mimic_behavior: Option<&'static MimicBehavior>,
     pub mutation: Option<&'static Mutation>,
-    pub icon: Option<&'static PieceIcon>,
+    pub icon: Option<&'static PieceIcon<'static>>,
     pub position_history: &'static History<Position>,
     pub behavior_history: Option<&'static History<PatternBehavior>>,
     pub relay_behavior_history: Option<&'static History<RelayBehavior>>,
@@ -51,7 +51,7 @@ pub struct PieceData<'a> {
     pub relay_behavior: Option<&'a RelayBehavior>,
     pub mimic_behavior: Option<&'a MimicBehavior>,
     pub mutation: Option<&'a Mutation>,
-    pub icon: Option<&'a PieceIcon>,
+    pub icon: Option<&'a PieceIcon<'a>>,
 }
 
 impl<'a> From<PieceQueryItem<'a>> for PieceData<'a> {

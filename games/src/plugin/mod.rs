@@ -1,5 +1,5 @@
 use bevy::prelude::{
-    on_event, Added, App, Component, Condition, IntoSystemConfigs, IntoSystemSetConfig, Plugin,
+    on_event, Added, App, Component, Condition, IntoSystemConfigs, IntoSystemSetConfigs, Plugin,
     PostUpdate, Query, Update,
 };
 
@@ -27,7 +27,7 @@ impl Plugin for GameplayPlugin {
             ChessTypesPlugin,
             BehaviorsPlugin::from_input_system(systems::last_action),
         ))
-        .configure_set(
+        .configure_sets(
             PostUpdate,
             BehaviorsSet
                 .run_if(any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>())),
@@ -42,12 +42,10 @@ impl Plugin for GameplayPlugin {
             (
                 systems::detect_gameover.run_if(on_event::<TurnEvent>()),
                 systems::log_gameover_events.run_if(on_event::<TurnEvent>()),
-                (
-                    History::<Position>::track_component_system,
-                    History::<PatternBehavior>::track_component_system,
-                    History::<MimicBehavior>::track_component_system,
-                    History::<RelayBehavior>::track_component_system,
-                ),
+                History::<Position>::track_component_system,
+                History::<PatternBehavior>::track_component_system,
+                History::<MimicBehavior>::track_component_system,
+                History::<RelayBehavior>::track_component_system,
                 // TODO: stop playing after gameover
                 systems::detect_turn,
                 systems::execute_turn_movement.run_if(on_event::<TurnEvent>()),

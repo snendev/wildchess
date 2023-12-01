@@ -1,7 +1,10 @@
 use std::cmp::Ordering;
 
-use bevy::prelude::{
-    warn, Commands, Component, DetectChanges, Entity, Query, Ref, Reflect, ReflectComponent, With,
+use bevy::{
+    log::warn,
+    prelude::{
+        Commands, Component, DetectChanges, Entity, Query, Ref, Reflect, ReflectComponent, With,
+    },
 };
 
 use crate::{

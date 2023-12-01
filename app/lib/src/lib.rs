@@ -1,5 +1,5 @@
 use bevy::prelude::{
-    any_with_component, not, App, DefaultPlugins, IntoSystemConfigs, IntoSystemSetConfig,
+    any_with_component, not, App, DefaultPlugins, IntoSystemConfigs, IntoSystemSetConfigs,
     PluginGroup, SystemSet, Update, Window, WindowPlugin,
 };
 
@@ -21,8 +21,13 @@ pub fn run_app(canvas: Option<String>) {
             }),
             ..Default::default()
         }))
-        .configure_set(Update, HomeUISet.run_if(not(any_with_component::<Game>())))
-        .configure_set(Update, ChessUISet.run_if(any_with_component::<Game>()))
+        .configure_sets(
+            Update,
+            (
+                HomeUISet.run_if(not(any_with_component::<Game>())),
+                ChessUISet.run_if(any_with_component::<Game>()),
+            ),
+        )
         .add_plugins((GameplayPlugin, EguiBoardUIPlugin))
         .add_systems(Update, home_ui::home_menu.in_set(HomeUISet))
         .run();

@@ -3,11 +3,10 @@ use bevy::{
     utils::HashMap,
 };
 
-use egui_extras::RetainedImage;
+use bevy_egui::egui::ImageSource;
 
 use games::chess::{
     behavior::{PatternBehavior, RelayBehavior},
-    pattern::Pattern,
     pieces::{PieceIdentity, Royal},
     team::Team,
 };
@@ -18,32 +17,30 @@ mod wild;
 use wild::wild_behavior_icon;
 
 #[derive(Clone, Component)]
-pub enum PieceIcon {
+pub enum PieceIcon<'a> {
     Svg {
-        image: std::sync::Arc<RetainedImage>,
+        image: ImageSource<'a>,
         source: String,
     },
     Character(char),
 }
 
-impl PieceIcon {
-    pub fn svg(image: RetainedImage, source: String) -> Self {
-        PieceIcon::Svg {
-            image: std::sync::Arc::new(image),
-            source,
-        }
+impl<'a> PieceIcon<'a> {
+    pub fn svg(label: String, source: String) -> Self {
+        let image = ImageSource::Bytes {
+            uri: format!("bytes://{}.svg", label).into(),
+            bytes: source.bytes().collect::<Vec<u8>>().into(),
+        };
+        PieceIcon::Svg { image, source }
     }
 
     pub fn character(character: char) -> Self {
         PieceIcon::Character(character)
     }
 
-    pub fn wild_svg(patterns: &Vec<Pattern>, team: Team, is_king: bool) -> Self {
-        let (generated_icon, icon_source) = wild_behavior_icon(patterns, team, is_king);
-        PieceIcon::svg(generated_icon, icon_source)
-    }
-
     pub fn from_behaviors(
+        identity: PieceIdentity,
+        key: impl Into<String>,
         patterns: Option<&PatternBehavior>,
         relays: Option<&RelayBehavior>,
         team: Team,
@@ -52,7 +49,8 @@ impl PieceIcon {
         let patterns = patterns
             .map(|behavior| &behavior.patterns)
             .or(relays.map(|behavior| &behavior.patterns));
-        PieceIcon::wild_svg(patterns.unwrap_or(&Vec::new()), team, is_royal)
+        let icon_source = wild_behavior_icon(patterns.unwrap_or(&vec![]), team, is_royal);
+        PieceIcon::svg(format!("{:?}-{}", identity, key.into()), icon_source)
     }
 
     #[allow(clippy::type_complexity)]
@@ -83,8 +81,14 @@ impl PieceIcon {
             } else if let PieceIdentity::Wild = identity {
                 // otherwise create a new icon with the movement patterns
                 // (or the relay patterns if no movement patterns exist)
-                let icon =
-                    PieceIcon::from_behaviors(patterns, relays, *team, maybe_royal.is_some());
+                let icon = PieceIcon::from_behaviors(
+                    *identity,
+                    format!("{:?}", key),
+                    patterns,
+                    relays,
+                    *team,
+                    maybe_royal.is_some(),
+                );
                 icons.insert(key.clone(), icon.clone());
                 icons.get(&key)
             } else {
