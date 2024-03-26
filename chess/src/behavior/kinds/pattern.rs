@@ -35,6 +35,10 @@ impl PatternBehavior {
         self.patterns.push(pattern);
         self
     }
+
+    pub fn add_pattern(&mut self, pattern: Pattern) {
+        self.patterns.push(pattern);
+    }
 }
 
 // When a PatternBehavior runs a search, it must return a struct that contains

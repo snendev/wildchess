@@ -1,4 +1,7 @@
-use rand::{thread_rng, Rng};
+use rand::{
+    distributions::{Distribution, Standard},
+    thread_rng, Rng,
+};
 
 use chess::{
     behavior::{CastlingBehavior, CastlingTarget, PatternBehavior, PieceBehaviors},
@@ -13,6 +16,74 @@ mod piece;
 // Piece identity described by the starting squares
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct PieceBuilder;
+
+enum PowerProperty {
+    ShortRange,
+    LongRange,
+    Orthogonal,
+    Diagonal,
+    Rider,
+    CornerJump,
+}
+
+const MAX_SHORT_RANGE: usize = 2;
+const MAX_LONG_RANGE: usize = 3;
+const MAX_ORTHOGONALS: usize = 2;
+const MAX_DIAGONALS: usize = 2;
+const MAX_RIDER: usize = 3;
+const MAX_CORNER_JUMP: usize = 1;
+
+enum RangePower {
+    Low,
+    High,
+}
+
+impl Distribution<RangePower> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> RangePower {
+        match rng.gen_range(0..1) {
+            0 => RangePower::Low,
+            _ => RangePower::High,
+        }
+    }
+}
+
+enum DirectionalPower {
+    AllDirections,
+    NoForward,
+    NoBackward,
+}
+
+impl Distribution<DirectionalPower> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> DirectionalPower {
+        match rng.gen_range(0..1) {
+            0 => DirectionalPower::AllDirections,
+            1 => DirectionalPower::NoForward,
+            _ => DirectionalPower::NoBackward,
+        }
+    }
+}
+
+fn idk() {
+    // track how many pieces have each important property
+    let mut total_short_range = 0;
+    let mut total_long_range = 0;
+    let mut total_orthogonal_range = 0;
+    let mut total_diagonal_range = 0;
+    let mut total_leaper = 0;
+    let mut total_corner_jump = 0;
+    let mut total_backward = 0;
+
+    let mut elite = PatternBehavior::default();
+
+    while true {
+        // pick a random property to add to the unit
+        // TODO
+        // roll a random set of Power values
+        let (range, direction) = rand::random::<(RangePower, DirectionalPower)>();
+        // return a Pattern that matches the property but is scaled to the range/direction
+        break;
+    }
+}
 
 // Game properties to randomly divide amongst pieces:
 // ALWAYS have at least:
