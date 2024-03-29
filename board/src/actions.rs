@@ -3,17 +3,18 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 
-use crate::{board::Square, pattern::Pattern, pieces::Orientation};
+use crate::GameBoard;
 
-#[derive(Clone, Debug, Default, PartialEq, Reflect)]
-pub struct Movement {
-    pub from: Square,
-    pub to: Square,
-    pub orientation: Orientation,
+#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Reflect)]
+pub struct Movement<B: GameBoard> {
+    pub from: B::Position,
+    pub to: B::Position,
+    pub orientation: B::Axes,
 }
 
-impl Movement {
-    pub fn new(from: Square, to: Square, orientation: Orientation) -> Self {
+impl <B: GameBoard> Movement<B> {
+    pub fn new(from: B::Position, to: B::Position, orientation: B::Axes) -> Self {
         Self {
             from,
             to,
@@ -21,45 +22,42 @@ impl Movement {
         }
     }
 
-    pub fn from(&self) -> Square {
+    pub fn from(&self) -> B::Position {
         self.from
     }
 
-    pub fn to(&self) -> Square {
+    pub fn to(&self) -> B::Position {
         self.to
     }
 
-    pub fn orientation(&self) -> Orientation {
+    pub fn orientation(&self) -> B::Axes {
         self.orientation
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Reflect)]
-pub struct Action {
-    pub movement: Movement,
-    pub side_effects: Vec<(Entity, Movement)>,
-    pub scanned_squares: Vec<Square>,
-    pub using_pattern: Option<Pattern>,
-    pub captures: HashSet<Square>,
-    pub threats: HashSet<Square>,
+#[derive(Clone, Debug, Default)]
+pub struct Action<B:GameBoard> {
+    pub movement: Movement<B>,
+    pub side_effects: Vec<(Entity, Movement<B>)>,
+    pub path: Vec<B::Position>,
+    pub captures: HashSet<B::Position>,
+    pub threats: HashSet<B::Position>,
 }
 
-impl Action {
+impl <B: GameBoard>Action<B> {
     pub fn movement(
-        from_square: Square,
-        landing_square: Square,
-        landing_orientation: Orientation,
-        scanned_squares: Vec<Square>,
-        pattern: Option<Pattern>,
+        from: B::Position,
+        to: B::Position,
+        landing_orientation: B::Axes,
+        path: Vec<B::Position>,
     ) -> Self {
         Action {
             movement: Movement {
-                from: from_square,
-                to: landing_square,
+                from,
+                to,
                 orientation: landing_orientation,
             },
-            scanned_squares,
-            using_pattern: pattern,
+            path,
             ..Default::default()
         }
     }
@@ -67,15 +65,15 @@ impl Action {
 
 #[derive(Clone, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
-pub struct Actions(pub HashMap<Square, Action>);
+pub struct Actions<B:GameBoard>(pub HashMap<B::Position, Action<B>>);
 
-impl Actions {
-    pub fn new(map: HashMap<Square, Action>) -> Self {
+impl <B:GameBoard> Actions<B> {
+    pub fn new(map: HashMap<B::Position, Action<B>>) -> Self {
         Actions(map)
     }
 
-    pub fn get(&self, square: &Square) -> Option<&Action> {
-        self.0.get(square)
+    pub fn get(&self, position: &B::Position) -> Option<&Action<B>> {
+        self.0.get(position)
     }
 
     // TODO: currently no good way to handle colliding squares

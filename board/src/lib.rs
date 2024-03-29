@@ -1,38 +1,66 @@
-use bevy::prelude::{App, Plugin};
+use std::fmt::Debug;
+use std::hash::Hash;
+use std::ops::{Add, Mul};
 
-pub mod actions;
-pub mod behavior;
-pub mod board;
-pub mod pattern;
-pub mod pieces;
-pub mod team;
+mod actions;
+pub use actions::*;
 
-pub struct ChessTypesPlugin;
+mod step;
+pub use step::*;
 
-impl Plugin for ChessTypesPlugin {
-    fn build(&self, app: &mut App) {
-        #[cfg(debug_assertions)]
-        app.register_type::<team::Team>()
-            .register_type::<behavior::PatternBehavior>()
-            .register_type::<board::Square>()
-            .register_type::<board::Rank>()
-            .register_type::<board::File>()
-            .register_type::<board::Board>()
-            .register_type::<pattern::Pattern>()
-            .register_type::<pattern::Constraints>()
-            .register_type::<pattern::FromRankConstraint>()
-            .register_type::<pattern::ForbiddenTargetConstraint>()
-            .register_type::<pattern::CaptureRules>()
-            .register_type::<pattern::CaptureMode>()
-            .register_type::<pattern::CapturePattern>()
-            .register_type::<pattern::Scanner>()
-            .register_type::<pattern::ScanMode>()
-            .register_type::<pattern::Step>()
-            .register_type::<pattern::RSymmetry>()
-            .register_type::<pattern::ABSymmetry>()
-            .register_type::<pattern::TargetKind>()
-            .register_type::<pieces::Position>()
-            .register_type::<actions::Action>()
-            .register_type::<actions::Actions>();
+pub trait BoardVector:
+    Clone
+    + Copy
+    + Debug
+    + Default
+    + PartialEq
+    + Eq
+    + Hash
+    + Add<Output = Self>
+    + Mul<u16, Output = Self>
+{
+    type Symmetry;
+    type Team;
+
+    // ??: type Notation;
+
+    fn reflect_symmetries(&self, symmetry: Self::Symmetry) -> impl Iterator<Item = Self>;
+}
+
+pub trait GameBoard: Default + Sized {
+    // Position defines some vector that can be added and scaled
+    type Position: BoardVector;
+    // Axes are the symmetries along which a step could be taken
+    type Axes: Clone + Copy + Debug + Default + Into<Self::Position>;
+
+    fn is_in_bounds(&self, position: Self::Position) -> bool;
+
+    fn scan(&self, origin: Self::Position, step: BoardStep<Self>) -> BoardIterator<'_, Self> {
+        BoardIterator {
+            board: self,
+            current_position: origin,
+            step,
+        }
+    }
+}
+
+pub struct BoardIterator<'a, B: GameBoard> {
+    board: &'a B,
+    current_position: B::Position,
+    step: BoardStep<B>,
+}
+
+impl<'a, B: GameBoard> Iterator for BoardIterator<'a, B> {
+    // TODO maybe iter returns (Square, DoesCollide)
+    type Item = B::Position;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_position = self.step.take_step(self.current_position);
+        if self.board.is_in_bounds(next_position) {
+            self.current_position = next_position;
+            Some(self.current_position)
+        } else {
+            None
+        }
     }
 }

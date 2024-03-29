@@ -25,14 +25,43 @@ pub enum ScanMode {
     },
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Reflect)]
+pub struct Range {
+    min: usize,
+    max: usize,
+}
+
+impl Range {
+    fn between(min: usize, max: usize) -> Self {
+        Self { min, max }
+    }
+
+    fn up_to(max: usize) -> Self {
+        Self::between(0, max)
+    }
+
+    fn starting_at(min: usize) -> Self {
+        Self::between(min, 0)
+    }
+}
+
+impl Default for Range {
+    fn default() -> Self {
+        Range::between(0, 1)
+    }
+}
+
+
 // The calculation type for board searches
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Reflect)]
 pub struct Scanner {
     // the unit of "stepping" for searching the board
     pub step: Step,
     // how many steps can this pattern be executed for?
     // if None, do not set a limit
-    pub range: Option<usize>,
+    pub range: Option<Range>,
     // configuration for how to deal with colliders
     pub mode: ScanMode,
 }
@@ -107,7 +136,7 @@ impl Scanner {
 
     // Number steps executed: leaper or rider?
 
-    pub fn range(mut self, range: usize) -> Self {
+    pub fn range(mut self, range: Range) -> Self {
         self.range = Some(range);
         self
     }

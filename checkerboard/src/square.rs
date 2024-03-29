@@ -5,7 +5,7 @@ use bevy::prelude::Reflect;
 
 use crate::{pieces::Orientation, team::Team};
 
-use super::Board;
+use super::CheckerBoard;
 
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Reflect)]
 pub struct File(pub u16);
@@ -88,7 +88,8 @@ impl From<&File> for u16 {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Reflect)]
 pub struct Rank(pub u16);
 
 impl Rank {

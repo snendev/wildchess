@@ -25,6 +25,12 @@ use self::capture::CaptureData;
 pub struct Pattern {
     // struct that defines how to walk the board space
     pub scanner: Scanner,
+    // pub step: Step,
+    // // how many steps can this pattern be executed for?
+    // // if None, do not set a limit
+    // pub range: Option<Range>,
+    // // configuration for how to deal with colliders
+    // pub mode: ScanMode,
     // TODO: move these two onto wrapper?
     // when Some, this enables capturing pieces when executing this pattern
     pub capture: Option<CaptureRules>,
