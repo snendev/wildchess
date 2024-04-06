@@ -3,13 +3,11 @@ use bevy::{
     reflect::Reflect,
 };
 
-use fairy_gameboard::GameBoard;
-
 use crate::{
     actions::{Action, Actions},
+    board::Board,
     pieces::{Orientation, Position},
     team::Team,
-    ChessBoard,
 };
 
 pub mod caches;
@@ -17,20 +15,18 @@ pub use caches::{BoardPieceCache, BoardThreat, BoardThreatsCache};
 
 mod kinds;
 pub use kinds::{
-    CastlingBehavior,
-    CastlingTarget,
-    PatternBehavior,
-    // EnPassantBehavior, MimicBehavior, RelayBehavior,
+    CastlingBehavior, CastlingTarget, EnPassantBehavior, MimicBehavior, PatternBehavior,
+    RelayBehavior,
 };
 
 mod plugin;
 pub use plugin::{BehaviorsPlugin, BehaviorsSet};
 
-pub trait Behavior<B: GameBoard> {
+pub trait Behavior {
     // Each behavior supplies is own sink for calculating actions.
     // This enables parallelizing these calculations since we don't need
     // N exclusive references to `Actions`.
-    type ActionsCache: Component + From<Actions<B>> + Into<Actions<B>>;
+    type ActionsCache: Component + From<Actions> + Into<Actions>;
 
     // All Behaviors register this system in the first "bucket".
     // It calculates the available `Actions` for each piece and stores that in its
@@ -38,14 +34,15 @@ pub trait Behavior<B: GameBoard> {
     // Be sure to clear the cache each time this system is run.
     #[allow(clippy::type_complexity)]
     fn calculate_actions_system(
+        last_action: In<Option<Action>>,
         commands: Commands,
-        board_query: Query<(&ChessBoard<B>, &BoardPieceCache<B>)>,
+        board_query: Query<(&Board, &BoardPieceCache)>,
         piece_query: Query<(
             Entity,
             Option<&Self>,
             Option<&mut Self::ActionsCache>,
-            &Position<B>,
-            &Orientation<B>,
+            &Position,
+            &Orientation,
             &Team,
         )>,
     ) where
@@ -56,7 +53,7 @@ pub trait Behavior<B: GameBoard> {
     // It takes the cached value from `Self::ActionsCache` and extends `Actions` with it.
     // These generally should be ordered.
     // TODO: Allow multiple actions on one square.
-    fn take_actions_system(mut piece_query: Query<(&Self::ActionsCache, &mut Actions<B>)>)
+    fn take_actions_system(mut piece_query: Query<(&Self::ActionsCache, &mut Actions)>)
     where
         Self: Component + Sized,
         Self::ActionsCache: Clone,
@@ -84,11 +81,11 @@ pub trait Behavior<B: GameBoard> {
 #[derive(Clone, Debug, Default, Reflect)]
 pub struct PieceBehaviors {
     pub pattern: Option<PatternBehavior>,
-    // pub en_passant: Option<EnPassantBehavior>,
-    // pub mimic: Option<MimicBehavior>,
-    // pub relay: Option<RelayBehavior>,
-    // pub castling: Option<CastlingBehavior>,
-    // pub castling_target: Option<CastlingTarget>,
+    pub en_passant: Option<EnPassantBehavior>,
+    pub mimic: Option<MimicBehavior>,
+    pub relay: Option<RelayBehavior>,
+    pub castling: Option<CastlingBehavior>,
+    pub castling_target: Option<CastlingTarget>,
 }
 
 impl From<PatternBehavior> for PieceBehaviors {
@@ -100,32 +97,32 @@ impl From<PatternBehavior> for PieceBehaviors {
     }
 }
 
-// impl From<EnPassantBehavior> for PieceBehaviors {
-//     fn from(behavior: EnPassantBehavior) -> Self {
-//         PieceBehaviors {
-//             en_passant: Some(behavior),
-//             ..Default::default()
-//         }
-//     }
-// }
+impl From<EnPassantBehavior> for PieceBehaviors {
+    fn from(behavior: EnPassantBehavior) -> Self {
+        PieceBehaviors {
+            en_passant: Some(behavior),
+            ..Default::default()
+        }
+    }
+}
 
-// impl From<MimicBehavior> for PieceBehaviors {
-//     fn from(behavior: MimicBehavior) -> Self {
-//         PieceBehaviors {
-//             mimic: Some(behavior),
-//             ..Default::default()
-//         }
-//     }
-// }
+impl From<MimicBehavior> for PieceBehaviors {
+    fn from(behavior: MimicBehavior) -> Self {
+        PieceBehaviors {
+            mimic: Some(behavior),
+            ..Default::default()
+        }
+    }
+}
 
-// impl From<RelayBehavior> for PieceBehaviors {
-//     fn from(behavior: RelayBehavior) -> Self {
-//         PieceBehaviors {
-//             relay: Some(behavior),
-//             ..Default::default()
-//         }
-//     }
-// }
+impl From<RelayBehavior> for PieceBehaviors {
+    fn from(behavior: RelayBehavior) -> Self {
+        PieceBehaviors {
+            relay: Some(behavior),
+            ..Default::default()
+        }
+    }
+}
 
 // Rarely will a piece need all these behaviors
 // However, this bundle is useful for calling EntityMut::remove()
@@ -133,7 +130,7 @@ impl From<PatternBehavior> for PieceBehaviors {
 #[derive(Clone, Debug, Default, Bundle, Reflect)]
 pub struct PieceBehaviorsBundle {
     pub pattern: PatternBehavior,
-    // pub en_passant: EnPassantBehavior,
-    // pub mimic: MimicBehavior,
-    // pub relay: RelayBehavior,
+    pub en_passant: EnPassantBehavior,
+    pub mimic: MimicBehavior,
+    pub relay: RelayBehavior,
 }

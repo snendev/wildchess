@@ -1,19 +1,19 @@
-use bevy::prelude::{Component, Reflect, ReflectComponent};
+use bevy::prelude::{Component, Deref, Reflect, ReflectComponent};
+use fairy_gameboard::{BoardVector, GameBoard};
 
-use crate::board::{File, Rank, Square};
-
-#[derive(Clone, Component, Debug, Default, PartialEq, Eq, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Component, Deref, Reflect)]
 #[reflect(Component)]
-pub struct Position(pub Square);
+pub struct Position<B: GameBoard>(B::Vector);
 
-impl From<Square> for Position {
-    fn from(square: Square) -> Self {
-        Position(square)
+impl <B: GameBoard> Position<B> {
+    fn new(position: B::Vector) -> Self {
+        Self::new(position)
     }
 }
 
-impl From<(File, Rank)> for Position {
-    fn from(square: (File, Rank)) -> Self {
-        Square::from(square).into()
-    }
-}
+// Once all Royal pieces are captured, a player loses the game.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Component, Deref, Reflect)]
+#[reflect(Component)]
+pub struct Orientation<B: GameBoard>(<B::Vector as BoardVector>::Symmetry);

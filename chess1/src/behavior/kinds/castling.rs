@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, marker::PhantomData};
+use std::cmp::Ordering;
 
 use bevy::{
     log::warn,
@@ -7,14 +7,26 @@ use bevy::{
     },
 };
 
-use fairy_gameboard::GameBoard;
-
 use crate::{
-    actions::{Action, Actions},
+    actions::{Action, Actions, Movement},
     behavior::{BoardPieceCache, BoardThreatsCache},
+    board::{File, Rank, Square},
     pieces::{Orientation, Position},
     team::Team,
 };
+
+pub(crate) fn disable_on_move<T: Component>(
+    mut commands: Commands,
+    moved_piece_query: Query<(Entity, Ref<Position>, Ref<Orientation>), With<T>>,
+) {
+    for (piece, position_ref, orientation_ref) in moved_piece_query.iter() {
+        if (position_ref.is_changed() && !position_ref.is_added())
+            || (orientation_ref.is_changed() && !orientation_ref.is_added())
+        {
+            commands.entity(piece).remove::<T>();
+        }
+    }
+}
 
 #[derive(Clone, Copy, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
@@ -22,26 +34,24 @@ pub struct CastlingTarget;
 
 #[derive(Clone, Copy, Component, Debug, Default, Reflect)]
 #[reflect(Component)]
-pub struct CastlingBehavior<B: GameBoard> {
-    marker: PhantomData<B>
-}
+pub struct CastlingBehavior;
 
 // Enable performing whatever Pattern was executed in the last turn
-impl <B:GameBoard> CastlingBehavior<B> {
+impl CastlingBehavior {
     pub(crate) fn calculate_actions_system(
-        board_query: Query<(&BoardPieceCache<B>, &BoardThreatsCache<B>)>,
+        board_query: Query<(&BoardPieceCache, &BoardThreatsCache)>,
         mut castler_query: Query<
-            (&Position<B>, &Orientation<B>, &mut Actions<B>, &Team),
-            With<Self>,
+            (&Position, &Team, &Orientation, &mut Actions),
+            With<CastlingBehavior>,
         >,
-        target_query: Query<(Entity, &Position<B>, &Orientation<B>, &Team), With<CastlingTarget>>,
+        target_query: Query<(Entity, &Position, &Team, &Orientation), With<CastlingTarget>>,
     ) {
         let Ok((pieces, threats)) = board_query.get_single() else {
             return;
         };
 
-        for (position, orientation, mut actions, team) in castler_query.iter_mut() {
-            for (target_entity, target, target_orientation, target_team) in
+        for (Position(position), team, orientation, mut actions) in castler_query.iter_mut() {
+            for (target_entity, Position(target), target_team, target_orientation) in
                 target_query.iter()
             {
                 if team != target_team {

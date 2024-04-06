@@ -1,0 +1,13 @@
+[package]
+name = "fairy_gameboard"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+reflect = ["bevy_reflect"]
+
+[dependencies]
+bevy_reflect = { version = "0.12", optional = true }
+enumflags2 = { version = "0.7" }
+itertools = { version = "0.12" }

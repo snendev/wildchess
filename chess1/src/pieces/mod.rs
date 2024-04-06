@@ -1,8 +1,6 @@
 use bevy::prelude::{Bundle, Reflect};
 
-use fairy_gameboard::GameBoard;
-
-use crate::{actions::Actions, team::Team};
+use crate::{actions::Actions, behavior::PieceBehaviors, team::Team};
 
 mod identity;
 pub use identity::PieceIdentity;
@@ -10,22 +8,25 @@ pub use identity::PieceIdentity;
 mod mutation;
 pub use mutation::{Mutation, MutationCondition, MutationRequired};
 
+mod orientation;
+pub use orientation::Orientation;
+
 mod position;
-pub use position::{Position, Orientation};
+pub use position::Position;
 
 mod royal;
 pub use royal::Royal;
 
 #[derive(Clone, Debug, Default, Bundle, Reflect)]
-pub struct PieceBundle<B: GameBoard + 'static> {
-    pub position: Position<B>,
-    pub orientation: Orientation<B>,
-    pub actions: Actions<B>,
+pub struct PieceBundle {
+    pub position: Position,
+    pub orientation: Orientation,
     pub team: Team,
+    pub actions: Actions,
 }
 
-impl <B: GameBoard>PieceBundle<B> {
-    pub fn new(start_position: B::Vector, team: Team) -> Self {
+impl PieceBundle {
+    pub fn new(start_position: Position, team: Team) -> Self {
         PieceBundle {
             position: start_position,
             orientation: team.orientation(),
@@ -36,10 +37,10 @@ impl <B: GameBoard>PieceBundle<B> {
 }
 
 #[derive(Clone, Debug, Default, Reflect)]
-pub struct PieceDefinition<B: GameBoard> {
+pub struct PieceDefinition {
     pub behaviors: PieceBehaviors,
     pub identity: PieceIdentity,
-    pub mutation: Option<Mutation<B>>,
+    pub mutation: Option<Mutation>,
     pub royal: Option<Royal>,
 }
 

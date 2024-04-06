@@ -1,208 +1,201 @@
-use bevy::prelude::{Component, Entity, Reflect};
+use enumflags2::BitFlags;
 
-use board::*;
+use bevy::prelude::{Component, Reflect};
+
+use fairy_gameboard::*;
 
 mod square;
-pub use square::{File, Rank, Square};
+pub use square::*;
 
-#[derive(Clone, Copy, Component, Debug, Reflect)]
-pub struct OnBoard(pub Entity);
+mod symmetry;
+pub use symmetry::*;
 
-#[derive(Clone, Copy, Component, Debug, Default, Reflect)]
+#[derive(Clone, Component, Debug, Default, Reflect)]
 pub struct CheckerBoard {
-    pub size: Square,
+    // TODO: forbid overlap?
+    // probably implies developer error
+    regions: Vec<(Square, Square)>,
 }
 
 impl CheckerBoard {
     pub fn chess_board() -> Self {
         Self {
-            size: Square::new(File::H, Rank::EIGHT),
+            regions: vec![(Square::ZERO, Square::new(File::H, Rank::EIGHT))],
         }
     }
 
     pub fn shogi_board() -> Self {
         Self {
-            size: Square::new(File(8), Rank(8)),
+            regions: vec![(Square::ZERO, Square::from_values(8, 8))],
         }
     }
 }
 
 impl GameBoard for CheckerBoard {
-    type Position = Square;
-    type Axes = Grid;
+    type Vector = Square;
 
-    fn is_in_bounds(&self, position: Self::Position) -> bool {
-        
+    fn is_in_bounds(&self, position: Self::Vector) -> bool {
+        self.regions.iter().any(|(min, max)| {
+            position.file() >= min.file()
+                && position.file() <= max.file()
+                && position.rank() >= min.rank()
+                && position.rank() <= max.rank()
+        })
     }
 }
 
-// Each square's potential steps, given some vector (a: i16, b: i16),
-// can be transformed using the Rotational symmetry of an octogon.
-// when a!=b, a,b!=0 this creates combinations (a, b), (b, a), (-a, b), ..., (-b, -a)
-// whereas when a=b, a=0, or b=0, this creates combinations
-// (0, r), (r, r), (0, r), (r, -r), (0, -r), (-r, -r), ...
-// (i.e. theta=0,pi/4,pi/2,...,7pi/4 radians, from y=0, r as the nonzero element)
-// This struct is a representation of that symmetry, represented by cardinal and
-// ordinal directions to make the reasoning a little easier
-bitflags::bitflags! {
-    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    #[derive(Reflect)]
-    #[reflect_value]
-    pub struct Grid: u8 {
-        // these are the rotations that a vector could be symmetric over
-        // `Step`s will be executed for all rotations specified.
-        const RIGHT = 0b00000001;
-        const FORWARD_RIGHT = 0b00000010;
-        const FORWARD  = 0b00000100;
-        const FORWARD_LEFT = 0b00001000;
-        const LEFT = 0b00010000;
-        const BACKWARD_LEFT = 0b00100000;
-        const BACKWARD = 0b01000000;
-        const BACKWARD_RIGHT = 0b10000000;
+impl BoardVector for Square {
+    type Symmetry = GridSymmetry;
 
-        const ALL = 0b11111111;
-    }
-}
-impl Grid {
-    // RSymmetry
-    pub fn all_forward() -> Self {
-        Self::FORWARD_RIGHT | Self::FORWARD | Self::FORWARD_LEFT
-    }
-
-    pub fn all_right() -> Self {
-        Self::RIGHT | Self::FORWARD_RIGHT | Self::BACKWARD_RIGHT
-    }
-
-    pub fn all_backward() -> Self {
-        Self::BACKWARD_LEFT | Self::BACKWARD | Self::BACKWARD_RIGHT
-    }
-
-    pub fn all_left() -> Self {
-        Self::FORWARD_LEFT | Self::LEFT | Self::BACKWARD_LEFT
-    }
-
-    pub fn vertical() -> Self {
-        Self::FORWARD | Self::BACKWARD
-    }
-
-    pub fn horizontal() -> Self {
-        Self::LEFT | Self::RIGHT
-    }
-
-    pub fn sideways() -> Self {
-        Self::horizontal()
-    }
-
-    pub fn orthogonal() -> Self {
-        Self::FORWARD | Self::LEFT | Self::RIGHT | Self::BACKWARD
-    }
-
-    pub fn diagonal_forward() -> Self {
-        Self::FORWARD_RIGHT | Self::FORWARD_LEFT
-    }
-
-    pub fn diagonal_backward() -> Self {
-        Self::BACKWARD_LEFT | Self::BACKWARD_RIGHT
-    }
-
-    pub fn diagonal() -> Self {
-        Self::diagonal_forward() | Self::diagonal_backward()
+    fn collect_symmetries(&self, symmetries: BitFlags<Self::Symmetry>) -> Vec<Self> {
+        use GridSymmetry::*;
+        let mut steps = vec![];
+        for orientation in [
+            Forward,
+            ForwardRight,
+            Right,
+            BackwardRight,
+            Backward,
+            BackwardLeft,
+            Left,
+            ForwardLeft,
+        ] {
+            if symmetries.contains(orientation) {
+                steps.push(orientation * *self);
+            }
+        }
+        steps
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use enumflags2::BitFlag;
 
     use super::*;
 
     #[test]
-    fn test_rook_stepper() {
-        let rook = Step::orthogonal(1);
-        let mut results = rook.movements();
-        results.sort();
+    fn test_rook_movement() {
+        let forward_vector = Square::from_values(0, 1);
+        let rook_symmetries = GridSymmetry::orthogonal();
+        let rook_movements = forward_vector.collect_symmetries(rook_symmetries);
 
-        let mut correct = vec![
-            // up
-            (0, 1),
-            // down
-            (0, -1),
+        let correct = vec![
+            // forward
+            Square::from_values(0, 1),
             // right
-            (1, 0),
+            Square::from_values(1, 0),
+            // backward
+            Square::from_values(0, -1),
             // left
-            (-1, 0),
+            Square::from_values(-1, 0),
         ];
-        correct.sort();
 
-        assert_eq!(
-            results,
-            correct,
-            "Scanner yielded squares: {:?}",
-            results
-                .iter()
-                .map(|point| format!("Vec({}, {})", point.0, point.1))
-                .collect::<Vec<_>>()
-        );
+        assert_eq!(rook_movements, correct);
     }
 
     #[test]
-    fn test_bishop_stepper() {
-        let bishop = Step::diagonal(1);
-        let mut results = bishop.movements();
-        results.sort();
+    fn test_bishop_movement() {
+        let forward_vector = Square::from_values(0, 1);
+        let bishop_symmetries = GridSymmetry::diagonal();
+        let bishop_movements = forward_vector.collect_symmetries(bishop_symmetries);
 
-        let mut correct = vec![
-            // up left
-            (-1, 1),
-            // up right
-            (1, 1),
-            // down left
-            (-1, -1),
-            // down right
-            (1, -1),
+        let correct = vec![
+            // forward right
+            Square::from_values(1, 1),
+            // backward right
+            Square::from_values(1, -1),
+            // backward left
+            Square::from_values(-1, -1),
+            // forward left
+            Square::from_values(-1, 1),
         ];
-        correct.sort();
 
-        assert_eq!(
-            results,
-            correct,
-            "Scanner yielded squares: {:?}",
-            results
-                .iter()
-                .map(|point| format!("Vec({}, {})", point.0, point.1))
-                .collect::<Vec<_>>()
-        );
+        assert_eq!(bishop_movements, correct);
+    }
+
+    #[test]
+    fn test_queen_movement() {
+        let forward_vector = Square::from_values(0, 1);
+        let queen_symmetries = GridSymmetry::all();
+        let queen_movements = forward_vector.collect_symmetries(queen_symmetries);
+
+        let correct = vec![
+            // forward
+            Square::from_values(0, 1),
+            // forward right
+            Square::from_values(1, 1),
+            // right
+            Square::from_values(1, 0),
+            // backward right
+            Square::from_values(1, -1),
+            // backward
+            Square::from_values(0, -1),
+            // backward left
+            Square::from_values(-1, -1),
+            // left
+            Square::from_values(-1, 0),
+            // forward left
+            Square::from_values(-1, 1),
+        ];
+
+        assert_eq!(queen_movements, correct);
     }
 
     #[test]
     fn test_knight_stepper() {
-        let knight = Step::leaper(2, 1);
-        let mut results = knight.movements();
-        results.sort();
+        let knight_vector = Square::from_values(1, 2);
+        let knight_symmetries = GridSymmetry::all();
+        let knight_movements = knight_vector.collect_symmetries(knight_symmetries);
 
-        let mut correct = vec![
-            // up right
-            (2, 1),
-            (1, 2),
-            // up left
-            (-2, 1),
-            (-1, 2),
-            // down right
-            (2, -1),
-            (1, -2),
-            // down left
-            (-2, -1),
-            (-1, -2),
+        let correct = vec![
+            // up up right
+            Square::from_values(1, 2),
+            // up right right
+            Square::from_values(2, 1),
+            // down right right
+            Square::from_values(2, -1),
+            // down down right
+            Square::from_values(1, -2),
+            // down down left
+            Square::from_values(-1, -2),
+            // down left left
+            Square::from_values(-2, -1),
+            // up left left
+            Square::from_values(-2, 1),
+            // up up left
+            Square::from_values(-1, 2),
         ];
-        correct.sort();
 
-        assert_eq!(
-            results,
-            correct,
-            "Scanner yielded squares: {:?}",
-            results
-                .iter()
-                .map(|point| format!("Vec({}, {})", point.0, point.1))
-                .collect::<Vec<_>>()
-        );
+        assert_eq!(knight_movements, correct);
+    }
+
+    #[test]
+    fn test_bounds() {
+        let board = CheckerBoard::chess_board();
+        assert!(board.is_in_bounds(Square::from_values(0,0)));
+        assert!(board.is_in_bounds(Square::from_values(1,1)));
+        assert!(board.is_in_bounds(Square::from_values(7,7)));
+        assert!(!board.is_in_bounds(Square::from_values(-1,0)));
+        assert!(!board.is_in_bounds(Square::from_values(0,-1)));
+        assert!(!board.is_in_bounds(Square::from_values(-7,-7)));
+    }
+
+    #[test]
+    fn test_irregular_bounds() {
+        let board = CheckerBoard {
+            regions: vec![
+                (Square::ZERO, Square::from_values(4, 4)),
+                (Square::from_values(-5, -5), Square::from_values(-1, -1)),
+            ]
+        };
+
+        assert!(board.is_in_bounds(Square::from_values(0,0)));
+        assert!(board.is_in_bounds(Square::from_values(3,4)));
+        assert!(!board.is_in_bounds(Square::from_values(6, 6)));
+        assert!(!board.is_in_bounds(Square::from_values(-1,0)));
+        assert!(board.is_in_bounds(Square::from_values(-1,-1)));
+        assert!(board.is_in_bounds(Square::from_values(-5,-5)));
+        assert!(!board.is_in_bounds(Square::from_values(-8,-8)));
     }
 }

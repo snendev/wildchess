@@ -2,11 +2,11 @@ use bevy::{
     prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent},
     utils::HashMap,
 };
-use fairy_gameboard::GameBoard;
 
 use crate::{
     actions::{Action, Actions},
     behavior::BoardPieceCache,
+    board::{Board, Square},
     pattern::Pattern,
     pieces::{Orientation, Position},
     team::Team,
@@ -16,12 +16,12 @@ use crate::behavior::Behavior;
 
 #[derive(Clone, Debug, Default, Component, PartialEq, Eq, Hash, Reflect)]
 #[reflect(Component)]
-pub struct PatternBehavior<B: GameBoard> {
+pub struct PatternBehavior {
     // in practice, this should rarely be more than one or two Patterns
-    pub patterns: Vec<Pattern<B>>,
+    pub patterns: Vec<Pattern>,
 }
 
-impl <B: GameBoard> PatternBehavior<B> {
+impl PatternBehavior {
     pub fn new(patterns: Vec<Pattern>) -> Self {
         PatternBehavior { patterns }
     }

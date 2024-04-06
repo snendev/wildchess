@@ -1,16 +1,18 @@
-use fairy_gameboard::GameBoard;
 use itertools::Either;
 
 use bevy::{prelude::Reflect, utils::HashMap};
 
 use crate::{
-    actions::Action,
+    actions::{Action, Movement},
+    board::{Board, File, Rank, Square},
     pieces::Orientation,
     team::Team,
 };
 
 mod capture;
 pub use capture::{CaptureMode, CapturePattern, CaptureRules};
+mod step;
+pub use step::{ABSymmetry, RSymmetry, Step};
 mod targets;
 pub use targets::TargetKind;
 mod scanner;
@@ -20,9 +22,9 @@ use self::capture::CaptureData;
 
 // The calculation type for board searches
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Reflect)]
-pub struct Pattern<B: GameBoard> {
+pub struct Pattern {
     // struct that defines how to walk the board space
-    pub scanner: Scanner<B>,
+    pub scanner: Scanner,
     // pub step: Step,
     // // how many steps can this pattern be executed for?
     // // if None, do not set a limit
@@ -291,5 +293,121 @@ impl Pattern {
             )
         })
         .collect()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::board::{Board, File};
+
+    use super::*;
+
+    fn origin() -> Square {
+        Square::new(File::C, Rank::TWO)
+    }
+
+    fn sample_board() -> HashMap<Square, Team> {
+        let mut map = HashMap::new();
+        map.insert(origin(), Team::White);
+        map.insert(Square::new(File::B, Rank::THREE), Team::White);
+        map.insert(Square::new(File::C, Rank::FIVE), Team::Black);
+        map.insert(Square::new(File::D, Rank::FOUR), Team::Black);
+        map.insert(Square::new(File::G, Rank::SIX), Team::Black);
+        map
+    }
+
+    #[test]
+    fn bishop_pattern_on_empty_board() {
+        let bishop = Pattern::diagonal().captures_by_displacement();
+        let results = bishop.search(
+            &origin(),
+            &Orientation::Up,
+            &Team::White,
+            &Board::chess_board(),
+            &HashMap::new(),
+            None,
+        );
+        let mut results = results
+            .iter()
+            .map(|(square, _)| *square)
+            .collect::<Vec<_>>();
+        results.sort();
+
+        let mut correct = vec![
+            // up left
+            Square::new(File::B, Rank::THREE),
+            Square::new(File::A, Rank::FOUR),
+            // up right
+            Square::new(File::D, Rank::THREE),
+            Square::new(File::E, Rank::FOUR),
+            Square::new(File::F, Rank::FIVE),
+            Square::new(File::G, Rank::SIX),
+            Square::new(File::H, Rank::SEVEN),
+            // down left
+            Square::new(File::B, Rank::ONE),
+            // down right
+            Square::new(File::D, Rank::ONE),
+        ];
+        correct.sort();
+
+        assert_eq!(
+            results,
+            correct,
+            "Scanner yielded squares: {:?}",
+            results
+                .iter()
+                .map(|square| format!("{} ", square))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn bishop_pattern_on_sample_board() {
+        let bishop = Pattern::diagonal().captures_by_displacement();
+        let results = bishop.search(
+            &origin(),
+            &Orientation::Up,
+            &Team::White,
+            &Board::chess_board(),
+            &sample_board(),
+            None,
+        );
+        let capture_square = Square::new(File::G, Rank::SIX);
+        assert_eq!(
+            results
+                .get(&capture_square)
+                .and_then(|action| action.captures.iter().next()),
+            Some(&capture_square),
+            "c2 Bishop cannot capture enemy piece on g6 when it should!",
+        );
+        let mut results = results
+            .iter()
+            .map(|(square, _)| *square)
+            .collect::<Vec<_>>();
+        results.sort();
+
+        let mut correct = vec![
+            // colliding white piece on b3 stops up-left
+            // up right
+            Square::new(File::D, Rank::THREE),
+            Square::new(File::E, Rank::FOUR),
+            Square::new(File::F, Rank::FIVE),
+            Square::new(File::G, Rank::SIX),
+            // down left
+            Square::new(File::B, Rank::ONE),
+            // down right
+            Square::new(File::D, Rank::ONE),
+        ];
+        correct.sort();
+
+        assert_eq!(
+            results,
+            correct,
+            "Scanner yielded squares: {:?}",
+            results
+                .iter()
+                .map(|square| format!("{}", square))
+                .collect::<Vec<_>>()
+        );
     }
 }

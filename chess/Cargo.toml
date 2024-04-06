@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+fairy_gameboard = { path = "../gameboard" }
 bevy = { version = "0.12" }
 anyhow = { version = "1.0" }
 bitflags = { version = "2.4" }
 thiserror = { version = "1.0" }
-itertools = { version = "*" }
+itertools = { version = "0.12" }
