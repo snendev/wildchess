@@ -16,7 +16,7 @@ pub fn run_app(canvas: Option<String>) {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 canvas,
-                resolution: (1366., 768.).into(),
+                resolution: (1600., 900.).into(),
                 ..Default::default()
             }),
             ..Default::default()
