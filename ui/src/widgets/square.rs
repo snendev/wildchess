@@ -42,7 +42,7 @@ pub struct SquareWidget<'a> {
 }
 
 impl<'a> SquareWidget<'a> {
-    pub const WIDTH: f32 = 90.;
+    pub const WIDTH: f32 = 110.;
     const STROKE_WIDTH: f32 = 4.;
     const DARK_BG: Color32 = Color32::from_rgb(181, 136, 99);
     const LIGHT_BG: Color32 = Color32::from_rgb(240, 217, 181);
@@ -61,7 +61,9 @@ impl<'a> SquareWidget<'a> {
 
     fn background_color(&self) -> Color32 {
         match self.highlight {
-            Some(SquareHighlight::Targetable) => Color32::from_rgba_unmultiplied(70, 70, 180, 130),
+            Some(SquareHighlight::Targetable) => {
+                Color32::LIGHT_BLUE
+            },
             Some(SquareHighlight::CaptureTargetable) => {
                 Color32::from_rgba_unmultiplied(180, 70, 70, 130)
             }
@@ -99,7 +101,7 @@ impl<'a> Widget for SquareWidget<'a> {
             }
             PieceIcon::Character(character) => {
                 let text = RichText::new(*character)
-                    .size(64.)
+                    .size(86.)
                     .strong()
                     .color(Color32::BLACK);
                 Button::new(text).fill(background_color)

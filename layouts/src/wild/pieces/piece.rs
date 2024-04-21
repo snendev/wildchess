@@ -27,7 +27,7 @@ impl PieceBuilder {
 struct InfantryBuilder;
 
 impl InfantryBuilder {
-    fn generate_wild_behavior() -> PatternBehavior {
+    pub fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // grunt
@@ -72,7 +72,7 @@ impl InfantryBuilder {
 pub struct MinorBuilder;
 
 impl MinorBuilder {
-    fn generate_wild_behavior() -> PatternBehavior {
+    pub fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // classic knight
@@ -108,7 +108,7 @@ impl MinorBuilder {
 pub struct AdvancedBuilder;
 
 impl AdvancedBuilder {
-    fn generate_wild_behavior() -> PatternBehavior {
+    pub fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             // jester
@@ -135,9 +135,9 @@ impl AdvancedBuilder {
 pub struct MajorBuilder;
 
 impl MajorBuilder {
-    fn generate_wild_behavior() -> PatternBehavior {
+   pub fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
-        match rng.gen_range(0..=2) {
+        match rng.gen_range(0..=1) {
             // classic rook
             0 => PatternBehavior::default()
                 .with_pattern(Pattern::orthogonal().captures_by_displacement()),
@@ -153,9 +153,9 @@ impl MajorBuilder {
 pub struct EliteBuilder;
 
 impl EliteBuilder {
-    fn generate_wild_behavior() -> PatternBehavior {
+   pub fn generate_wild_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
-        match rng.gen_range(0..=2) {
+        match rng.gen_range(0..=3) {
             // classic queen
             0 => PatternBehavior::default()
                 .with_pattern(Pattern::radial().captures_by_displacement()),
