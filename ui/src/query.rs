@@ -1,4 +1,4 @@
-use bevy::{ecs::query::WorldQuery, prelude::Entity};
+use bevy::{ecs::query::QueryData, prelude::Entity};
 
 use games::{
     chess::{
@@ -13,7 +13,7 @@ use games::{
 
 use crate::PieceIcon;
 
-#[derive(WorldQuery)]
+#[derive(QueryData)]
 pub struct BehaviorsQuery {
     pub behavior: Option<&'static PatternBehavior>,
     pub relay_behavior: Option<&'static RelayBehavior>,
@@ -21,7 +21,7 @@ pub struct BehaviorsQuery {
     pub mutation: Option<&'static Mutation>,
 }
 
-#[derive(WorldQuery)]
+#[derive(QueryData)]
 pub struct PieceQuery {
     pub entity: Entity,
     pub in_game: &'static InGame,

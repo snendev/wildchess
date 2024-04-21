@@ -24,8 +24,8 @@ pub fn run_app(canvas: Option<String>) {
         .configure_sets(
             Update,
             (
-                HomeUISet.run_if(not(any_with_component::<Game>())),
-                ChessUISet.run_if(any_with_component::<Game>()),
+                HomeUISet.run_if(not(any_with_component::<Game>)),
+                ChessUISet.run_if(any_with_component::<Game>),
             ),
         )
         .add_plugins((GameplayPlugin, EguiBoardUIPlugin))

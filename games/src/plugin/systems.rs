@@ -358,12 +358,12 @@ pub(super) fn detect_gameover(
                 if all_captured(Team::White) {
                     gameover_writer.send(GameoverEvent {
                         winner: Team::Black,
-                    })
+                    });
                 }
                 if all_captured(Team::Black) {
                     gameover_writer.send(GameoverEvent {
                         winner: Team::White,
-                    })
+                    });
                 }
             }
             WinCondition::RoyalCapture => {
@@ -379,12 +379,12 @@ pub(super) fn detect_gameover(
                 if any_captured(Team::White) {
                     gameover_writer.send(GameoverEvent {
                         winner: Team::Black,
-                    })
+                    });
                 }
                 if any_captured(Team::Black) {
                     gameover_writer.send(GameoverEvent {
                         winner: Team::White,
-                    })
+                    });
                 }
             }
             WinCondition::RaceToRank(_rank) => {
