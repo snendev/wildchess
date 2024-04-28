@@ -1,109 +1,43 @@
-# wasm
+[env]
+LIB = "web"
+PROFILE = "release"
+OUT_DIR = "app/${LIB}/static/wasm"
 
-[tasks.prebuild-wasm]
-command = "cargo"
-args = ["build", "-p", "*_app_wasm", "--target", "wasm32-unknown-unknown"]
-workspace = false
-
-[tasks.prebuild-wasm-release]
+[tasks.build-rust-web]
 command = "cargo"
 args = [
     "build",
     "-p",
-    "*_app_wasm",
+    "*_app_${LIB}",
     "--target",
     "wasm32-unknown-unknown",
-    "--release",
+    "--profile",
+    "${PROFILE}",
 ]
 workspace = false
 
-[tasks.build-wasm]
+[tasks.bindgen-web]
 command = "wasm-bindgen"
 args = [
     "--target",
     "deno",
     "--no-typescript",
-    "target/wasm32-unknown-unknown/debug/chess_app_wasm.wasm",
+    "target/wasm32-unknown-unknown/${PROFILE}/chess_app_${LIB}.wasm",
     "--out-dir",
-    "wasm",
+    "${OUT_DIR}",
     "--out-name",
-    "chess",
+    "chess_web",
 ]
-dependencies = ["prebuild-wasm"]
-workspace = false
-
-[tasks.build-wasm-release]
-command = "wasm-bindgen"
-args = [
-    "--target",
-    "deno",
-    "--no-typescript",
-    "target/wasm32-unknown-unknown/release/chess_app_wasm.wasm",
-    "--out-dir",
-    "wasm",
-    "--out-name",
-    "chess_wasm",
-]
-dependencies = ["prebuild-wasm-release"]
-workspace = false
-
-[tasks.build-wasm-prod]
-command = "wasm-opt"
-args = ["-Oz", "-o", "wasm/chess_wasm_bg.wasm", "wasm/chess_wasm_bg.wasm"]
-dependencies = ["build-web-release"]
-workspace = false
-
-# web
-
-[tasks.prebuild-web]
-command = "cargo"
-args = ["build", "-p", "*_app_web", "--target", "wasm32-unknown-unknown"]
-workspace = false
-
-[tasks.prebuild-web-release]
-command = "cargo"
-args = [
-    "build",
-    "-p",
-    "*_app_web",
-    "--target",
-    "wasm32-unknown-unknown",
-    "--release",
-]
+dependencies = ["build-rust-web"]
 workspace = false
 
 [tasks.build-web]
-command = "wasm-bindgen"
-args = [
-    "--target",
-    "deno",
-    "--no-typescript",
-    "target/wasm32-unknown-unknown/debug/chess_app_web.wasm",
-    "--out-dir",
-    "wasm",
-    "--out-name",
-    "chess_web",
-]
-dependencies = ["prebuild-web"]
-workspace = false
-
-[tasks.build-web-release]
-command = "wasm-bindgen"
-args = [
-    "--target",
-    "deno",
-    "--no-typescript",
-    "target/wasm32-unknown-unknown/release/chess_app_web.wasm",
-    "--out-dir",
-    "wasm",
-    "--out-name",
-    "chess_web",
-]
-dependencies = ["prebuild-web-release"]
-workspace = false
-
-[tasks.build-web-prod]
 command = "wasm-opt"
-args = ["-Oz", "-o", "wasm/chess_web_bg.wasm", "wasm/chess_web_bg.wasm"]
-dependencies = ["build-web-release"]
+args = [
+    "-Oz",
+    "-o",
+    "${OUT_DIR}/chess_${LIB}_bg.wasm",
+    "${OUT_DIR}/chess_${LIB}_bg.wasm",
+]
+dependencies = ["bindgen-web"]
 workspace = false
