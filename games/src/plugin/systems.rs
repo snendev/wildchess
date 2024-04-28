@@ -1,7 +1,8 @@
-use bevy::{
-    log::{debug, info},
-    prelude::{Added, Commands, Entity, EventReader, EventWriter, Name, Query, Res, Time, With},
-};
+use bevy_core::Name;
+use bevy_ecs::prelude::{Added, Commands, Entity, EventReader, EventWriter, Query, Res, With};
+#[cfg(feature = "log")]
+use bevy_log::{debug, info};
+use bevy_time::Time;
 
 use chess::{
     actions::Action,
@@ -124,12 +125,15 @@ pub(super) fn detect_turn(
     mut turn_writer: EventWriter<TurnEvent>,
 ) {
     for IssueMoveEvent { piece, action } in move_reader.read() {
+        eprintln!("1 : Hello??");
         let Ok((team, on_board, in_game, mutation)) = piece_query.get(*piece) else {
             continue;
         };
+        eprintln!("2 : Hello??");
         let Ok(ply) = game_query.get(in_game.0) else {
             continue;
         };
+        eprintln!("3 : Hello??");
         if let Some(mutation) = mutation {
             let Ok(board) = board_query.get(on_board.0) else {
                 continue;
@@ -323,6 +327,7 @@ pub(super) fn track_turn_history(
         };
         // TODO: in a future with 4-player, does this lead to bugs?
         if *game_ply != *ply {
+            #[cfg(feature = "log")]
             debug!(
                 "Turn ply {:?} does not match current game ply {:?}",
                 *ply, *game_ply
@@ -399,6 +404,7 @@ pub(super) fn detect_gameover(
 
 pub fn log_gameover_events(mut gameovers: EventReader<GameoverEvent>) {
     for gameover in gameovers.read() {
+        #[cfg(feature = "log")]
         info!("Team {:?} won!", gameover.winner);
         // TODO: display this somewhere
     }

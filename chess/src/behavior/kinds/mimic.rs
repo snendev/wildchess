@@ -1,4 +1,8 @@
-use bevy::prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent};
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+use bevy_ecs::prelude::{Commands, Component, Entity, In, Query};
+#[cfg(feature = "reflect")]
+use bevy_reflect::prelude::Reflect;
 
 use crate::{
     actions::{Action, Actions},
@@ -10,8 +14,10 @@ use crate::{
 
 use crate::behavior::Behavior;
 
-#[derive(Clone, Copy, Component, Debug, Default, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Copy, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct MimicBehavior;
 
 #[derive(Clone, Component, Debug)]

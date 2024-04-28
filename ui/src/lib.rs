@@ -4,11 +4,10 @@ use bevy::prelude::{
 
 pub use bevy_egui;
 
-mod widgets;
-
-mod icons;
 use games::components::{Game, History};
-pub use icons::PieceIcon;
+use wild_icons::PieceIcon;
+
+pub mod home_ui;
 
 pub(crate) mod mutation;
 pub(crate) mod query;
@@ -18,6 +17,8 @@ use board_ui::{
     egui_chessboard, egui_history_panel, egui_information_panel, SelectedGame,
     SelectedHistoricalPly, SelectedSquare,
 };
+
+mod widgets;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
 pub struct ChessUISet;

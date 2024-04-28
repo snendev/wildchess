@@ -1,13 +1,15 @@
 use anyhow::Error as AnyError;
 use thiserror::Error;
 
-use bevy::prelude::Reflect;
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 use crate::{pieces::Orientation, team::Team};
 
 use super::Board;
 
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct File(pub u16);
 
 impl File {
@@ -88,7 +90,8 @@ impl From<&File> for u16 {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Rank(pub u16);
 
 impl Rank {
@@ -171,7 +174,8 @@ impl From<&Rank> for u16 {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Square {
     pub file: File,
     pub rank: Rank,

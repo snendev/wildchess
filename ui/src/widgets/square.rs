@@ -1,9 +1,12 @@
-use bevy_egui::egui::{Button, Color32, Image, Response, RichText, Stroke, Ui, Widget};
+use bevy_egui::egui::{
+    Button, Color32, Image, ImageSource, Response, RichText, Stroke, Ui, Widget,
+};
 use egui_extras::install_image_loaders;
 
 use games::chess::board::Square;
+use wild_icons::PieceIcon;
 
-use crate::{icons::PieceIcon, query::PieceData};
+use crate::query::PieceData;
 
 enum SquareHighlight {
     Selected,
@@ -36,7 +39,7 @@ impl SquareHighlight {
 
 pub struct SquareWidget<'a> {
     square: Square,
-    icon: Option<&'a PieceIcon<'a>>,
+    icon: Option<&'a PieceIcon>,
     highlight: Option<SquareHighlight>,
     // TODO: scale: f32,
 }
@@ -61,9 +64,7 @@ impl<'a> SquareWidget<'a> {
 
     fn background_color(&self) -> Color32 {
         match self.highlight {
-            Some(SquareHighlight::Targetable) => {
-                Color32::LIGHT_BLUE
-            },
+            Some(SquareHighlight::Targetable) => Color32::LIGHT_BLUE,
             Some(SquareHighlight::CaptureTargetable) => {
                 Color32::from_rgba_unmultiplied(180, 70, 70, 130)
             }
@@ -90,7 +91,11 @@ impl<'a> Widget for SquareWidget<'a> {
         install_image_loaders(ui.ctx());
         let background_color = self.background_color();
         let mut button = match self.icon.unwrap_or(&PieceIcon::Character(' ')) {
-            PieceIcon::Svg { image, .. } => {
+            PieceIcon::Svg { source, .. } => {
+                let image = ImageSource::Bytes {
+                    uri: source.clone().into(),
+                    bytes: source.bytes().collect::<Vec<u8>>().into(),
+                };
                 // TODO: why is this not * 2.?
                 const R: f32 = SquareWidget::WIDTH - SquareWidget::STROKE_WIDTH * 3.;
                 Button::image_and_text(

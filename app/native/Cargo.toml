@@ -7,5 +7,6 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-chess_app_lib = { path = "../lib" }
+games = { path = "../../games" }
 cfg-if = { version = "1.0" }
+bevy = { version = "0.13", default-features = false }

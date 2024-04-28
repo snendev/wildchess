@@ -1,8 +1,7 @@
 use std::marker::PhantomData;
 
-use bevy::prelude::{
-    apply_deferred, App, IntoSystem, IntoSystemConfigs, Plugin, PostUpdate, Query, SystemSet,
-};
+use bevy_app::prelude::{App, Plugin, PostUpdate};
+use bevy_ecs::prelude::{apply_deferred, IntoSystem, IntoSystemConfigs, Query, SystemSet};
 
 use crate::{
     actions::{Action, Actions},

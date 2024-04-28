@@ -1,11 +1,14 @@
-use bevy::{
-    prelude::{Component, Entity, Reflect, ReflectComponent},
-    utils::{HashMap, HashSet},
-};
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+use bevy_ecs::prelude::{Component, Entity};
+#[cfg(feature = "reflect")]
+use bevy_reflect::prelude::Reflect;
+use bevy_utils::{HashMap, HashSet};
 
 use crate::{board::Square, pattern::Pattern, pieces::Orientation};
 
-#[derive(Clone, Debug, Default, PartialEq, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Movement {
     pub from: Square,
     pub to: Square,
@@ -34,7 +37,8 @@ impl Movement {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Action {
     pub movement: Movement,
     pub side_effects: Vec<(Entity, Movement)>,
@@ -65,8 +69,9 @@ impl Action {
     }
 }
 
-#[derive(Clone, Component, Debug, Default, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Component, Debug, Default)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Actions(pub HashMap<Square, Action>);
 
 impl Actions {

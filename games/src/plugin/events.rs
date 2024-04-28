@@ -1,4 +1,4 @@
-use bevy::prelude::{Entity, Event};
+use bevy_ecs::prelude::{Entity, Event};
 
 use chess::{actions::Action, pieces::PieceDefinition, team::Team};
 
@@ -52,20 +52,23 @@ pub struct IssueMoveEvent {
 }
 
 // A useful event for informing the controller that it must provide a mutation to continue
-#[derive(Clone, Event)]
+#[derive(Clone)]
+#[derive(Event)]
 pub struct RequestMutationEvent {
     pub piece: Entity,
     pub action: Action,
 }
 
-#[derive(Clone, Event)]
+#[derive(Clone)]
+#[derive(Event)]
 pub struct IssueMutationEvent {
     pub piece: Entity,
     pub action: Action,
     pub piece_definition: PieceDefinition,
 }
 
-#[derive(Clone, Event)]
+#[derive(Clone)]
+#[derive(Event)]
 pub struct GameoverEvent {
     pub winner: Team,
 }

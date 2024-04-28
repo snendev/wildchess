@@ -1,12 +1,23 @@
-use bevy::prelude::{Component, Entity, Reflect};
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+use bevy_ecs::prelude::{Component, Entity};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 mod square;
 pub use square::{File, Rank, Square};
 
-#[derive(Clone, Copy, Component, Debug, Reflect)]
+#[derive(Clone, Copy, Debug)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
+
 pub struct OnBoard(pub Entity);
 
-#[derive(Clone, Copy, Component, Debug, Default, Reflect)]
+#[derive(Clone, Copy, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Board {
     pub size: Square,
 }

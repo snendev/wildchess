@@ -1,7 +1,6 @@
-use bevy::{
-    prelude::{Bundle, Commands, Component, Entity, In, Query},
-    reflect::Reflect,
-};
+use bevy_ecs::prelude::{Bundle, Commands, Component, Entity, In, Query};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 use crate::{
     actions::{Action, Actions},
@@ -78,7 +77,8 @@ pub trait Behavior {
 //     piece_query: Query<(Option<&mut C>, &Position, &Orientation, &Team)>,
 // ) {}
 
-#[derive(Clone, Debug, Default, Reflect)]
+#[derive(Clone, Debug, Default)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct PieceBehaviors {
     pub pattern: Option<PatternBehavior>,
     pub en_passant: Option<EnPassantBehavior>,
@@ -127,7 +127,8 @@ impl From<RelayBehavior> for PieceBehaviors {
 // Rarely will a piece need all these behaviors
 // However, this bundle is useful for calling EntityMut::remove()
 // to remove all behaviors at once
-#[derive(Clone, Debug, Default, Bundle, Reflect)]
+#[derive(Clone, Debug, Default, Bundle)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct PieceBehaviorsBundle {
     pub pattern: PatternBehavior,
     pub en_passant: EnPassantBehavior,

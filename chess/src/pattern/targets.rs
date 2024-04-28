@@ -1,8 +1,10 @@
-use bevy::reflect::Reflect;
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 use crate::team::Team;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum TargetKind {
     #[default]
     Enemy,

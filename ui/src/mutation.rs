@@ -7,17 +7,11 @@ use games::{
     },
     RequestMutationEvent,
 };
-
-use crate::PieceIcon;
+use wild_icons::PieceIcon;
 
 #[allow(clippy::type_complexity)]
 #[derive(Default, Resource)]
-pub struct IntendedMutation(
-    pub  Option<(
-        RequestMutationEvent,
-        Vec<(PieceIcon<'static>, PieceDefinition)>,
-    )>,
-);
+pub struct IntendedMutation(pub Option<(RequestMutationEvent, Vec<(PieceIcon, PieceDefinition)>)>);
 
 pub fn read_mutation_options(
     mut intended_mutation: ResMut<IntendedMutation>,

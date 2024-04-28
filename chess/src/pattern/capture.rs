@@ -1,20 +1,21 @@
-use bevy::{
-    reflect::Reflect,
-    utils::{HashMap, HashSet},
-};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
+use bevy_utils::{HashMap, HashSet};
 
 use crate::{actions::Action, board::Square, team::Team};
 
 use super::{scanner::ScanTarget, TargetKind};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum CaptureMode {
     #[default]
     CanCapture,
     MustCapture,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum CapturePattern {
     #[default]
     // captures when landing on an enemy square
@@ -31,7 +32,8 @@ pub enum CapturePattern {
     CaptureAtRange,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct CaptureRules {
     pub mode: CaptureMode,
     pub pattern: CapturePattern,

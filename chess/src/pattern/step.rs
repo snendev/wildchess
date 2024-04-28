@@ -1,6 +1,8 @@
-use bevy::prelude::Reflect;
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum Step {
     OneDim(i16, RSymmetry),
     TwoDim(i16, i16, ABSymmetry),
@@ -156,8 +158,9 @@ impl Default for Step {
 // This struct is a representation of that symmetry, represented by cardinal and
 // ordinal directions to make the reasoning a little easier
 bitflags::bitflags! {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
-    #[reflect_value]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    #[cfg_attr(feature = "reflect", derive(Reflect))]
+    #[cfg_attr(feature = "reflect", reflect_value)]
     pub struct RSymmetry: u8 {
         const RIGHT = 0b00000001;
         const FORWARD_RIGHT = 0b00000010;
@@ -225,8 +228,9 @@ impl Default for RSymmetry {
 }
 
 bitflags::bitflags! {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
-    #[reflect_value]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    #[cfg_attr(feature = "reflect", derive(Reflect))]
+    #[cfg_attr(feature = "reflect", reflect_value)]
     pub struct ABSymmetry: u8 {
         const FORWARD_RIGHT_RIGHT = 0b00000001;
         const FORWARD_FORWARD_RIGHT = 0b00000010;

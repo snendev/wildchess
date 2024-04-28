@@ -1,4 +1,4 @@
-use bevy::prelude::{App, Plugin};
+use bevy_app::prelude::{App, Plugin};
 
 pub mod actions;
 pub mod behavior;
@@ -11,7 +11,7 @@ pub struct ChessTypesPlugin;
 
 impl Plugin for ChessTypesPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "reflect")]
         app.register_type::<team::Team>()
             .register_type::<behavior::PatternBehavior>()
             .register_type::<board::Square>()

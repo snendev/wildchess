@@ -1,11 +1,13 @@
 use std::cmp::Ordering;
 
-use bevy::{
-    log::warn,
-    prelude::{
-        Commands, Component, DetectChanges, Entity, Query, Ref, Reflect, ReflectComponent, With,
-    },
-};
+use bevy_ecs::prelude::{Commands, Component, DetectChanges, Entity, Query, Ref, With};
+
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+#[cfg(feature = "log")]
+use bevy_log::warn;
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 use crate::{
     actions::{Action, Actions, Movement},
@@ -28,12 +30,16 @@ pub(crate) fn disable_on_move<T: Component>(
     }
 }
 
-#[derive(Clone, Copy, Component, Debug, Default, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Copy, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct CastlingTarget;
 
-#[derive(Clone, Copy, Component, Debug, Default, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Copy, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct CastlingBehavior;
 
 // Enable performing whatever Pattern was executed in the last turn
@@ -74,6 +80,7 @@ impl CastlingBehavior {
                         (Square::new(position.file, Rank::TWO), false, true)
                     }
                     _ => {
+                        #[cfg(feature = "log")]
                         warn!("Unexpected castling alignment detected. Castler square: {}, Target square: {}", position, target);
                         continue;
                     }
@@ -181,10 +188,9 @@ impl CastlingBehavior {
 mod tests {
     use anyhow::Result;
 
-    use bevy::{
-        prelude::{App, Entity, IntoSystemConfigs, PostUpdate, World},
-        utils::HashSet,
-    };
+    use bevy_app::prelude::{App, PostUpdate};
+    use bevy_ecs::prelude::{Entity, IntoSystemConfigs, World};
+    use bevy_utils::HashSet;
 
     use crate::{
         actions::{Action, Actions},

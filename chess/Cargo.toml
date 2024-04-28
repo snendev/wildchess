@@ -3,8 +3,17 @@ name = "chess"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+log = ["dep:bevy_log"]
+reflect = ["dep:bevy_reflect"]
+
 [dependencies]
-bevy = { version = "0.13", default-features = false }
+bevy_app = { version = "0.13" }
+bevy_ecs = { version = "0.13" }
+bevy_log = { version = "0.13", optional = true }
+bevy_reflect = { version = "0.13", optional = true }
+bevy_utils = { version = "0.13" }
 anyhow = { version = "1.0" }
 bitflags = { version = "2.4" }
 thiserror = { version = "1.0" }

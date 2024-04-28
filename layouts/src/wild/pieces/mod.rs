@@ -3,7 +3,7 @@ use rand::{thread_rng, Rng};
 use chess::{
     behavior::{CastlingBehavior, CastlingTarget, PatternBehavior, PieceBehaviors},
     board::Rank,
-    pieces::{Mutation, MutationCondition, PieceDefinition, Royal},
+    pieces::{Mutation, MutationCondition, PieceDefinition, PieceIdentity, Royal},
 };
 
 use self::piece::{AdvancedBuilder, EliteBuilder, MajorBuilder, MinorBuilder};
@@ -84,24 +84,27 @@ pub struct WildPieceSet {
 //     }
 // }
 
-
 pub fn random_pieces() -> WildPieceSet {
     // pieces
     let major: PieceDefinition = piece(
         MajorBuilder::generate_wild_behavior(),
         Some(CastlingTarget),
+        PieceIdentity::Rook,
     );
     let minor1 = piece(
         AdvancedBuilder::generate_wild_behavior(),
         None,
+        PieceIdentity::Knight,
     );
     let minor2 = piece(
         MinorBuilder::generate_wild_behavior(),
         None,
+        PieceIdentity::Bishop,
     );
     let elite = piece(
         EliteBuilder::generate_wild_behavior(),
         None,
+        PieceIdentity::Queen,
     );
 
     // pawns
@@ -120,13 +123,18 @@ pub fn random_pieces() -> WildPieceSet {
     }
 }
 
-fn piece(behavior: PatternBehavior, castling_target: Option<CastlingTarget>) -> PieceDefinition {
+fn piece(
+    behavior: PatternBehavior,
+    castling_target: Option<CastlingTarget>,
+    identity: PieceIdentity,
+) -> PieceDefinition {
     PieceDefinition {
         behaviors: PieceBehaviors {
             pattern: Some(behavior),
             castling_target,
             ..Default::default()
         },
+        identity,
         ..Default::default()
     }
 }
@@ -138,6 +146,7 @@ fn king(behavior: PatternBehavior) -> PieceDefinition {
             castling: Some(CastlingBehavior),
             ..Default::default()
         },
+        identity: PieceIdentity::King,
         royal: Some(Royal),
         ..Default::default()
     }
@@ -151,6 +160,7 @@ fn pawn(behavior: PatternBehavior, options: Vec<PieceDefinition>) -> PieceDefini
             to_piece: options,
             ..Default::default()
         }),
+        identity: PieceIdentity::Pawn,
         ..Default::default()
     }
 }

@@ -1,7 +1,9 @@
-use bevy::{
-    prelude::{Changed, Component, Entity, Query, Reflect, With},
-    utils::{HashMap, HashSet},
-};
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+use bevy_ecs::prelude::{Changed, Component, Entity, Query, With};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
+use bevy_utils::{HashMap, HashSet};
 
 use crate::{
     actions::Actions,
@@ -10,7 +12,10 @@ use crate::{
     team::Team,
 };
 
-#[derive(Clone, Component, Debug, Default, Reflect)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct BoardPieceCache {
     entities: HashMap<Entity, Square>,
     pub teams: HashMap<Square, Team>,
@@ -42,13 +47,17 @@ impl BoardPieceCache {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct BoardThreat {
     square: Square,
     attacked_team: Team,
 }
 
-#[derive(Clone, Component, Debug, Default, Reflect)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct BoardThreatsCache(HashSet<BoardThreat>);
 
 impl BoardThreatsCache {

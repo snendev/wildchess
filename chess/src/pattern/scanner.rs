@@ -1,4 +1,6 @@
-use bevy::{prelude::Reflect, utils::HashMap};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
+use bevy_utils::HashMap;
 
 use crate::{
     board::{Board, Square},
@@ -8,7 +10,8 @@ use crate::{
 
 use super::{Step, TargetKind};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum ScanMode {
     #[default]
     // Step until reaching a colliding piece
@@ -26,7 +29,8 @@ pub enum ScanMode {
 }
 
 // The calculation type for board searches
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Scanner {
     // the unit of "stepping" for searching the board
     pub step: Step,
@@ -129,7 +133,8 @@ impl Scanner {
     }
 }
 
-#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Reflect)]
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct ScanTarget {
     pub target: Square,
     pub scanned_squares: Vec<Square>,

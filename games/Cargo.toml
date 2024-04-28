@@ -4,36 +4,19 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-chess = { path = "../chess" }
+chess = { path = "../chess", default-features = false }
 layouts = { path = "../layouts" }
-bevy = { version = "0.13", default-features = false }
+bevy_app = { version = "0.13" }
+bevy_core = { version = "0.13" }
+bevy_ecs = { version = "0.13" }
+bevy_log = { version = "0.13", optional = true }
+bevy_reflect = { version = "0.13", optional = true }
+bevy_time = { version = "0.13" }
+
+[features]
+default = []
+reflect = ["dep:bevy_reflect", "chess/reflect"]
+log = ["dep:bevy_log", "chess/log"]
 
 [dev-dependencies]
 layouts = { path = "../layouts" }
-chess_ui = { path = "../ui" }
-# bevy_geppetto = { git = "https://github.com/snendev/bevy_geppetto.git" }
-
-[[test]]
-name = "e2e-classical"
-path = "e2e/classical.rs"
-harness = false
-
-[[test]]
-name = "e2e-clocks"
-path = "e2e/clocks.rs"
-harness = false
-
-[[test]]
-name = "e2e-knight-relay"
-path = "e2e/knight_relay.rs"
-harness = false
-
-[[test]]
-name = "e2e-super-relay"
-path = "e2e/super_relay.rs"
-harness = false
-
-[[test]]
-name = "e2e-wild"
-path = "e2e/wild.rs"
-harness = false
