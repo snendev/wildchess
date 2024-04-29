@@ -29,6 +29,9 @@ export default function Board({
     const boardRef = useRef(null);
 
     const handleClickEmptySquare = useCallback((square) => {
+        // TODO: need to incorporate selecting a targeted square to execute moves
+        // but it would be bad for this to take stateful dependencies because
+        // we would reinitialize the board every time
         selectSquare(null);
     }, [])
 
