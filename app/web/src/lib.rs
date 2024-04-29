@@ -22,63 +22,76 @@ use wild_icons::PieceIconSvg;
 pub struct WasmApp(App);
 
 #[wasm_bindgen]
+#[derive(Clone, Copy)]
 pub struct WasmSquare(Square);
 
 #[wasm_bindgen]
 impl WasmSquare {
-    pub fn to_string(&self) -> String {
+    pub fn get_representation(&self) -> String {
         format!("{}", self.0)
     }
 }
 
+#[wasm_bindgen]
 #[derive(Clone, Copy)]
-pub struct PieceKey {
-    team: Team,
-    identity: PieceIdentity,
+pub struct WasmPiece(Team, PieceIdentity);
+
+#[wasm_bindgen]
+impl WasmPiece {
+    #[wasm_bindgen]
+    pub fn get_representation(&self) -> String {
+        format!(
+            "{}{}",
+            match self.0 {
+                Team::White => 'b',
+                Team::Black => 'w',
+            },
+            match self.1 {
+                PieceIdentity::King => "K",
+                PieceIdentity::Queen => "Q",
+                PieceIdentity::Rook => "R",
+                PieceIdentity::Bishop => "B",
+                PieceIdentity::Knight => "N",
+                PieceIdentity::Pawn => "P",
+            }
+        )
+    }
+}
+
+#[wasm_bindgen]
+pub struct WasmPiecePosition(WasmPiece, WasmSquare);
+
+#[wasm_bindgen]
+impl WasmPiecePosition {
+    #[wasm_bindgen]
+    pub fn piece(&self) -> WasmPiece {
+        self.0
+    }
+
+    #[wasm_bindgen]
+    pub fn square(&self) -> WasmSquare {
+        self.1
+    }
 }
 
 #[wasm_bindgen]
 pub struct WasmIcon {
-    key: PieceKey,
-    svg_source_bytes: Vec<u8>,
+    piece: WasmPiece,
     svg_source: String,
 }
 
 #[wasm_bindgen]
 impl WasmIcon {
+    // Returns the piece name, like 'wP' for white pawn or 'bN' for black knight.
     #[wasm_bindgen]
-    pub fn identity(&self) -> char {
-        match self.key.identity {
-            PieceIdentity::King => 'K',
-            PieceIdentity::Queen => 'Q',
-            PieceIdentity::Rook => 'R',
-            PieceIdentity::Bishop => 'B',
-            PieceIdentity::Knight => 'N',
-            PieceIdentity::Pawn => 'P',
-        }
+    pub fn get_piece(&self) -> String {
+        self.piece.get_representation()
     }
 
-    #[wasm_bindgen]
-    pub fn team(&self) -> char {
-        match self.key.team {
-            Team::White => 'w',
-            Team::Black => 'b',
-        }
-    }
-
-    #[wasm_bindgen]
-    pub fn key(&self) -> String {
-        format!("{}{}", self.team(), self.identity())
-    }
-
+    // Returns the icon's svg source string
     #[wasm_bindgen]
     pub fn to_source(self) -> String {
         self.svg_source
-    }
-
-    #[wasm_bindgen]
-    pub fn to_bytes(self) -> Vec<u8> {
-        self.svg_source_bytes
     }
 }
 
@@ -121,6 +134,17 @@ impl WasmApp {
     }
 
     #[wasm_bindgen]
+    pub fn get_piece_positions(&mut self) -> Vec<WasmPiecePosition> {
+        let mut query = self.0.world.query::<(&Position, &Team, &PieceIdentity)>();
+        query
+            .iter(&self.0.world)
+            .map(|(position, team, identity)| {
+                WasmPiecePosition(WasmPiece(*team, *identity), WasmSquare(position.0))
+            })
+            .collect()
+    }
+
+    #[wasm_bindgen]
     pub fn get_icons(&mut self) -> Vec<WasmIcon> {
         let mut query = self
             .0
@@ -128,28 +152,19 @@ impl WasmApp {
             .query::<(&PieceIconSvg, &Team, &PieceIdentity)>();
         query
             .iter(&self.0.world)
-            .map(
-                |(PieceIconSvg { bytes, source, .. }, team, identity)| WasmIcon {
-                    key: PieceKey {
-                        team: *team,
-                        identity: *identity,
-                    },
-                    svg_source_bytes: bytes.clone(),
-                    svg_source: source.clone(),
-                },
-            )
+            .map(|(PieceIconSvg { source, .. }, team, identity)| WasmIcon {
+                piece: WasmPiece(*team, *identity),
+                svg_source: source.clone(),
+            })
             .collect()
     }
 
     #[wasm_bindgen]
     pub fn get_target_squares(&mut self, square: String) -> Option<Vec<WasmSquare>> {
         let mut query = self.0.world.query::<(&Position, &Actions)>();
-        let Some((_, actions)) = query
+        let (_, actions) = query
             .iter(&self.0.world)
-            .find(|(position, _)| position.0 == square.as_str().try_into().unwrap())
-        else {
-            return None;
-        };
+            .find(|(position, _)| position.0 == square.as_str().try_into().unwrap())?;
         Some(
             actions
                 .0
@@ -172,7 +187,7 @@ impl WasmApp {
         let Some((_, action)) = actions
             .0
             .iter()
-            .find(|(square, action)| **square == target_square.as_str().try_into().unwrap())
+            .find(|(square, _)| **square == target_square.as_str().try_into().unwrap())
         else {
             return false;
         };

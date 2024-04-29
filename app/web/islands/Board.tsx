@@ -4,6 +4,8 @@ import { useEffect, useMemo, useLayoutEffect, useCallback, useRef, useState } fr
 interface ChessBoardProps {
     size?: [number, number]
     dimensions?: [number, number]
+    // map from algebraic square name to piece name (e.g. 'wK', 'bN', 'bP')
+    position?: Record<string, string>
     iconMap: Record<string, string>
     selectedSquare: string | null,
     targetedSquares: string[] | null,
@@ -15,6 +17,7 @@ interface ChessBoardProps {
 export default function Board({
     size = [1200, 1200],
     dimensions = [8, 8],
+    position,
     iconMap,
     selectedSquare,
     targetedSquares,
@@ -40,9 +43,9 @@ export default function Board({
     }, [movePiece]);
 
     const config = useMemo(() => ({
+        position: position ?? 'start',
         dropOffBoard: "snapback",
         draggable: true,
-        position: "start",
         onDragStart: handleDragStart,
         onDrop: handleDrop,
         onClickEmptySquare: handleClickEmptySquare,
@@ -50,6 +53,7 @@ export default function Board({
     }), [
         handleDrop,
         iconMap,
+        position,
     ]);
 
     // manage highlights on the selected square
