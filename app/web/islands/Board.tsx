@@ -33,11 +33,11 @@ export default function Board({
         // but it would be bad for this to take stateful dependencies because
         // we would reinitialize the board every time
         selectSquare(null);
-    }, [])
+    }, []);
 
     const handleDragStart = useCallback((source) => {
         selectSquare(source);
-    }, [])
+    }, []);
 
     const handleDrop = useCallback((source, target, piece, newPos, oldPos, orientation) => {
         const result = movePiece(source, target) ? "drop" : "snapback";
