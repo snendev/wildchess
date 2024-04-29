@@ -3,6 +3,12 @@ LIB = "web"
 PROFILE = "release"
 OUT_DIR = "app/${LIB}/static/wasm"
 
+[tasks.run-web]
+command = "deno"
+cwd = "./app/${LIB}"
+args = ["task", "start"]
+workspace = false
+
 [tasks.build-rust-web]
 command = "cargo"
 args = [
