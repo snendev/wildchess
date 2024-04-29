@@ -2,7 +2,7 @@ import { JSX } from "preact";
 import { useEffect, useMemo, useLayoutEffect, useCallback, useRef, useState } from "preact/hooks";
 
 interface ChessBoardProps {
-    size?: [number, number]
+    size: number
     dimensions?: [number, number]
     // map from algebraic square name to piece name (e.g. 'wK', 'bN', 'bP')
     position?: Record<string, string>
@@ -15,7 +15,7 @@ interface ChessBoardProps {
 }
 
 export default function Board({
-    size = [1200, 1200],
+    size = 800,
     dimensions = [8, 8],
     position,
     iconMap,
@@ -75,7 +75,7 @@ export default function Board({
         initBoard();
     }, [config]);
 
-    return <div ref={boardRef} style="width: 800px" />;
+    return <div ref={boardRef} style={`width: ${size}px`} />;
 }
 
 // probably should implement our own light or dark square checker
