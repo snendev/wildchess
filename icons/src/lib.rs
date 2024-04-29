@@ -49,9 +49,9 @@ impl PieceIconSvg {
         let label = format!("{:?}-{}", identity, key.into());
         PieceIconSvg {
             // image,
-            bytes: icon_source.bytes().collect::<Vec<u8>>().into(),
+            bytes: icon_source.bytes().collect::<Vec<u8>>(),
             source: icon_source,
-            uri: format!("bytes://{}.svg", label).into(),
+            uri: format!("bytes://{}.svg", label),
             label,
         }
     }

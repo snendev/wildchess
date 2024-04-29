@@ -17,6 +17,5 @@ pub(crate) fn piece_unicode(piece: &PieceIdentity, team: &Team) -> char {
         (Knight, Black) => '\u{265E}',
         (Pawn, White) => '\u{2659}',
         (Pawn, Black) => '\u{265F}',
-        _ => 'X',
     }
 }

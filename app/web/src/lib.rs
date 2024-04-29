@@ -1,5 +1,5 @@
-#[cfg(not(target_arch = "wasm32"))]
-compile_error!("Compile this for wasm32 only!");
+// #[cfg(not(target_arch = "wasm32"))]
+// compile_error!("Compile this for wasm32 only!");
 
 use wasm_bindgen::prelude::*;
 
