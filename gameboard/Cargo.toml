@@ -8,6 +8,6 @@ default = []
 reflect = ["bevy_reflect"]
 
 [dependencies]
-bevy_reflect = { version = "0.12", optional = true }
+bevy_reflect = { version = "0.13", optional = true }
 enumflags2 = { version = "0.7" }
 itertools = { version = "0.12" }

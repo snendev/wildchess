@@ -4,12 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-games = { path = "../games" }
+games = { path = "../games", features = ["log", "reflect"] }
 layouts = { path = "../layouts" }
-bevy = { version = "0.12" }
-bevy_egui = { version = "0.23" }
-egui_extras = { version = "0.23", features = ["svg"] }
-itertools = "0.12"
-
-[dev-dependencies]
-bevy_geppetto = { git = "https://github.com/snendev/bevy_geppetto.git" }
+wild_icons = { path = "../icons" }
+bevy = { version = "0.13" }
+bevy_egui = { version = "0.27" }
+egui_extras = { version = "0.27", features = ["svg"] }
+itertools = "*"

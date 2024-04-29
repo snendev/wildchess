@@ -1,11 +1,13 @@
 use std::{cmp::Ordering, marker::PhantomData};
 
-use bevy::{
-    log::warn,
-    prelude::{
-        Commands, Component, DetectChanges, Entity, Query, Ref, Reflect, ReflectComponent, With,
-    },
-};
+use bevy_ecs::prelude::{Commands, Component, DetectChanges, Entity, Query, Ref, With};
+
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+#[cfg(feature = "log")]
+use bevy_log::warn;
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 use fairy_gameboard::GameBoard;
 
@@ -16,18 +18,35 @@ use crate::{
     team::Team,
 };
 
-#[derive(Clone, Copy, Component, Debug, Default, Reflect)]
-#[reflect(Component)]
+pub(crate) fn disable_on_move<T: Component>(
+    mut commands: Commands,
+    moved_piece_query: Query<(Entity, Ref<Position>, Ref<Orientation>), With<T>>,
+) {
+    for (piece, position_ref, orientation_ref) in moved_piece_query.iter() {
+        if (position_ref.is_changed() && !position_ref.is_added())
+            || (orientation_ref.is_changed() && !orientation_ref.is_added())
+        {
+            commands.entity(piece).remove::<T>();
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct CastlingTarget;
 
-#[derive(Clone, Copy, Component, Debug, Default, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Copy, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct CastlingBehavior<B: GameBoard> {
-    marker: PhantomData<B>
+    marker: PhantomData<B>,
 }
 
 // Enable performing whatever Pattern was executed in the last turn
-impl <B:GameBoard> CastlingBehavior<B> {
+impl<B: GameBoard> CastlingBehavior<B> {
     pub(crate) fn calculate_actions_system(
         board_query: Query<(&BoardPieceCache<B>, &BoardThreatsCache<B>)>,
         mut castler_query: Query<
@@ -41,9 +60,7 @@ impl <B:GameBoard> CastlingBehavior<B> {
         };
 
         for (position, orientation, mut actions, team) in castler_query.iter_mut() {
-            for (target_entity, target, target_orientation, target_team) in
-                target_query.iter()
-            {
+            for (target_entity, target, target_orientation, target_team) in target_query.iter() {
                 if team != target_team {
                     continue;
                 }
@@ -64,6 +81,7 @@ impl <B:GameBoard> CastlingBehavior<B> {
                         (Square::new(position.file, Rank::TWO), false, true)
                     }
                     _ => {
+                        #[cfg(feature = "log")]
                         warn!("Unexpected castling alignment detected. Castler square: {}, Target square: {}", position, target);
                         continue;
                     }
@@ -144,20 +162,20 @@ impl <B:GameBoard> CastlingBehavior<B> {
                     actions.0.insert(
                         *target,
                         Action {
-                            movement: Movement {
+                            movements: vec![Movement {
                                 from: *position,
                                 to: landing_square,
                                 orientation: *orientation,
-                            },
-                            side_effects: vec![(
-                                target_entity,
-                                Movement {
-                                    from: *target,
-                                    to: target_landing_square,
-                                    orientation: *target_orientation,
-                                },
-                            )],
-                            scanned_squares,
+                            }],
+                            // side_effects: vec![(
+                            //     target_entity,
+                            //     Movement {
+                            //         from: *target,
+                            //         to: target_landing_square,
+                            //         orientation: *target_orientation,
+                            //     },
+                            // )],
+                            // scanned_squares,
                             ..Default::default()
                         },
                     );
@@ -171,10 +189,9 @@ impl <B:GameBoard> CastlingBehavior<B> {
 mod tests {
     use anyhow::Result;
 
-    use bevy::{
-        prelude::{App, Entity, IntoSystemConfigs, PostUpdate, World},
-        utils::HashSet,
-    };
+    use bevy_app::prelude::{App, PostUpdate};
+    use bevy_ecs::prelude::{Entity, IntoSystemConfigs, World};
+    use bevy_utils::HashSet;
 
     use crate::{
         actions::{Action, Actions},
@@ -367,7 +384,7 @@ mod tests {
             Square::try_from("e1")?,
             Action {
                 captures: threats.clone(),
-                threats,
+                // threats,
                 ..Default::default()
             },
         );
@@ -412,7 +429,7 @@ mod tests {
             Square::default(),
             Action {
                 captures: threats.clone(),
-                threats,
+                // threats,
                 ..Default::default()
             },
         );
@@ -458,7 +475,7 @@ mod tests {
             Square::default(),
             Action {
                 captures: threats.clone(),
-                threats,
+                // threats,
                 ..Default::default()
             },
         );

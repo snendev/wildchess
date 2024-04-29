@@ -1,7 +1,9 @@
-use bevy::{
-    prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent},
-    utils::HashMap,
-};
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+use bevy_ecs::prelude::{Commands, Component, Entity, In, Query};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
+use bevy_utils::HashMap;
 
 use crate::{
     actions::{Action, Actions},
@@ -14,8 +16,10 @@ use crate::{
 
 use crate::behavior::{Behavior, PatternBehavior};
 
-#[derive(Clone, Debug, Default, Component, PartialEq, Eq, Hash, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 // A behavior that "relays" patterns to scanned ally pieces
 pub struct RelayBehavior {
     pub patterns: Vec<Pattern>,

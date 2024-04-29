@@ -1,0 +1,8 @@
+[package]
+name = "wild_icons"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+games = { path = "../games" }
+bevy = { version = "0.13", default-features = false }

@@ -1,7 +1,6 @@
-use bevy::{
-    prelude::{Bundle, Commands, Component, Entity, In, Query},
-    reflect::Reflect,
-};
+use bevy_ecs::prelude::{Bundle, Commands, Component, Entity, In, Query};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 use fairy_gameboard::GameBoard;
 
@@ -17,8 +16,8 @@ pub use caches::{BoardPieceCache, BoardThreat, BoardThreatsCache};
 
 mod kinds;
 pub use kinds::{
-    CastlingBehavior,
-    CastlingTarget,
+    // CastlingBehavior,
+    // CastlingTarget,
     PatternBehavior,
     // EnPassantBehavior, MimicBehavior, RelayBehavior,
 };
@@ -26,7 +25,10 @@ pub use kinds::{
 mod plugin;
 pub use plugin::{BehaviorsPlugin, BehaviorsSet};
 
-pub trait Behavior<B: GameBoard> {
+pub trait Behavior<B>
+where
+    B: GameBoard + Send + Sync + 'static,
+{
     // Each behavior supplies is own sink for calculating actions.
     // This enables parallelizing these calculations since we don't need
     // N exclusive references to `Actions`.
@@ -81,9 +83,10 @@ pub trait Behavior<B: GameBoard> {
 //     piece_query: Query<(Option<&mut C>, &Position, &Orientation, &Team)>,
 // ) {}
 
-#[derive(Clone, Debug, Default, Reflect)]
-pub struct PieceBehaviors {
-    pub pattern: Option<PatternBehavior>,
+#[derive(Clone, Debug, Default)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+pub struct PieceBehaviors<B: GameBoard> {
+    pub pattern: Option<PatternBehavior<B>>,
     // pub en_passant: Option<EnPassantBehavior>,
     // pub mimic: Option<MimicBehavior>,
     // pub relay: Option<RelayBehavior>,
@@ -91,8 +94,8 @@ pub struct PieceBehaviors {
     // pub castling_target: Option<CastlingTarget>,
 }
 
-impl From<PatternBehavior> for PieceBehaviors {
-    fn from(behavior: PatternBehavior) -> Self {
+impl<B: GameBoard> From<PatternBehavior<B>> for PieceBehaviors<B> {
+    fn from(behavior: PatternBehavior<B>) -> Self {
         PieceBehaviors {
             pattern: Some(behavior),
             ..Default::default()
@@ -130,9 +133,13 @@ impl From<PatternBehavior> for PieceBehaviors {
 // Rarely will a piece need all these behaviors
 // However, this bundle is useful for calling EntityMut::remove()
 // to remove all behaviors at once
-#[derive(Clone, Debug, Default, Bundle, Reflect)]
-pub struct PieceBehaviorsBundle {
-    pub pattern: PatternBehavior,
+#[derive(Clone, Debug, Default, Bundle)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+pub struct PieceBehaviorsBundle<B>
+where
+    B: GameBoard + Send + Sync + 'static,
+{
+    pub pattern: PatternBehavior<B>,
     // pub en_passant: EnPassantBehavior,
     // pub mimic: MimicBehavior,
     // pub relay: RelayBehavior,

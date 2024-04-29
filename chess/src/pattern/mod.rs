@@ -1,13 +1,11 @@
 use fairy_gameboard::GameBoard;
 use itertools::Either;
 
-use bevy::{prelude::Reflect, utils::HashMap};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
+use bevy_utils::HashMap;
 
-use crate::{
-    actions::Action,
-    pieces::Orientation,
-    team::Team,
-};
+use crate::{actions::Action, pieces::Orientation, team::Team};
 
 mod capture;
 pub use capture::{CaptureMode, CapturePattern, CaptureRules};
@@ -19,7 +17,8 @@ pub use scanner::{ScanMode, ScanTarget, Scanner};
 use self::capture::CaptureData;
 
 // The calculation type for board searches
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Pattern<B: GameBoard> {
     // struct that defines how to walk the board space
     pub scanner: Scanner<B>,
@@ -36,15 +35,18 @@ pub struct Pattern<B: GameBoard> {
     pub constraints: Constraints,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Constraints {
     pub from_rank: Option<FromRankConstraint>,
     pub forbidden_targets: Option<ForbiddenTargetConstraint>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct FromRankConstraint(pub Rank);
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct ForbiddenTargetConstraint(pub Vec<Square>);
 
 // TODO Chains
@@ -218,12 +220,12 @@ impl Pattern {
                     landing_square,
                     // N.B. not always actually a capture, if captures is empty
                     Action {
-                        movement: Movement::new(*origin, landing_square, *orientation),
-                        scanned_squares: scan_target.scanned_squares,
-                        using_pattern: Some(self.clone()),
+                        movements: vec![Movement::new(*origin, landing_square, *orientation)],
+                        path: scan_target.scanned_squares,
                         captures,
-                        threats,
-                        side_effects: vec![],
+                        // using_pattern: Some(self.clone()),
+                        // threats,
+                        // side_effects: vec![],
                     },
                 ))
             }
@@ -237,7 +239,7 @@ impl Pattern {
                     scan_target.target,
                     *orientation,
                     scan_target.scanned_squares,
-                    Some(self.clone()),
+                    // Some(self.clone()),
                 ),
             ))
         }

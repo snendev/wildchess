@@ -1,7 +1,8 @@
-use bevy::{
-    log::{debug, info},
-    prelude::{Added, Commands, Entity, EventReader, EventWriter, Name, Query, Res, Time, With},
-};
+use bevy_core::Name;
+use bevy_ecs::prelude::{Added, Commands, Entity, EventReader, EventWriter, Query, Res, With};
+#[cfg(feature = "log")]
+use bevy_log::{debug, info};
+use bevy_time::Time;
 
 use chess::{
     actions::Action,
@@ -124,12 +125,15 @@ pub(super) fn detect_turn(
     mut turn_writer: EventWriter<TurnEvent>,
 ) {
     for IssueMoveEvent { piece, action } in move_reader.read() {
+        eprintln!("1 : Hello??");
         let Ok((team, on_board, in_game, mutation)) = piece_query.get(*piece) else {
             continue;
         };
+        eprintln!("2 : Hello??");
         let Ok(ply) = game_query.get(in_game.0) else {
             continue;
         };
+        eprintln!("3 : Hello??");
         if let Some(mutation) = mutation {
             let Ok(board) = board_query.get(on_board.0) else {
                 continue;
@@ -207,12 +211,12 @@ pub(super) fn execute_turn_movement(
 ) {
     for event in turn_reader.read() {
         if let Ok((_, mut current_square, _)) = piece_query.get_mut(event.piece) {
-            current_square.0 = event.action.movement.to;
+            current_square.set(event.action.movement.to);
         }
 
         for (entity, additional_movement) in event.action.side_effects.iter() {
             if let Ok((_, mut current_square, _)) = piece_query.get_mut(*entity) {
-                current_square.0 = additional_movement.to;
+                current_square.set(additional_movement.to);
             }
         }
 
@@ -323,6 +327,7 @@ pub(super) fn track_turn_history(
         };
         // TODO: in a future with 4-player, does this lead to bugs?
         if *game_ply != *ply {
+            #[cfg(feature = "log")]
             debug!(
                 "Turn ply {:?} does not match current game ply {:?}",
                 *ply, *game_ply
@@ -358,12 +363,12 @@ pub(super) fn detect_gameover(
                 if all_captured(Team::White) {
                     gameover_writer.send(GameoverEvent {
                         winner: Team::Black,
-                    })
+                    });
                 }
                 if all_captured(Team::Black) {
                     gameover_writer.send(GameoverEvent {
                         winner: Team::White,
-                    })
+                    });
                 }
             }
             WinCondition::RoyalCapture => {
@@ -379,12 +384,12 @@ pub(super) fn detect_gameover(
                 if any_captured(Team::White) {
                     gameover_writer.send(GameoverEvent {
                         winner: Team::Black,
-                    })
+                    });
                 }
                 if any_captured(Team::Black) {
                     gameover_writer.send(GameoverEvent {
                         winner: Team::White,
-                    })
+                    });
                 }
             }
             WinCondition::RaceToRank(_rank) => {
@@ -399,6 +404,7 @@ pub(super) fn detect_gameover(
 
 pub fn log_gameover_events(mut gameovers: EventReader<GameoverEvent>) {
     for gameover in gameovers.read() {
+        #[cfg(feature = "log")]
         info!("Team {:?} won!", gameover.winner);
         // TODO: display this somewhere
     }

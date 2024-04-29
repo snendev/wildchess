@@ -2,11 +2,14 @@ use anyhow::Error as AnyError;
 use derive_more::{Add, Mul};
 use thiserror::Error;
 
-use bevy::prelude::{Deref, Reflect};
+use bevy_derive::Deref;
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Add, Mul)]
-#[derive(Deref, Reflect)]
+#[derive(Deref)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct File(i16);
 
 impl File {
@@ -23,7 +26,8 @@ impl File {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Add, Mul)]
-#[derive(Deref, Reflect)]
+#[derive(Deref)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Rank(i16);
 
 impl Rank {
@@ -42,7 +46,7 @@ impl Rank {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 #[derive(Add, Mul)]
-#[derive(Reflect)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Square {
     file: File,
     rank: Rank,

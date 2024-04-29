@@ -11,6 +11,7 @@ name = "chess_app_wasm"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-chess_app_lib = { path = "../lib" }
+games = { path = "../../games" }
 cfg-if = { version = "1.0" }
-wasm-bindgen = { version = "0.2.89", features = ["serde-serialize"] }
+bevy = { version = "0.13", default-features = false }
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }

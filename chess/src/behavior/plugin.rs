@@ -1,9 +1,11 @@
 use std::marker::PhantomData;
 
-use bevy::prelude::{
-    apply_deferred, App, Commands, Component, Entity, IntoSystem, IntoSystemConfigs, Plugin,
-    PostUpdate, Query, Ref, SystemSet, With,
+use bevy_app::prelude::{App, Plugin, PostUpdate};
+use bevy_ecs::prelude::{
+    apply_deferred, Commands, Component, Entity, IntoSystem, IntoSystemConfigs, Query, Ref,
+    SystemSet, With,
 };
+
 use fairy_gameboard::GameBoard;
 
 use crate::{
@@ -16,7 +18,11 @@ use crate::{
     // EnPassantBehavior, MimicBehavior, RelayBehavior,
 };
 
-use super::{BoardPieceCache, BoardThreatsCache, CastlingBehavior, CastlingTarget};
+use super::{
+    BoardPieceCache,
+    BoardThreatsCache,
+    // CastlingBehavior, CastlingTarget
+};
 
 // N.B. Use this to configure run conditions so that actions are not calculated every frame
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
@@ -28,19 +34,21 @@ where
     System: IntoSystem<(), Option<Action<Board>>, Params>,
 {
     on_action: System,
-    marker: PhantomData<Params>,
+    board_marker: PhantomData<Board>,
+    params_marker: PhantomData<Params>,
 }
 
-impl<Board, System, Params> BehaviorsPlugin<System, Params, Board>
+impl<Board, System, Params> BehaviorsPlugin<Board, System, Params>
 where
-    Board: GameBoard,
+    Board: GameBoard + 'static,
     System: IntoSystem<(), Option<Action<Board>>, Params>,
 {
     // TODO: remove...?
     pub fn from_input_system(input_system: System) -> Self {
         Self {
             on_action: input_system,
-            marker: PhantomData::<Params>,
+            board_marker: PhantomData::<Board>,
+            params_marker: PhantomData::<Params>,
         }
     }
 
@@ -66,7 +74,7 @@ where
 
 impl<Board, System, Params> Plugin for BehaviorsPlugin<Board, System, Params>
 where
-    Board: GameBoard,
+    Board: GameBoard + Send + Sync + 'static,
     System: IntoSystem<(), Option<Action<Board>>, Params> + Clone + Send + Sync + 'static,
     Params: Send + Sync + 'static,
 {
@@ -97,11 +105,11 @@ where
                     // RelayBehavior::take_actions_system,
                 ),
                 BoardThreatsCache::track_pieces,
-                CastlingBehavior::calculate_actions_system,
-                (
-                    Self::disable_on_move::<CastlingTarget>,
-                    Self::disable_on_move::<CastlingBehavior>,
-                ),
+                // CastlingBehavior::calculate_actions_system,
+                // (
+                //     Self::disable_on_move::<CastlingTarget>,
+                //     Self::disable_on_move::<CastlingBehavior>,
+                // ),
             )
                 .chain()
                 .in_set(BehaviorsSet),

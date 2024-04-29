@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
-use bevy::prelude::{
-    Changed, Commands, Component, Entity, Query, Reflect, RemovedComponents, With,
-};
+use bevy_ecs::prelude::{Changed, Commands, Component, Entity, Query, RemovedComponents, With};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
+
 use chess::actions::Action;
 
 use super::{Game, InGame};
@@ -10,7 +11,9 @@ use super::{Game, InGame};
 #[derive(Clone, Copy, Component, Debug)]
 pub struct HasTurn;
 
-#[derive(Clone, Copy, Component, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Ply(usize);
 
 impl Ply {
@@ -29,7 +32,9 @@ impl Ply {
 
 // A vector using Ply as an index.
 // It tracks the action made each ply.
-#[derive(Clone, Component, Debug, Default, Reflect)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct ActionHistory(Vec<(Entity, Action)>);
 
 impl std::ops::Index<Ply> for ActionHistory {
@@ -60,7 +65,9 @@ impl ActionHistory {
 
 // A sparse vector using Ply as an index.
 // It is kept sparse in order to minimize cloning.
-#[derive(Clone, Component, Debug, Reflect)]
+#[derive(Clone, Debug)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct History<T>(BTreeMap<Ply, Option<T>>);
 
 impl<T> History<T> {

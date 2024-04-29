@@ -15,9 +15,9 @@ use games::{
     components::{ActionHistory, Clock, HasTurn, Player, Ply},
     IssueMoveEvent, IssueMutationEvent,
 };
+use wild_icons::PieceIcon;
 
 use crate::{
-    icons::PieceIcon,
     mutation::IntendedMutation,
     query::{PieceData, PieceQuery},
     widgets::{BoardWidget, ClockWidget, PieceInspectorWidget, SquareWidget},

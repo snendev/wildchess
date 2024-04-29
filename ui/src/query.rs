@@ -1,4 +1,4 @@
-use bevy::{ecs::query::WorldQuery, prelude::Entity};
+use bevy::{ecs::query::QueryData, prelude::Entity};
 
 use games::{
     chess::{
@@ -13,7 +13,7 @@ use games::{
 
 use crate::PieceIcon;
 
-#[derive(WorldQuery)]
+#[derive(QueryData)]
 pub struct BehaviorsQuery {
     pub behavior: Option<&'static PatternBehavior>,
     pub relay_behavior: Option<&'static RelayBehavior>,
@@ -21,7 +21,7 @@ pub struct BehaviorsQuery {
     pub mutation: Option<&'static Mutation>,
 }
 
-#[derive(WorldQuery)]
+#[derive(QueryData)]
 pub struct PieceQuery {
     pub entity: Entity,
     pub in_game: &'static InGame,
@@ -33,12 +33,12 @@ pub struct PieceQuery {
     pub relay_behavior: Option<&'static RelayBehavior>,
     pub mimic_behavior: Option<&'static MimicBehavior>,
     pub mutation: Option<&'static Mutation>,
-    pub icon: Option<&'static PieceIcon<'static>>,
+    pub icon: Option<&'static PieceIcon>,
     pub position_history: &'static History<Position>,
     pub behavior_history: Option<&'static History<PatternBehavior>>,
     pub relay_behavior_history: Option<&'static History<RelayBehavior>>,
     pub mimic_behavior_history: Option<&'static History<MimicBehavior>>,
-    pub icon_history: Option<&'static History<PieceIcon<'static>>>,
+    pub icon_history: Option<&'static History<PieceIcon>>,
 }
 
 pub struct PieceData<'a> {
@@ -52,7 +52,7 @@ pub struct PieceData<'a> {
     pub relay_behavior: Option<&'a RelayBehavior>,
     pub mimic_behavior: Option<&'a MimicBehavior>,
     pub mutation: Option<&'a Mutation>,
-    pub icon: Option<&'a PieceIcon<'a>>,
+    pub icon: Option<&'a PieceIcon>,
 }
 
 impl<'a> From<PieceQueryItem<'a>> for PieceData<'a> {

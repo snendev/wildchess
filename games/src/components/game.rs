@@ -1,13 +1,15 @@
-use bevy::prelude::{Commands, Component};
+use bevy_ecs::prelude::{Commands, Component};
 
 use chess::board::{Rank, Square};
 
 use super::Clock;
 
-#[derive(Clone, Copy, Component, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
+#[derive(Component)]
 pub struct Game;
 
-#[derive(Clone, Copy, Component, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
+#[derive(Component)]
 pub enum GameBoard {
     Chess,
     #[default]
@@ -20,21 +22,25 @@ pub enum GameBoard {
 
 // A game rule specifying that captures result in an "explosion"
 // additionally capturing on all squares in the region of the capture.
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
 pub struct Atomic;
 
 // A game rule specifying that players can place captured pieces
 // on the board using a turn.
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
 pub struct Crazyhouse;
 
 // A game rule specifying that the typical win condition results in a loss;
 // Pieces must capture if they are able to.
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
 pub struct AntiGame;
 
 // The set of win conditions for the board
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
 pub enum WinCondition {
     // The game is won once all enemy Royal pieces are captured.
     #[default]
@@ -48,20 +54,23 @@ pub enum WinCondition {
     RaceToRegion(Vec<Square>),
 }
 
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
 pub struct ClockConfiguration {
     pub clock: Clock,
 }
 
+// TODO: revisit this API
+// perhaps use the blueprints lib
 #[derive(Default)]
 pub struct GameSpawner {
-    game: Game,
-    board: GameBoard,
-    win_condition: WinCondition,
-    clock: Option<ClockConfiguration>,
-    atomic: Option<Atomic>,
-    crazyhouse: Option<Crazyhouse>,
-    anti: Option<AntiGame>,
+    pub game: Game,
+    pub board: GameBoard,
+    pub win_condition: WinCondition,
+    pub clock: Option<ClockConfiguration>,
+    pub atomic: Option<Atomic>,
+    pub crazyhouse: Option<Crazyhouse>,
+    pub anti: Option<AntiGame>,
 }
 
 impl GameSpawner {

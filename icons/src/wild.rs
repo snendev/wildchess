@@ -8,8 +8,8 @@ use games::chess::{
 pub(crate) fn wild_behavior_icon(patterns: &[Pattern], team: Team, is_king: bool) -> String {
     format!(
         r#"<svg
-    width="1000"
-    height="1000"
+    width="100%"
+    height="100%"
     viewBox="0 0 1000 1000"
     version="1.1"
     xmlns="http://www.w3.org/2000/svg"

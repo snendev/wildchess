@@ -1,6 +1,7 @@
 use enumflags2::{bitflags, BitFlags};
 
-use bevy::prelude::Reflect;
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 // Each square's potential steps, given some vector (a: i16, b: i16),
 // can be transformed using the Rotational symmetry of an octogon.
@@ -13,7 +14,7 @@ use bevy::prelude::Reflect;
 #[bitflags(default = Forward)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 #[repr(u8)]
-#[derive(Reflect)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum GridSymmetry {
     // these are the rotations that a vector could be symmetric over
     // `Step`s will be executed for all rotations specified.

@@ -1,6 +1,8 @@
 use enumflags2::BitFlags;
 
-use bevy::prelude::{Component, Reflect};
+use bevy_ecs::prelude::Component;
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
 
 use fairy_gameboard::*;
 
@@ -10,7 +12,9 @@ pub use square::*;
 mod symmetry;
 pub use symmetry::*;
 
-#[derive(Clone, Component, Debug, Default, Reflect)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct CheckerBoard {
     // TODO: forbid overlap?
     // probably implies developer error
@@ -173,12 +177,12 @@ mod tests {
     #[test]
     fn test_bounds() {
         let board = CheckerBoard::chess_board();
-        assert!(board.is_in_bounds(Square::from_values(0,0)));
-        assert!(board.is_in_bounds(Square::from_values(1,1)));
-        assert!(board.is_in_bounds(Square::from_values(7,7)));
-        assert!(!board.is_in_bounds(Square::from_values(-1,0)));
-        assert!(!board.is_in_bounds(Square::from_values(0,-1)));
-        assert!(!board.is_in_bounds(Square::from_values(-7,-7)));
+        assert!(board.is_in_bounds(Square::from_values(0, 0)));
+        assert!(board.is_in_bounds(Square::from_values(1, 1)));
+        assert!(board.is_in_bounds(Square::from_values(7, 7)));
+        assert!(!board.is_in_bounds(Square::from_values(-1, 0)));
+        assert!(!board.is_in_bounds(Square::from_values(0, -1)));
+        assert!(!board.is_in_bounds(Square::from_values(-7, -7)));
     }
 
     #[test]
@@ -187,15 +191,15 @@ mod tests {
             regions: vec![
                 (Square::ZERO, Square::from_values(4, 4)),
                 (Square::from_values(-5, -5), Square::from_values(-1, -1)),
-            ]
+            ],
         };
 
-        assert!(board.is_in_bounds(Square::from_values(0,0)));
-        assert!(board.is_in_bounds(Square::from_values(3,4)));
+        assert!(board.is_in_bounds(Square::from_values(0, 0)));
+        assert!(board.is_in_bounds(Square::from_values(3, 4)));
         assert!(!board.is_in_bounds(Square::from_values(6, 6)));
-        assert!(!board.is_in_bounds(Square::from_values(-1,0)));
-        assert!(board.is_in_bounds(Square::from_values(-1,-1)));
-        assert!(board.is_in_bounds(Square::from_values(-5,-5)));
-        assert!(!board.is_in_bounds(Square::from_values(-8,-8)));
+        assert!(!board.is_in_bounds(Square::from_values(-1, 0)));
+        assert!(board.is_in_bounds(Square::from_values(-1, -1)));
+        assert!(board.is_in_bounds(Square::from_values(-5, -5)));
+        assert!(!board.is_in_bounds(Square::from_values(-8, -8)));
     }
 }

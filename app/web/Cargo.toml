@@ -1,0 +1,20 @@
+[package]
+name = "chess_app_web"
+version = "0.1.0"
+authors = ["Sean Sullivan <me@snen.dev>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+name = "chess_app_web"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+games = { path = "../../games", default-features = false }
+wild_icons = { path = "../../icons" }
+bevy_app = { version = "0.13" }
+bevy_ecs = { version = "0.13" }
+bevy_core = { version = "0.13" }
+bevy_time = { version = "0.13" }
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }

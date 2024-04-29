@@ -6,8 +6,10 @@ use rand::{
 use chess::{
     behavior::{CastlingBehavior, CastlingTarget, PatternBehavior, PieceBehaviors},
     board::Rank,
-    pieces::{Mutation, MutationCondition, PieceDefinition, Royal},
+    pieces::{Mutation, MutationCondition, PieceDefinition, PieceIdentity, Royal},
 };
+
+use self::piece::{AdvancedBuilder, EliteBuilder, MajorBuilder, MinorBuilder};
 
 mod king;
 mod pawn;
@@ -114,27 +116,66 @@ pub struct WildPieceSet {
     pub king: PieceDefinition,
 }
 
-pub fn random_pieces() -> WildPieceSet {
-    let mut rng = thread_rng();
-    let max_value: u32 = rng.gen_range(50..80);
-    let mut current_value: u32 = 0;
+// pub fn random_pieces() -> WildPieceSet {
+//     let mut rng = thread_rng();
+//     let max_value: u32 = rng.gen_range(50..80);
+//     let mut current_value: u32 = 0;
 
+//     // pieces
+//     let major: PieceDefinition = piece(
+//         PieceBuilder::generate_piece(max_value, &mut current_value),
+//         Some(CastlingTarget),
+//     );
+//     let minor1 = piece(
+//         PieceBuilder::generate_piece(max_value, &mut current_value),
+//         None,
+//     );
+//     let minor2 = piece(
+//         PieceBuilder::generate_piece(max_value, &mut current_value),
+//         None,
+//     );
+//     let elite = piece(
+//         PieceBuilder::generate_piece(max_value, &mut current_value),
+//         None,
+//     );
+
+//     // pawns
+//     let pawn_promotion_options = vec![major.clone(), minor1.clone(), minor2.clone(), elite.clone()];
+//     let pawn = pawn(PieceBuilder::generate_pawn(), pawn_promotion_options);
+//     // king
+//     let king = king(PieceBuilder::generate_king());
+
+//     WildPieceSet {
+//         elite,
+//         major,
+//         minor1,
+//         minor2,
+//         pawn,
+//         king,
+//     }
+// }
+
+pub fn random_pieces() -> WildPieceSet {
     // pieces
     let major: PieceDefinition = piece(
-        PieceBuilder::generate_piece(max_value, &mut current_value),
+        MajorBuilder::generate_wild_behavior(),
         Some(CastlingTarget),
+        PieceIdentity::Rook,
     );
     let minor1 = piece(
-        PieceBuilder::generate_piece(max_value, &mut current_value),
+        AdvancedBuilder::generate_wild_behavior(),
         None,
+        PieceIdentity::Knight,
     );
     let minor2 = piece(
-        PieceBuilder::generate_piece(max_value, &mut current_value),
+        MinorBuilder::generate_wild_behavior(),
         None,
+        PieceIdentity::Bishop,
     );
     let elite = piece(
-        PieceBuilder::generate_piece(max_value, &mut current_value),
+        EliteBuilder::generate_wild_behavior(),
         None,
+        PieceIdentity::Queen,
     );
 
     // pawns
@@ -153,13 +194,18 @@ pub fn random_pieces() -> WildPieceSet {
     }
 }
 
-fn piece(behavior: PatternBehavior, castling_target: Option<CastlingTarget>) -> PieceDefinition {
+fn piece(
+    behavior: PatternBehavior,
+    castling_target: Option<CastlingTarget>,
+    identity: PieceIdentity,
+) -> PieceDefinition {
     PieceDefinition {
         behaviors: PieceBehaviors {
             pattern: Some(behavior),
-            castling_target,
+            // castling_target,
             ..Default::default()
         },
+        identity,
         ..Default::default()
     }
 }
@@ -168,9 +214,10 @@ fn king(behavior: PatternBehavior) -> PieceDefinition {
     PieceDefinition {
         behaviors: PieceBehaviors {
             pattern: Some(behavior),
-            castling: Some(CastlingBehavior),
+            // castling: Some(CastlingBehavior),
             ..Default::default()
         },
+        identity: PieceIdentity::King,
         royal: Some(Royal),
         ..Default::default()
     }
@@ -184,6 +231,7 @@ fn pawn(behavior: PatternBehavior, options: Vec<PieceDefinition>) -> PieceDefini
             to_piece: options,
             ..Default::default()
         }),
+        identity: PieceIdentity::Pawn,
         ..Default::default()
     }
 }

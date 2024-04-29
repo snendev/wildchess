@@ -1,16 +1,18 @@
-use bevy::{
-    prelude::{Changed, Component, Entity, Query, Reflect, With},
-    utils::{HashMap, HashSet},
-};
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+use bevy_ecs::prelude::{Changed, Component, Entity, Query, With};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
+use bevy_utils::{HashMap, HashSet};
+
 use fairy_gameboard::GameBoard;
 
-use crate::{
-    actions::Actions,
-    pieces::Position,
-    team::Team, ChessBoard, OnBoard,
-};
+use crate::{actions::Actions, pieces::Position, team::Team, ChessBoard, OnBoard};
 
-#[derive(Clone, Component, Debug, Default, Reflect)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct BoardPieceCache<B: GameBoard> {
     entities: HashMap<Entity, B::Vector>,
     pub teams: HashMap<B::Vector, Team>,
@@ -21,7 +23,9 @@ impl<B: GameBoard> BoardPieceCache<B> {
         mut board_query: Query<&mut Self, With<ChessBoard<B>>>,
         // Actions should change every move for all pieces
         piece_query: Query<(Entity, &OnBoard, &Team, &Position<B>), Changed<Position<B>>>,
-    ) {
+    ) where
+        B: Send + Sync + 'static,
+    {
         for (piece, on_board, team, position) in piece_query.iter() {
             let Ok(mut cache) = board_query.get_mut(on_board.0) else {
                 continue;
@@ -42,16 +46,20 @@ impl<B: GameBoard> BoardPieceCache<B> {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct BoardThreat<B: GameBoard> {
     position: B::Vector,
     attacked_team: Team,
 }
 
-#[derive(Clone, Component, Debug, Default, Reflect)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct BoardThreatsCache<B: GameBoard>(HashSet<BoardThreat<B>>);
 
-impl <B: GameBoard>BoardThreatsCache<B> {
+impl<B: GameBoard> BoardThreatsCache<B> {
     pub(crate) fn is_threatened(&self, position: B::Vector, team: Team) -> bool {
         self.0.contains(&BoardThreat {
             position,
@@ -63,7 +71,9 @@ impl <B: GameBoard>BoardThreatsCache<B> {
         mut board_query: Query<&mut Self, With<ChessBoard<B>>>,
         // Actions should change every move for all pieces
         piece_query: Query<(Entity, &OnBoard, &Team, &Actions<B>), Changed<Actions<B>>>,
-    ) {
+    ) where
+        B: Send + Sync + 'static,
+    {
         // first clear everything
         let mut affected_boards = HashSet::new();
         for (_piece, on_board, _, _) in piece_query.iter() {

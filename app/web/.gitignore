@@ -1,0 +1,8 @@
+.env
+
+# Fresh build directory
+_fresh/
+# npm dependencies
+node_modules/
+
+static/wasm

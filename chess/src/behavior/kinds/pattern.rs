@@ -1,8 +1,13 @@
-use bevy::{
-    prelude::{Commands, Component, Entity, In, Query, Reflect, ReflectComponent},
-    utils::HashMap,
-};
-use fairy_gameboard::GameBoard;
+use std::marker::PhantomData;
+
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+use bevy_ecs::prelude::{Commands, Component, Entity, In, Query};
+#[cfg(feature = "reflect")]
+use bevy_reflect::prelude::Reflect;
+use bevy_utils::HashMap;
+
+use fairy_gameboard::{BoardVector, GameBoard};
 
 use crate::{
     actions::{Action, Actions},
@@ -10,20 +15,27 @@ use crate::{
     pattern::Pattern,
     pieces::{Orientation, Position},
     team::Team,
+    ChessBoard,
 };
 
 use crate::behavior::Behavior;
 
-#[derive(Clone, Debug, Default, Component, PartialEq, Eq, Hash, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct PatternBehavior<B: GameBoard> {
     // in practice, this should rarely be more than one or two Patterns
     pub patterns: Vec<Pattern<B>>,
+    // TODO: why is above B usage insufficient?
+    marker: PhantomData<B>,
 }
 
-impl <B: GameBoard> PatternBehavior<B> {
-    pub fn new(patterns: Vec<Pattern>) -> Self {
-        PatternBehavior { patterns }
+impl<B: GameBoard> PatternBehavior<B> {
+    pub fn new(patterns: Vec<Pattern<B>>) -> Self {
+        PatternBehavior {
+            patterns,
+            marker: PhantomData::<B>,
+        }
     }
 
     pub fn join(mut self, mut other: Self) -> Self {
@@ -31,28 +43,28 @@ impl <B: GameBoard> PatternBehavior<B> {
         self
     }
 
-    pub fn with_pattern(mut self, pattern: Pattern) -> Self {
+    pub fn with_pattern(mut self, pattern: Pattern<B>) -> Self {
         self.patterns.push(pattern);
         self
     }
 
-    pub fn add_pattern(&mut self, pattern: Pattern) {
+    pub fn add_pattern(&mut self, pattern: Pattern<B>) {
         self.patterns.push(pattern);
     }
 }
 
 // When a PatternBehavior runs a search, it must return a struct that contains
 // the TargetMode (for visualization purposes)
-impl PatternBehavior {
+impl<B: GameBoard> PatternBehavior<B> {
     pub(crate) fn search(
         &self,
-        origin: &Square,
-        orientation: &Orientation,
+        origin: &B::Vector,
+        orientation: &<B::Vector as BoardVector>::Symmetry,
         my_team: &Team,
-        board: &Board,
-        pieces: &HashMap<Square, Team>,
-        last_action: Option<&Action>,
-    ) -> Actions {
+        board: &B,
+        pieces: &HashMap<B::Vector, Team>,
+        last_action: Option<&Action<B>>,
+    ) -> Actions<B> {
         Actions::new(
             self.patterns
                 .iter()
@@ -65,33 +77,35 @@ impl PatternBehavior {
 }
 
 #[derive(Clone, Component, Debug)]
-pub struct PatternActionsCache(Actions);
+pub struct PatternActionsCache<B: GameBoard>(Actions<B>);
 
-impl From<Actions> for PatternActionsCache {
-    fn from(actions: Actions) -> Self {
+impl<B: GameBoard> From<Actions<B>> for PatternActionsCache<B> {
+    fn from(actions: Actions<B>) -> Self {
         PatternActionsCache(actions)
     }
 }
 
-impl From<PatternActionsCache> for Actions {
-    fn from(cache: PatternActionsCache) -> Self {
+impl<B: GameBoard> From<PatternActionsCache<B>> for Actions<B> {
+    fn from(cache: PatternActionsCache<B>) -> Self {
         cache.0
     }
 }
 
-impl Behavior for PatternBehavior {
-    type ActionsCache = PatternActionsCache;
+impl<B> Behavior<B> for PatternBehavior<B>
+where
+    B: GameBoard + Send + Sync + 'static,
+{
+    type ActionsCache = PatternActionsCache<B>;
 
     fn calculate_actions_system(
-        In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<(&Board, &BoardPieceCache)>,
+        board_query: Query<(&ChessBoard<B>, &BoardPieceCache<B>)>,
         mut piece_query: Query<(
             Entity,
-            Option<&PatternBehavior>,
-            Option<&mut PatternActionsCache>,
-            &Position,
-            &Orientation,
+            Option<&PatternBehavior<B>>,
+            Option<&mut PatternActionsCache<B>>,
+            &Position<B>,
+            &Orientation<B>,
             &Team,
         )>,
     ) {
@@ -102,12 +116,13 @@ impl Behavior for PatternBehavior {
         for (entity, behavior, cache, position, orientation, team) in piece_query.iter_mut() {
             if let Some(behavior) = behavior {
                 let actions = PatternActionsCache::from(behavior.search(
-                    &position.0,
+                    &*position,
                     orientation,
                     team,
                     board,
                     &pieces.teams,
-                    last_action.as_ref(),
+                    // TODO
+                    None, // last_action.as_ref(),
                 ));
                 if let Some(mut cache) = cache {
                     *cache = actions;

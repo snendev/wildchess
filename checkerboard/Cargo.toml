@@ -3,9 +3,18 @@ name = "checkerboard"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+log = ["dep:bevy_log"]
+reflect = ["dep:bevy_reflect"]
+
 [dependencies]
 fairy_gameboard = { path = "../gameboard" }
-bevy = { version = "0.12" }
+bevy_app = { version = "0.13" }
+bevy_ecs = { version = "0.13" }
+bevy_derive = { version = "0.13" }
+bevy_log = { version = "0.13", optional = true }
+bevy_reflect = { version = "0.13", optional = true }
 anyhow = { version = "1.0" }
 enumflags2 = { version = "0.7" }
 thiserror = { version = "1.0" }
