@@ -1,6 +1,56 @@
 import { JSX } from "preact";
 import { useEffect, useMemo, useLayoutEffect, useCallback, useRef, useState } from "preact/hooks";
 
+function useChessBoard({
+    boardRef,
+    selectSquare,
+    movePiece,
+    position,
+    iconMap,
+}): Object | null {
+    const [board, setBoard] = useState(null);
+
+    const handleClickEmptySquare = useCallback((square) => {
+        // TODO: need to incorporate selecting a targeted square to execute moves
+        // but it would be bad for this to take stateful dependencies because
+        // we would reinitialize the board every time
+        selectSquare(null);
+    }, [selectSquare]);
+
+    const handleDragStart = useCallback((source) => {
+        selectSquare(source);
+    }, [selectSquare]);
+
+    const handleDrop = useCallback((source, target, piece, newPos, oldPos, orientation) => {
+        const result = movePiece(source, target) ? "drop" : "snapback";
+        if (result === "drop") selectSquare(null);
+        return result;
+    }, [movePiece, selectSquare]);
+
+    const config = useMemo(() => ({
+        position: position ?? 'start',
+        dropOffBoard: "snapback",
+        draggable: true,
+        onDragStart: handleDragStart,
+        onDrop: handleDrop,
+        onClickEmptySquare: handleClickEmptySquare,
+        pieceTheme: (piece) => iconMap[piece],
+    }), [
+        handleDrop,
+        iconMap,
+    ]);
+
+    useEffect(() => {
+        async function initBoard() {
+            const { Chessboard } = await import("chessboardjs");
+            setBoard(new Chessboard(boardRef.current, config));
+        }
+        initBoard();
+    }, [config]);
+
+    return board
+}
+
 interface ChessBoardProps {
     size: number
     dimensions?: [number, number]
@@ -25,39 +75,8 @@ export default function Board({
     movePiece,
     selectSquare,
 }: ChessBoardProps): JSX.Element {
-    const [board, setBoard] = useState(null);
     const boardRef = useRef(null);
-
-    const handleClickEmptySquare = useCallback((square) => {
-        // TODO: need to incorporate selecting a targeted square to execute moves
-        // but it would be bad for this to take stateful dependencies because
-        // we would reinitialize the board every time
-        selectSquare(null);
-    }, []);
-
-    const handleDragStart = useCallback((source) => {
-        selectSquare(source);
-    }, []);
-
-    const handleDrop = useCallback((source, target, piece, newPos, oldPos, orientation) => {
-        const result = movePiece(source, target) ? "drop" : "snapback";
-        if (result === "drop") selectSquare(null);
-        return result;
-    }, [movePiece]);
-
-    const config = useMemo(() => ({
-        position: position ?? 'start',
-        dropOffBoard: "snapback",
-        draggable: true,
-        onDragStart: handleDragStart,
-        onDrop: handleDrop,
-        onClickEmptySquare: handleClickEmptySquare,
-        pieceTheme: (piece) => iconMap[piece],
-    }), [
-        handleDrop,
-        iconMap,
-        position,
-    ]);
+    const board = useChessBoard({ boardRef, position, iconMap, selectSquare, movePiece });
 
     // manage highlights on the selected square
     useHighlighter(boardRef, board, 'state', useMemo(() => selectedSquare ? [selectedSquare] : null, [selectedSquare]));
@@ -69,14 +88,6 @@ export default function Board({
     // TODO: dots for moves and circles for attacks, instead of backgrounds
     // could use more-transparent circles for unavailable attack squares
     useHighlighter(boardRef, board, 'targets', targetedSquares);
-
-    useEffect(() => {
-        async function initBoard() {
-            const { Chessboard } = await import("chessboardjs");
-            setBoard(new Chessboard(boardRef.current, config));
-        }
-        initBoard();
-    }, [config]);
 
     return <div ref={boardRef} style={`width: ${size}px`} />;
 }
