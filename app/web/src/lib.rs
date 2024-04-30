@@ -1,10 +1,11 @@
 // #[cfg(not(target_arch = "wasm32"))]
 // compile_error!("Compile this for wasm32 only!");
 
+use crossbeam::channel::{unbounded, Receiver, Sender};
 use wasm_bindgen::prelude::*;
 
-use bevy_app::App;
-use bevy_ecs::prelude::{Entity, Events};
+use bevy_app::{App, PreUpdate};
+use bevy_ecs::prelude::{Entity, Events, Res, Resource};
 
 use games::{
     chess::{
@@ -16,6 +17,7 @@ use games::{
     components::{GameBoard, GameSpawner, WinCondition},
     GameplayPlugin, IssueMoveEvent,
 };
+use networking::client::ClientPlugin;
 use wild_icons::PieceIconSvg;
 
 #[wasm_bindgen]
@@ -95,10 +97,45 @@ impl WasmIcon {
     }
 }
 
+struct Ping;
+
+static CHANNEL: std::sync::OnceLock<Sender<Ping>> = std::sync::OnceLock::new();
+
+#[wasm_bindgen]
+pub struct PingSender(Sender<Ping>);
+
+#[wasm_bindgen]
+impl PingSender {
+    pub fn get() -> Self {
+        PingSender(CHANNEL.get().expect("channel to be initialized").clone())
+    }
+
+    #[wasm_bindgen]
+    pub fn send(&self) {
+        // self.
+    }
+}
+
+#[derive(Resource)]
+pub struct PingReceiver(Receiver<Ping>);
+
+impl PingReceiver {
+    fn receive_message_system(receiver: Res<PingReceiver>) {
+        (None as Option<()>).expect("We did it!");
+    }
+}
+
 #[wasm_bindgen]
 impl WasmApp {
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmApp {
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
+        let (tx, rx) = unbounded::<Ping>();
+        CHANNEL
+            .set(tx)
+            .expect("to be able to create a crossbeam channel");
+
         let mut app = bevy_app::App::default();
         app.add_plugins(bevy_core::TaskPoolPlugin::default());
         app.add_plugins(bevy_core::TypeRegistrationPlugin);
@@ -107,9 +144,15 @@ impl WasmApp {
         app.add_plugins(bevy_app::ScheduleRunnerPlugin::default());
 
         app.add_plugins(GameplayPlugin);
+        app.add_plugins(ClientPlugin);
         app.add_plugins(wild_icons::PieceIconPlugin);
-
+        app.insert_resource(PingReceiver(rx));
+        app.add_systems(PreUpdate, PingReceiver::receive_message_system);
         WasmApp(app)
+    }
+
+    pub fn run(mut self) {
+        self.0.run();
     }
 
     #[wasm_bindgen]

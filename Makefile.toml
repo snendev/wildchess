@@ -9,6 +9,11 @@ cwd = "./app/${LIB}"
 args = ["task", "start"]
 workspace = false
 
+[tasks.run-server]
+command = "cargo"
+args = ["run", "-p", "chess_app_server", "--profile", "${PROFILE}"]
+workspace = false
+
 [tasks.build-rust-web]
 command = "cargo"
 args = [
