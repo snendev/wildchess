@@ -120,9 +120,7 @@ impl PingSender {
 pub struct PingReceiver(Receiver<Ping>);
 
 impl PingReceiver {
-    fn receive_message_system(receiver: Res<PingReceiver>) {
-        (None as Option<()>).expect("We did it!");
-    }
+    fn receive_message_system(receiver: Res<PingReceiver>) {}
 }
 
 #[wasm_bindgen]
