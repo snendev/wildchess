@@ -127,7 +127,7 @@ impl PingReceiver {
 impl WasmApp {
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmApp {
-        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        // std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
         let (tx, rx) = unbounded::<Ping>();
         CHANNEL
@@ -248,5 +248,10 @@ impl WasmApp {
     #[wasm_bindgen]
     pub fn update(&mut self) {
         self.0.update();
+    }
+
+    #[wasm_bindgen]
+    pub fn run(mut self) {
+        self.0.run();
     }
 }

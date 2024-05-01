@@ -8,6 +8,7 @@ use bevy::prelude::{
 
 use chess_ui::{ChessUISystems, EguiBoardUIPlugin, HomeMenuUIPlugin, HomeMenuUISystems};
 use games::{components::Game, GameplayPlugin};
+use networking::client::ClientPlugin;
 
 fn main() {
     App::default()
@@ -25,6 +26,11 @@ fn main() {
                 ChessUISystems.run_if(any_with_component::<Game>),
             ),
         )
-        .add_plugins((GameplayPlugin, HomeMenuUIPlugin, EguiBoardUIPlugin))
+        .add_plugins((
+            GameplayPlugin,
+            ClientPlugin,
+            HomeMenuUIPlugin,
+            EguiBoardUIPlugin,
+        ))
         .run();
 }

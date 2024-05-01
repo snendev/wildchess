@@ -234,7 +234,7 @@ impl Plugin for NativeClientTransportPlugin {
             use base64::Engine;
             use renet2::transport::{ServerCertHash, WebTransportClientConfig};
 
-            const HASH_B64: &'static str = "OFdTpFPAypWFXtdsT/8+yoGitgGDgIIihv/qmzMTRIE=";
+            const HASH_B64: &'static str = "06TmjhRpJYtgJ8hkKCXHbVkxODuiGkxItTdixP5hkf8=";
             let hash = base64::engine::general_purpose::STANDARD
                 .decode(HASH_B64)
                 .unwrap();

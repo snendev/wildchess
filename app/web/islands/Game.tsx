@@ -10,16 +10,17 @@ interface WasmGameProps {
 export default function WasmGame({ name, description }: WasmGameProps) {
   const { tick, getPosition, getIcons, lastMoveSquares, getTargets, movePiece } = useWasmGame(name);
 
-  return (
-    <Board
-      getIcons={getIcons}
-      lastMoveSquares={lastMoveSquares}
-      getPosition={getPosition}
-      getTargets={getTargets}
-      movePiece={movePiece}
-      tick={tick}
-    />
-  );
+  return null
+  //   return (
+  //     <Board
+  //       getIcons={getIcons}
+  //       lastMoveSquares={lastMoveSquares}
+  //       getPosition={getPosition}
+  //       getTargets={getTargets}
+  //       movePiece={movePiece}
+  //       tick={tick}
+  //     />
+  //   );
 }
 
 function useWasmGame(game_name: string) {
@@ -31,11 +32,12 @@ function useWasmGame(game_name: string) {
     async function initWasm() {
       const { WasmApp } = await import(`/wasm/${game_name}.js`);
       const app = new WasmApp();
-      app.start_game();
-      // need to update twice so that icons exist
-      app.update();
-      app.update();
-      setApp(app);
+      app.run();
+      // app.start_game();
+      // // need to update twice so that icons exist
+      // app.update();
+      // app.update();
+      // setApp(app);
     }
     initWasm();
   }, []);

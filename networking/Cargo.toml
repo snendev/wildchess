@@ -25,8 +25,8 @@ steam_transport = ["dep:renet2_steam", "dep:steamworks"]
 bevy_app = { version = "0.13" }
 bevy_ecs = { version = "0.13" }
 bevy_math = { version = "0.13" }
-bevy_renet2 = { git = "https://github.com/UkoeHB/renet2" }
-renet2 = { git = "https://github.com/UkoeHB/renet2", default-features = false, features = [
+bevy_renet2 = { git = "https://github.com/snendev/renet2" }
+renet2 = { git = "https://github.com/snendev/renet2", default-features = false, features = [
     "bevy",
     "serde",
 ] }
@@ -41,12 +41,12 @@ base64 = { version = "0.22", option = true }
 tokio = { version = "1.32", optional = true }
 fastrand = { version = "2.0", optional = true }
 ## steam
-renet2_steam = { git = "https://github.com/UkoeHB/renet2", features = [
+renet2_steam = { git = "https://github.com/snendev/renet2", features = [
     "bevy",
 ], optional = true }
 steamworks = { version = "0.11", optional = true }
 ## visualizer
 # TODO: needs egui
-# renet2_visualizer = { git = "https://github.com/UkoeHB/renet2", features = [
+# renet2_visualizer = { git = "https://github.com/snendev/renet2", features = [
 #     "bevy",
 # ], optional = true }

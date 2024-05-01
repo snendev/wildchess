@@ -7,7 +7,7 @@ use bevy::{
 };
 
 use games::GameplayPlugin;
-use networking::server::ClientPlugin;
+use networking::server::ServerPlugin;
 
 static RUNTIME: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
 
@@ -23,6 +23,6 @@ async fn main() {
     App::default()
         .add_plugins(MinimalPlugins)
         .insert_resource(TokioHandle(runtime.handle().clone()))
-        .add_plugins((GameplayPlugin, ClientPlugin))
+        .add_plugins((GameplayPlugin, ServerPlugin))
         .run();
 }
