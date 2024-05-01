@@ -17,7 +17,7 @@ use games::{
     components::{GameBoard, GameSpawner, WinCondition},
     GameplayPlugin, IssueMoveEvent,
 };
-use networking::client::ClientPlugin;
+use networking::{client::ClientPlugin, PlayerCommand};
 use wild_icons::PieceIconSvg;
 
 #[wasm_bindgen]
@@ -45,8 +45,8 @@ impl WasmPiece {
         format!(
             "{}{}",
             match self.0 {
-                Team::White => 'b',
-                Team::Black => 'w',
+                Team::White => 'w',
+                Team::Black => 'b',
             },
             match self.1 {
                 PieceIdentity::King => "K",
@@ -149,10 +149,6 @@ impl WasmApp {
         WasmApp(app)
     }
 
-    pub fn run(mut self) {
-        self.0.run();
-    }
-
     #[wasm_bindgen]
     pub fn start_game(&mut self) {
         // TODO: use blueprints?
@@ -162,6 +158,13 @@ impl WasmApp {
             game_spawner.board,
             game_spawner.win_condition,
         ));
+    }
+
+    #[wasm_bindgen]
+    pub fn send_server_message(&mut self, value: u16) {
+        self.0
+            .world
+            .send_event(PlayerCommand::FakeCommand { value });
     }
 
     #[wasm_bindgen]

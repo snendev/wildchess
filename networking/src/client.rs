@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 
 use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::{
-    event::EventWriter,
-    prelude::{
-        Commands, Component, Entity, Event, IntoSystemConfigs, IntoSystemSetConfigs, Res, ResMut,
-        Resource, SystemSet,
-    },
+use bevy_ecs::prelude::{
+    Commands, Component, Entity, Event, EventReader, EventWriter, IntoSystemConfigs,
+    IntoSystemSetConfigs, Res, ResMut, Resource, SystemSet,
 };
 
 use bevy_renet2::{
@@ -19,7 +16,8 @@ use bevy_renet2::{
 use renet2_visualizer::{RenetClientVisualizer, RenetVisualizerStyle};
 
 use crate::{
-    connection_config, NetworkedEntities, Player, ServerChannel, ServerMessages, PROTOCOL_ID,
+    connection_config, ClientChannel, NetworkedEntities, Player, PlayerCommand, ServerChannel,
+    ServerMessages, PROTOCOL_ID,
 };
 
 #[derive(Event)]
@@ -71,11 +69,11 @@ impl Plugin for ClientPlugin {
         #[cfg(feature = "steam_transport")]
         app.add_plugins(SteamClientTransportPlugin);
 
-        app.add_systems(
+        app.add_event::<PlayerCommand>().add_systems(
             Update,
             (
                 // Self::client_send_input,
-                // Self::client_send_player_commands,
+                Self::client_send_player_commands,
                 Self::client_sync_players,
             )
                 .in_set(Connected),
@@ -113,15 +111,15 @@ impl ClientPlugin {
     //     }
     // }
 
-    // fn client_send_player_commands(
-    //     mut player_commands: EventReader<PlayerCommand>,
-    //     mut client: ResMut<RenetClient>,
-    // ) {
-    //     for command in player_commands.read() {
-    //         let command_message = bincode::serialize(command).unwrap();
-    //         client.send_message(ClientChannel::Command, command_message);
-    //     }
-    // }
+    fn client_send_player_commands(
+        mut player_commands: EventReader<PlayerCommand>,
+        mut client: ResMut<RenetClient>,
+    ) {
+        for command in player_commands.read() {
+            let command_message = bincode::serialize(command).unwrap();
+            client.send_message(ClientChannel::Command, command_message);
+        }
+    }
 
     fn client_sync_players(
         mut commands: Commands,
@@ -226,7 +224,7 @@ impl Plugin for NativeClientTransportPlugin {
         #[cfg(feature = "native_transport")]
         let socket = {
             let udp_socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
-            renet2::transport::NativeSocket::new().unwrap()
+            renet2::transport::NativeSocket::new(udp_socket).unwrap()
         };
         // TODO: to support this at this layer we would need to pass the client socket in from above
         // #[cfg(feature = "memory_transport")]
@@ -236,7 +234,7 @@ impl Plugin for NativeClientTransportPlugin {
             use base64::Engine;
             use renet2::transport::{ServerCertHash, WebTransportClientConfig};
 
-            const HASH_B64: &'static str = "sXlm5DJ3kAon7iyh7SP8yz/qVf6Pn7cDwUHBuzQ0V9w=";
+            const HASH_B64: &'static str = "OFdTpFPAypWFXtdsT/8+yoGitgGDgIIihv/qmzMTRIE=";
             let hash = base64::engine::general_purpose::STANDARD
                 .decode(HASH_B64)
                 .unwrap();

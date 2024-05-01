@@ -6,7 +6,7 @@ use bevy::prelude::{
     PluginGroup, SystemSet, Update, Window, WindowPlugin,
 };
 
-// use chess_ui::{ChessUISet, EguiBoardUIPlugin};
+use chess_ui::{ChessUISystems, EguiBoardUIPlugin, HomeMenuUIPlugin, HomeMenuUISystems};
 use games::{components::Game, GameplayPlugin};
 
 fn main() {
@@ -18,16 +18,13 @@ fn main() {
             }),
             ..Default::default()
         }))
-        // .configure_sets(
-        //     Update,
-        //     (
-        //         // HomeUISet.run_if(not(any_with_component::<Game>)),
-        //         // ChessUISet.run_if(any_with_component::<Game>),
-        //     ),
-        // )
-        .add_plugins((
-            GameplayPlugin,
-            //  EguiBoardUIPlugin
-        ))
+        .configure_sets(
+            Update,
+            (
+                HomeMenuUISystems.run_if(not(any_with_component::<Game>)),
+                ChessUISystems.run_if(any_with_component::<Game>),
+            ),
+        )
+        .add_plugins((GameplayPlugin, HomeMenuUIPlugin, EguiBoardUIPlugin))
         .run();
 }

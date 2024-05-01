@@ -15,7 +15,7 @@ use games::{
     components::{ActionHistory, Clock, HasTurn, Player, Ply},
     IssueMoveEvent, IssueMutationEvent,
 };
-use wild_icons::PieceIcon;
+use wild_icons::PieceIconSvg;
 
 use crate::{
     mutation::IntendedMutation,
@@ -305,7 +305,7 @@ fn handle_clicked_square(
 fn render_mutation_options(
     ui: &mut Ui,
     selected_mutation: &mut Option<PieceDefinition>,
-    piece_icons: &[(PieceIcon, PieceDefinition)],
+    piece_icons: &[(PieceIconSvg, PieceDefinition)],
 ) {
     ui.label(RichText::new("Promoting! Choose a piece.").size(24.));
 

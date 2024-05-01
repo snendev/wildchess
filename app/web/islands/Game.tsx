@@ -2,53 +2,51 @@ import { useState, useMemo, useCallback, useRef, useEffect, VNode } from "preact
 
 import Board from "./Board.tsx";
 
-function useInterval(callback, delay) {
-  const savedCallback = useRef();
+interface WasmGameProps {
+  name: string
+  description: VNode,
+}
 
-  useEffect(() => {
-    savedCallback.current = callback;
-  });
+export default function WasmGame({ name, description }: WasmGameProps) {
+  const { tick, getPosition, getIcons, lastMoveSquares, getTargets, movePiece } = useWasmGame(name);
 
-  useEffect(() => {
-    function tick() {
-      savedCallback.current();
-    }
-
-    let id = setInterval(tick, delay);
-    return () => clearInterval(id);
-  }, [delay]);
+  return (
+    <Board
+      getIcons={getIcons}
+      lastMoveSquares={lastMoveSquares}
+      getPosition={getPosition}
+      getTargets={getTargets}
+      movePiece={movePiece}
+      tick={tick}
+    />
+  );
 }
 
 function useWasmGame(game_name: string) {
   const [app, setApp] = useState(null);
-  const [channel, setChannel] = useState(null);
-  const [iconMap, setIconMap] = useState({});
+  const [tick, setTick] = useState(null);
   const [lastMoveSquares, setLastMoveSquares] = useState<[string, string] | null>(null);
 
   useEffect(() => {
     async function initWasm() {
-      const { WasmApp, PingSender } = await import(`/wasm/${game_name}.js`);
+      const { WasmApp } = await import(`/wasm/${game_name}.js`);
       const app = new WasmApp();
       app.start_game();
       // need to update twice so that icons exist
       app.update();
       app.update();
-      const map = Object.fromEntries(
-        app.get_icons().map((icon) => {
-          const piece = icon.get_piece();
-          return [piece, sanitizeIconSource(icon.to_source())];
-        })
-      );
-      setIconMap(map);
-      setChannel(PingSender.get());
-      app.run();
+      setApp(app);
     }
     initWasm();
   }, []);
 
+  const start = useMemo(() => +Date.now() / 1000, []);
+  const value = useRef(0);
   useInterval(useCallback(() => {
+    if (!app) return null;
+    app.send_server_message(value.current++);
     app.update();
-  }, [app]), 100);
+  }, [app, start]), 20);
 
   const movePiece = useCallback((pieceSquare: string, targetSquare: string) => {
     if (app === null) return;
@@ -66,7 +64,7 @@ function useWasmGame(game_name: string) {
     [app],
   );
 
-  const position = useMemo(() => {
+  const getPosition = useCallback(() => {
     if (!app) return null
     return Object.fromEntries(
       app.get_piece_positions()
@@ -74,7 +72,18 @@ function useWasmGame(game_name: string) {
     )
   }, [app]);
 
-  return { position, lastMoveSquares, iconMap, movePiece, getTargetSquares };
+  // todo: enable promotion
+  const getIcons = useCallback(() => {
+    if (!app) return null;
+    return Object.fromEntries(
+      app.get_icons().map((icon) => {
+        const piece = icon.get_piece();
+        return [piece, sanitizeIconSource(icon.to_source())];
+      })
+    );
+  }, [app])
+
+  return { tick, getPosition, getIcons, movePiece, getTargets: getTargetSquares, lastMoveSquares };
 }
 
 function sanitizeIconSource(source: string): string {
@@ -89,27 +98,19 @@ function sanitizeIconSource(source: string): string {
   return serializer.serializeToString(svg);
 }
 
-interface WasmGameProps {
-  name: string
-  description: VNode,
-}
+function useInterval(callback, delay) {
+  const savedCallback = useRef();
 
-export default function WasmGame({ name, description }: WasmGameProps) {
-  const [selectedSquare, setSelectedSquare] = useState(null);
-  const { position, iconMap, lastMoveSquares, getTargetSquares, movePiece } = useWasmGame(name);
-  const targetedSquares = useMemo(
-    () => selectedSquare ? getTargetSquares(selectedSquare) : null,
-    [getTargetSquares, selectedSquare],
-  );
-  return (
-    <Board
-      iconMap={iconMap}
-      position={position}
-      selectedSquare={selectedSquare}
-      selectSquare={setSelectedSquare}
-      lastMoveSquares={lastMoveSquares}
-      targetedSquares={targetedSquares}
-      movePiece={movePiece}
-    />
-  );
+  useEffect(() => {
+    savedCallback.current = callback;
+  });
+
+  useEffect(() => {
+    function tick() {
+      savedCallback.current();
+    }
+
+    let id = setInterval(tick, delay);
+    return () => clearInterval(id);
+  }, [delay]);
 }

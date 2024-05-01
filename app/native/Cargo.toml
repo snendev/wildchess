@@ -9,3 +9,8 @@ publish = false
 [dependencies]
 games = { path = "../../games" }
 bevy = { version = "0.13", default-features = false }
+networking = { path = "../../networking", features = [
+    "client",
+    "native_transport",
+] }
+chess_ui = { path = "../../ui" }

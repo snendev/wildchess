@@ -5,12 +5,13 @@ use bevy::prelude::{
 pub use bevy_egui;
 
 use games::components::{Game, History};
-use wild_icons::PieceIcon;
-
-pub mod home_ui;
+use wild_icons::{PieceIconCharacter, PieceIconPlugin, PieceIconSvg};
 
 pub(crate) mod mutation;
 pub(crate) mod query;
+
+mod home_ui;
+pub use home_ui::{HomeMenuUIPlugin, HomeMenuUISystems};
 
 mod board_ui;
 use board_ui::{
@@ -21,7 +22,7 @@ use board_ui::{
 mod widgets;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
-pub struct ChessUISet;
+pub struct ChessUISystems;
 
 pub struct EguiBoardUIPlugin;
 
@@ -30,6 +31,10 @@ impl Plugin for EguiBoardUIPlugin {
         if !app.is_plugin_added::<bevy_egui::EguiPlugin>() {
             app.add_plugins(bevy_egui::EguiPlugin);
         }
+        if !app.is_plugin_added::<PieceIconPlugin>() {
+            app.add_plugins(PieceIconPlugin);
+        }
+
         app.init_resource::<mutation::IntendedMutation>()
             .init_resource::<SelectedSquare>()
             .init_resource::<SelectedHistoricalPly>()
@@ -37,13 +42,13 @@ impl Plugin for EguiBoardUIPlugin {
             .add_systems(
                 Update,
                 (
-                    mutation::read_mutation_options,
-                    PieceIcon::attach_icons_system,
-                    History::<PieceIcon>::track_component_system,
+                    // mutation::read_mutation_options,
+                    History::<PieceIconSvg>::track_component_system,
+                    History::<PieceIconCharacter>::track_component_system,
                     set_game,
                     (egui_chessboard, egui_history_panel, egui_information_panel).chain(),
                 )
-                    .in_set(ChessUISet),
+                    .in_set(ChessUISystems),
             );
     }
 }

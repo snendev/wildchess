@@ -9,10 +9,10 @@ publish = false
 [dependencies]
 games = { path = "../../games" }
 networking = { path = "../../networking", features = [
-    # "server",
-    # "native_transport",
+    "server",
+    "native_transport",
     # "steam_transport",
-    "web_transport_server",
+    # "web_transport_server",
 ] }
 bevy = { version = "0.13", default-features = false }
-tokio = { version = "1.32" }
+tokio = { version = "1.32", features = ["full"] }
