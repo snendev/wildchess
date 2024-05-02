@@ -10,13 +10,11 @@ use chess::{
     pieces::{Mutation, MutationCondition, PieceBundle, Position, Royal},
     team::Team,
 };
-use layouts::{
-    ClassicalLayout, KnightRelayLayout, PieceSpecification, SuperRelayLayout, WildLayout,
-};
+use layouts::PieceSpecification;
 
 use crate::components::{
-    ActionHistory, Clock, ClockConfiguration, Game, GameBoard, HasTurn, History, InGame, Player,
-    Ply, WinCondition,
+    ActionHistory, Clock, ClockConfiguration, Game, GameBoard, HasTurn, History, InGame, PieceSet,
+    Player, Ply, WinCondition,
 };
 
 use super::{
@@ -25,9 +23,9 @@ use super::{
 
 pub(super) fn spawn_game_entities(
     mut commands: Commands,
-    query: Query<(Entity, &GameBoard, Option<&ClockConfiguration>), Added<GameBoard>>,
+    query: Query<(Entity, &GameBoard, &PieceSet, Option<&ClockConfiguration>), Added<GameBoard>>,
 ) {
-    for (game_entity, game_board, clock) in query.iter() {
+    for (game_entity, game_board, piece_set, clock) in query.iter() {
         // add move history to the game
         commands
             .entity(game_entity)
@@ -35,10 +33,7 @@ pub(super) fn spawn_game_entities(
 
         // create an entity to manage board properties
         let board = match game_board {
-            GameBoard::Chess
-            | GameBoard::WildChess
-            | GameBoard::KnightRelayChess
-            | GameBoard::SuperRelayChess => Board::chess_board(),
+            GameBoard::Chess => Board::chess_board(),
         };
         // TODO: Some sort of board bundle?
         let board_entity = commands
@@ -51,12 +46,6 @@ pub(super) fn spawn_game_entities(
             .id();
 
         // spawn all game pieces
-        let pieces_per_player = match game_board {
-            GameBoard::Chess => ClassicalLayout::pieces(),
-            GameBoard::WildChess => WildLayout::pieces(),
-            GameBoard::KnightRelayChess => KnightRelayLayout::pieces(),
-            GameBoard::SuperRelayChess => SuperRelayLayout::pieces(),
-        };
 
         for team in [Team::White, Team::Black].into_iter() {
             let mut player_builder =
@@ -71,7 +60,7 @@ pub(super) fn spawn_game_entities(
             for PieceSpecification {
                 piece,
                 start_square,
-            } in pieces_per_player.iter()
+            } in piece_set.clone().iter()
             {
                 let start_square = start_square.reorient(team.orientation(), &board);
                 let name = Name::new(format!("{:?} {}-{:?}", team, start_square, piece.identity));

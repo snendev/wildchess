@@ -6,6 +6,7 @@ use games::{
     components::{GameBoard, GameSpawner, WinCondition},
     GameplayPlugin,
 };
+use layouts::RandomWildLayout;
 
 fn main() {
     Test {
@@ -19,5 +20,10 @@ fn main() {
 }
 
 fn spawn_game(mut commands: Commands) {
-    GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture).spawn(&mut commands);
+    GameSpawner::new_game(
+        GameBoard::Chess,
+        RandomWildLayout::pieces().into(),
+        WinCondition::RoyalCapture,
+    )
+    .spawn(&mut commands);
 }

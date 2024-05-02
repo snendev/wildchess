@@ -6,6 +6,7 @@ use games::{
     components::{GameBoard, GameSpawner, WinCondition},
     GameplayPlugin,
 };
+use layouts::ClassicalLayout;
 
 fn main() {
     Test {
@@ -19,5 +20,10 @@ fn main() {
 }
 
 fn spawn_game(mut commands: Commands) {
-    GameSpawner::new_game(GameBoard::Chess, WinCondition::RoyalCapture).spawn(&mut commands);
+    GameSpawner::new_game(
+        GameBoard::Chess,
+        ClassicalLayout::pieces().into(),
+        WinCondition::RoyalCapture,
+    )
+    .spawn(&mut commands);
 }

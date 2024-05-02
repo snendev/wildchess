@@ -1,40 +1,47 @@
-use bevy::prelude::{Commands, Component};
+use bevy::prelude::{Commands, Component, Deref};
 
 use chess::board::{Rank, Square};
+use layouts::PieceSpecification;
 
 use super::Clock;
 
-#[derive(Clone, Copy, Component, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Component)]
 pub struct Game;
 
-#[derive(Clone, Copy, Component, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Component)]
 pub enum GameBoard {
-    Chess,
     #[default]
-    WildChess,
-    SuperRelayChess,
-    KnightRelayChess,
+    Chess,
     // Shogi,    // TODO
     // Checkers, // TODO
 }
 
+#[derive(Clone, Component, Deref, Debug, Default)]
+pub struct PieceSet(Vec<PieceSpecification>);
+
+impl From<Vec<PieceSpecification>> for PieceSet {
+    fn from(pieces: Vec<PieceSpecification>) -> Self {
+        Self(pieces)
+    }
+}
+
 // A game rule specifying that captures result in an "explosion"
 // additionally capturing on all squares in the region of the capture.
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default, Component)]
 pub struct Atomic;
 
 // A game rule specifying that players can place captured pieces
 // on the board using a turn.
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default, Component)]
 pub struct Crazyhouse;
 
 // A game rule specifying that the typical win condition results in a loss;
 // Pieces must capture if they are able to.
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default, Component)]
 pub struct AntiGame;
 
 // The set of win conditions for the board
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default, Component)]
 pub enum WinCondition {
     // The game is won once all enemy Royal pieces are captured.
     #[default]
@@ -48,7 +55,7 @@ pub enum WinCondition {
     RaceToRegion(Vec<Square>),
 }
 
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default, Component)]
 pub struct ClockConfiguration {
     pub clock: Clock,
 }
@@ -58,6 +65,7 @@ pub struct GameSpawner {
     game: Game,
     board: GameBoard,
     win_condition: WinCondition,
+    piece_set: PieceSet,
     clock: Option<ClockConfiguration>,
     atomic: Option<Atomic>,
     crazyhouse: Option<Crazyhouse>,
@@ -66,9 +74,10 @@ pub struct GameSpawner {
 
 impl GameSpawner {
     #[must_use]
-    pub fn new_game(board: GameBoard, win_condition: WinCondition) -> Self {
+    pub fn new_game(board: GameBoard, piece_set: PieceSet, win_condition: WinCondition) -> Self {
         Self {
             board,
+            piece_set,
             win_condition,
             ..Default::default()
         }
@@ -100,7 +109,7 @@ impl GameSpawner {
 
     pub fn spawn(self, commands: &mut Commands) {
         let entity = commands
-            .spawn((self.game, self.board, self.win_condition))
+            .spawn((self.game, self.board, self.piece_set, self.win_condition))
             .id();
         let mut builder = commands.entity(entity);
         if let Some(clock) = self.clock {

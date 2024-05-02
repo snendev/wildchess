@@ -8,6 +8,7 @@ use games::{
     components::{Clock, GameBoard, GameSpawner, WinCondition},
     GameplayPlugin,
 };
+use layouts::ClassicalLayout;
 
 fn main() {
     Test {
@@ -21,10 +22,14 @@ fn main() {
 }
 
 fn spawn_game(mut commands: Commands) {
-    GameSpawner::new_game(GameBoard::Chess, WinCondition::RoyalCapture)
-        .with_clock(Clock::new(
-            Duration::from_secs(3 * 60),
-            Duration::from_secs(1),
-        ))
-        .spawn(&mut commands);
+    GameSpawner::new_game(
+        GameBoard::Chess,
+        ClassicalLayout::pieces().into(),
+        WinCondition::RoyalCapture,
+    )
+    .with_clock(Clock::new(
+        Duration::from_secs(3 * 60),
+        Duration::from_secs(1),
+    ))
+    .spawn(&mut commands);
 }

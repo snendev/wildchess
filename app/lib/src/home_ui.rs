@@ -6,6 +6,9 @@ use bevy_egui::{
 };
 
 use games::components::{GameBoard, GameSpawner, WinCondition};
+use layouts::{
+    ClassicWildLayout, ClassicalLayout, FeaturedWildLayout, KnightRelayLayout, SuperRelayLayout,
+};
 
 pub(crate) fn home_menu(mut commands: Commands, mut egui_ctx: EguiContexts) {
     CentralPanel::default().show(egui_ctx.ctx_mut(), |ui| {
@@ -15,20 +18,39 @@ pub(crate) fn home_menu(mut commands: Commands, mut egui_ctx: EguiContexts) {
             ui.vertical_centered(|ui| {
                 ui.allocate_ui(Vec2::new(250., 120.), |ui| {
                     if ui.button("Play Traditional Chess").clicked() {
-                        GameSpawner::new_game(GameBoard::Chess, WinCondition::RoyalCapture)
-                            .spawn(&mut commands);
+                        GameSpawner::new_game(
+                            GameBoard::Chess,
+                            ClassicalLayout::pieces().into(),
+                            WinCondition::RoyalCapture,
+                        )
+                        .spawn(&mut commands);
+                    }
+                });
+                ui.allocate_ui(Vec2::new(250., 120.), |ui| {
+                    if ui.button("Play Featured Wild Position").clicked() {
+                        GameSpawner::new_game(
+                            GameBoard::Chess,
+                            FeaturedWildLayout::pieces().into(),
+                            WinCondition::RoyalCapture,
+                        )
+                        .spawn(&mut commands);
                     }
                 });
                 ui.allocate_ui(Vec2::new(250., 120.), |ui| {
                     if ui.button("Play Wild Chess").clicked() {
-                        GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture)
-                            .spawn(&mut commands);
+                        GameSpawner::new_game(
+                            GameBoard::Chess,
+                            ClassicWildLayout::pieces().into(),
+                            WinCondition::RoyalCapture,
+                        )
+                        .spawn(&mut commands);
                     }
                 });
                 ui.allocate_ui(Vec2::new(250., 120.), |ui| {
                     if ui.button("Play Super Relay Chess").clicked() {
                         GameSpawner::new_game(
-                            GameBoard::SuperRelayChess,
+                            GameBoard::Chess,
+                            SuperRelayLayout::pieces().into(),
                             WinCondition::RoyalCapture,
                         )
                         .spawn(&mut commands);
@@ -37,7 +59,8 @@ pub(crate) fn home_menu(mut commands: Commands, mut egui_ctx: EguiContexts) {
                 ui.allocate_ui(Vec2::new(250., 120.), |ui| {
                     if ui.button("Play (Not-Quite) Knight Relay Chess").clicked() {
                         GameSpawner::new_game(
-                            GameBoard::KnightRelayChess,
+                            GameBoard::Chess,
+                            KnightRelayLayout::pieces().into(),
                             WinCondition::RoyalCapture,
                         )
                         .spawn(&mut commands);

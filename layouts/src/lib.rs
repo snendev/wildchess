@@ -7,7 +7,7 @@ pub use knight_relay::KnightRelayLayout;
 mod super_relay;
 pub use super_relay::SuperRelayLayout;
 mod wild;
-pub use wild::WildLayout;
+pub use wild::{ClassicWildLayout, FeaturedWildLayout, RandomWildLayout, WildPieceSet};
 
 // Defines how to position a piece relative to a player's starting orientation
 #[derive(Clone, Debug, Default)]

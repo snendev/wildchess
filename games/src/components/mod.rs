@@ -2,7 +2,8 @@ use bevy::prelude::{Component, Entity, Reflect};
 
 mod game;
 pub use game::{
-    AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameSpawner, WinCondition,
+    AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameSpawner, PieceSet,
+    WinCondition,
 };
 mod clock;
 pub use clock::Clock;

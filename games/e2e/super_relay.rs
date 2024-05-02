@@ -6,6 +6,7 @@ use games::{
     components::{GameBoard, GameSpawner, WinCondition},
     GameplayPlugin,
 };
+use layouts::SuperRelayLayout;
 
 fn main() {
     Test {
@@ -19,6 +20,10 @@ fn main() {
 }
 
 fn spawn_game(mut commands: Commands) {
-    GameSpawner::new_game(GameBoard::SuperRelayChess, WinCondition::RoyalCapture)
-        .spawn(&mut commands);
+    GameSpawner::new_game(
+        GameBoard::Chess,
+        SuperRelayLayout::pieces().into(),
+        WinCondition::RoyalCapture,
+    )
+    .spawn(&mut commands);
 }
