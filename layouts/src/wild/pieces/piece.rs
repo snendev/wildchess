@@ -101,13 +101,13 @@ impl MinorBuilder {
 
     pub fn fencer() -> PatternBehavior {
         PatternBehavior::default()
-            .with_pattern(Pattern::forward().range(2).captures_by_displacement())
             .with_pattern(
                 Pattern::forward()
                     .range(3)
                     .only_captures_by_displacement()
                     .pierces(),
             )
+            .with_pattern(Pattern::forward().range(2).captures_by_displacement())
             .with_pattern(Pattern::horizontal().range(1))
     }
 

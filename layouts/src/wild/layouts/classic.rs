@@ -13,8 +13,8 @@ impl ClassicWildLayout {
     pub fn pieces() -> Vec<PieceSpecification> {
         // pieces
         let major: PieceDefinition = piece(MajorBuilder::random_behavior(), Some(CastlingTarget));
-        let minor1 = piece(AdvancedBuilder::random_behavior(), None);
-        let minor2 = piece(MinorBuilder::random_behavior(), None);
+        let minor1 = piece(MinorBuilder::random_behavior(), None);
+        let minor2 = piece(AdvancedBuilder::random_behavior(), None);
         let elite = piece(EliteBuilder::random_behavior(), None);
 
         // pawns

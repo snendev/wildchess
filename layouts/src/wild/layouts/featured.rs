@@ -15,8 +15,8 @@ impl FeaturedWildLayout {
     pub fn pieces() -> Vec<PieceSpecification> {
         // pieces
         let major: PieceDefinition = piece(MajorBuilder::butterfly(), Some(CastlingTarget));
-        let minor1 = piece(AdvancedBuilder::bishop(), None);
-        let minor2 = piece(MinorBuilder::prince(), None);
+        let minor1 = piece(MinorBuilder::prince(), None);
+        let minor2 = piece(AdvancedBuilder::bishop(), None);
         let elite = piece(EliteBuilder::panther(), None);
 
         // pawns
