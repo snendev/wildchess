@@ -170,6 +170,11 @@ impl Pattern {
         self
     }
 
+    pub fn pierces(mut self) -> Self {
+        self.scanner.mode = ScanMode::Pierce;
+        self
+    }
+
     // common constraints
 
     pub fn only_from_local_rank(mut self, rank: Rank) -> Self {

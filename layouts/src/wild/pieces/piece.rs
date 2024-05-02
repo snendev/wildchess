@@ -29,12 +29,9 @@ struct InfantryBuilder;
 impl InfantryBuilder {
     pub fn random_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
-        match rng.gen_range(0..=3) {
+        match rng.gen_range(0..=2) {
             0 => Self::grunt(),
             1 => Self::hound(),
-            // fencer
-            2 => Self::fencer(),
-            // squire
             _ => Self::squire(),
         }
     }
@@ -60,18 +57,6 @@ impl InfantryBuilder {
             )
     }
 
-    pub fn fencer() -> PatternBehavior {
-        PatternBehavior::default()
-            .with_pattern(Pattern::forward().range(2).captures_by_displacement())
-            .with_pattern(
-                Pattern::forward()
-                    .range(3)
-                    .scan_mode(ScanMode::Pierce)
-                    .only_captures_by_displacement(),
-            )
-            .with_pattern(Pattern::horizontal().range(1))
-    }
-
     pub fn squire() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::new(Step::from_r(
@@ -90,7 +75,8 @@ impl MinorBuilder {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..=3) {
             0 => Self::knight(),
-            2 => Self::scorpion(),
+            1 => Self::scorpion(),
+            2 => Self::fencer(),
             _ => Self::prince(),
         }
     }
@@ -107,10 +93,22 @@ impl MinorBuilder {
             .with_pattern(Pattern::forward().range(3))
             .with_pattern(
                 Pattern::diagonal_forward()
-                    .scan_mode(ScanMode::Pierce)
                     .range(3)
-                    .only_captures_by_displacement(),
+                    .only_captures_by_displacement()
+                    .pierces(),
             )
+    }
+
+    pub fn fencer() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::forward().range(2).captures_by_displacement())
+            .with_pattern(
+                Pattern::forward()
+                    .range(3)
+                    .only_captures_by_displacement()
+                    .pierces(),
+            )
+            .with_pattern(Pattern::horizontal().range(1))
     }
 
     pub fn prince() -> PatternBehavior {
@@ -125,7 +123,7 @@ pub struct AdvancedBuilder;
 impl AdvancedBuilder {
     pub fn random_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
-        match rng.gen_range(0..=3) {
+        match rng.gen_range(0..=4) {
             0 => Self::bishop(),
             1 => Self::jester(),
             2 => Self::scoundrel(),
@@ -141,7 +139,7 @@ impl AdvancedBuilder {
     pub fn jester() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::knight().leaper().captures_by_displacement())
-            .with_pattern(Pattern::orthogonal().range(2).scan_mode(ScanMode::Pierce))
+            .with_pattern(Pattern::orthogonal().range(2).pierces())
     }
 
     pub fn scoundrel() -> PatternBehavior {
@@ -169,10 +167,11 @@ pub struct MajorBuilder;
 impl MajorBuilder {
     pub fn random_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
-        match rng.gen_range(0..=2) {
+        match rng.gen_range(0..=3) {
             0 => Self::rook(),
             1 => Self::cardinal(),
-            _ => Self::butterfly(),
+            2 => Self::butterfly(),
+            _ => Self::lord(),
         }
     }
 
@@ -189,7 +188,18 @@ impl MajorBuilder {
     pub fn butterfly() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::knight().leaper().captures_by_displacement())
-            .with_pattern(Pattern::orthogonal().range(2).captures_by_displacement())
+            .with_pattern(
+                Pattern::orthogonal()
+                    .range(2)
+                    .captures_by_displacement()
+                    .pierces(),
+            )
+    }
+
+    pub fn lord() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::knight().leaper().captures_by_displacement())
+            .with_pattern(Pattern::orthogonal().range(3).captures_by_displacement())
     }
 }
 
@@ -224,7 +234,7 @@ impl EliteBuilder {
                 Pattern::diagonal_forward()
                     .range(3)
                     .captures_by_displacement()
-                    .scan_mode(ScanMode::Pierce),
+                    .pierces(),
             )
     }
 
