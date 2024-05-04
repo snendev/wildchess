@@ -249,4 +249,9 @@ impl WasmApp {
     pub fn update(&mut self) {
         self.0.update();
     }
+
+    #[wasm_bindgen]
+    pub fn run(&mut self) {
+        self.0.run();
+    }
 }

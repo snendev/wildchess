@@ -10,7 +10,7 @@ args = ["run", "-p", "chess_app_server", "--profile", "${PROFILE}"]
 workspace = false
 
 [tasks.build-wasm]
-env = { SERVER_HASH = "zyCIBD9J2qdVFPuBMOYquccDvNKPhZohxG382oXkgPc=" }
+env = { SERVER_HASH = "s1mSLwOeym2lXFPDYDqH+u+wVOw2tB4MGCqficaKDUc=" }
 command = "cargo"
 args = [
     "build",
