@@ -29,7 +29,8 @@ function useWasmGame(game_name: string) {
 
   useEffect(() => {
     async function initWasm() {
-      const { WasmApp } = await import(`/wasm/${game_name}.js`);
+      const { WasmApp, default: init } = await import(`/wasm/${game_name}.js`);
+      await init();
       const app = new WasmApp();
       app.start_game();
       // need to update twice so that icons exist

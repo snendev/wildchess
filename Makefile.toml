@@ -1,7 +1,6 @@
 [env]
 LIB = "web"
 PROFILE = "release"
-OUT_DIR = "app/${LIB}/static/wasm"
 APP_DIR = "app/${LIB}"
 
 [tasks.run-server]
@@ -9,48 +8,15 @@ command = "cargo"
 args = ["run", "-p", "chess_app_server", "--profile", "${PROFILE}"]
 workspace = false
 
-[tasks.build-wasm]
-env = { SERVER_HASH = "s1mSLwOeym2lXFPDYDqH+u+wVOw2tB4MGCqficaKDUc=" }
-command = "cargo"
-args = [
-    "build",
-    "-p",
-    "*_app_${LIB}",
-    "--target",
-    "wasm32-unknown-unknown",
-    "--profile",
-    "${PROFILE}",
-]
-workspace = false
-
-# TODO: Would be nice to use wasm-pack, but its bindgen doesn't work for some reason
-[tasks.bindgen-web]
-command = "wasm-bindgen"
-args = [
-    "--target",
-    "deno",
-    "--no-typescript",
-    "target/wasm32-unknown-unknown/${PROFILE}/chess_app_${LIB}.wasm",
-    "--out-dir",
-    "${OUT_DIR}",
-]
-dependencies = ["build-wasm"]
-workspace = false
-
 [tasks.build-web]
-command = "wasm-opt"
-args = [
-    "-Oz",
-    "-o",
-    "${OUT_DIR}/chess_app_${LIB}_bg.wasm",
-    "${OUT_DIR}/chess_app_${LIB}_bg.wasm",
-]
-dependencies = ["bindgen-web"]
+env = { SERVER_HASH = "NSEy1SUL4t38eJSnMZWThdp7Q4XL8flSol3Fk7DD3tQ=" }
+cwd = "./${APP_DIR}"
+command = "wasm-pack"
+args = ["build", "--target", "web", "--release", "--out-dir", "static/wasm"]
 workspace = false
 
 [tasks.run-web]
 command = "deno"
 cwd = "./${APP_DIR}"
 args = ["task", "start"]
-dependencies = ["build-web"]
 workspace = false
