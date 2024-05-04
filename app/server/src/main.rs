@@ -7,9 +7,7 @@ use bevy::{
 };
 
 use games::GameplayPlugin;
-use networking::server::ClientPlugin;
-
-static RUNTIME: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
+use networking::server::ServerPlugin;
 
 #[derive(Clone, Debug)]
 #[derive(Resource)]
@@ -17,12 +15,9 @@ pub struct TokioHandle(pub tokio::runtime::Handle);
 
 #[tokio::main]
 async fn main() {
-    let runtime = RUNTIME.get_or_init(|| {
-        tokio::runtime::Runtime::new().expect("unable to make default tokio runtime")
-    });
     App::default()
         .add_plugins(MinimalPlugins)
-        .insert_resource(TokioHandle(runtime.handle().clone()))
-        .add_plugins((GameplayPlugin, ClientPlugin))
+        .insert_resource(TokioHandle(tokio::runtime::Handle::try_current().unwrap()))
+        .add_plugins((GameplayPlugin, ServerPlugin))
         .run();
 }

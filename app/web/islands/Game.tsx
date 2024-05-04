@@ -35,7 +35,7 @@ function useWasmGame(game_name: string) {
       // need to update twice so that icons exist
       app.update();
       app.update();
-      setApp(app);
+      // setApp(app);
     }
     initWasm();
   }, []);

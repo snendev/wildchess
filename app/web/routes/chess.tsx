@@ -15,7 +15,7 @@ export default function ChessBoard({
 }: ChessBoardProps) {
     return (
         <Page>
-            <Game name="chess_web" />
+            <Game name="chess_app_web" />
         </Page>
     );
 }

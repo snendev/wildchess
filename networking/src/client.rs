@@ -220,12 +220,12 @@ impl Plugin for NativeClientTransportPlugin {
             server_addr,
             user_data: None,
         };
-
         #[cfg(feature = "native_transport")]
         let socket = {
             let udp_socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
             renet2::transport::NativeSocket::new(udp_socket).unwrap()
         };
+
         // TODO: to support this at this layer we would need to pass the client socket in from above
         // #[cfg(feature = "memory_transport")]
         // let socket = renet2::transport::MemorySocketClient::new(client_id as u16, client_memory_socket).unwrap();
@@ -234,9 +234,9 @@ impl Plugin for NativeClientTransportPlugin {
             use base64::Engine;
             use renet2::transport::{ServerCertHash, WebTransportClientConfig};
 
-            const HASH_B64: &'static str = "OFdTpFPAypWFXtdsT/8+yoGitgGDgIIihv/qmzMTRIE=";
+            const HASH: &'static str = env!("SERVER_HASH");
             let hash = base64::engine::general_purpose::STANDARD
-                .decode(HASH_B64)
+                .decode(HASH)
                 .unwrap();
             let config = WebTransportClientConfig::new_with_certs(
                 server_addr,
