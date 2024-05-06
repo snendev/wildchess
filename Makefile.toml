@@ -9,10 +9,16 @@ args = ["run", "-p", "chess_app_server", "--profile", "${PROFILE}"]
 workspace = false
 
 [tasks.build-web]
-env = { SERVER_HASH = "NSEy1SUL4t38eJSnMZWThdp7Q4XL8flSol3Fk7DD3tQ=" }
 cwd = "./${APP_DIR}"
 command = "wasm-pack"
-args = ["build", "--target", "web", "--release", "--out-dir", "static/wasm"]
+args = [
+    "build",
+    "--target",
+    "no-modules",
+    "--release",
+    "--out-dir",
+    "static/wasm",
+]
 workspace = false
 
 [tasks.run-web]

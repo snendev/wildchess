@@ -28,15 +28,11 @@ function useWasmGame(game_name: string) {
   const [lastMoveSquares, setLastMoveSquares] = useState<[string, string] | null>(null);
 
   useEffect(() => {
-    async function initWasm() {
-      const { WasmApp, default: init } = await import(`/wasm/${game_name}.js`);
-      await init();
-      const app = new WasmApp();
-      app.start_game();
-      // need to update twice so that icons exist
-      app.run();
-    }
-    initWasm();
+      const worker = new Worker(
+        new URL("/js/workers/wasm.js", import.meta.url).href,
+      );
+
+      worker.postMessage({kind: 'start'});
   }, []);
 
   const start = useMemo(() => +Date.now() / 1000, []);

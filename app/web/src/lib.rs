@@ -4,7 +4,7 @@
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use wasm_bindgen::prelude::*;
 
-use bevy_app::{App, PreUpdate};
+use bevy_app::{App, Last, PostUpdate, PreUpdate, Update};
 use bevy_ecs::prelude::{Entity, Events, Res, Resource};
 
 use games::{
@@ -19,6 +19,13 @@ use games::{
 };
 use networking::{client::ClientPlugin, PlayerCommand};
 use wild_icons::PieceIconSvg;
+
+// Use this to enable console logging
+// #[wasm_bindgen]
+// extern "C" {
+//     #[wasm_bindgen(js_namespace = console)]
+//     fn log(s: &str);
+// }
 
 #[wasm_bindgen]
 pub struct WasmApp(App);
@@ -146,6 +153,7 @@ impl WasmApp {
         app.add_plugins(wild_icons::PieceIconPlugin);
         app.insert_resource(PingReceiver(rx));
         app.add_systems(PreUpdate, PingReceiver::receive_message_system);
+
         WasmApp(app)
     }
 
