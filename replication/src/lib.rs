@@ -118,3 +118,11 @@ pub fn connection_config() -> ConnectionConfig {
         server_channels_config: ServerChannel::channels_config(),
     }
 }
+
+pub struct NetworkingPlugin;
+
+impl Plugin for NetworkingPlugin {
+    fn build(&self, app: &mut bevy_app::App) {}
+}
+
+impl NetworkingPlugin {}

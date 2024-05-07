@@ -1,13 +1,7 @@
-use std::collections::HashMap;
+use bevy_app::prelude::{App, Plugin};
+use bevy_ecs::prelude::{Component, Entity, Event};
 
-use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::prelude::{
-    Commands, Component, Entity, Event, EventReader, EventWriter, IntoSystemConfigs,
-    IntoSystemSetConfigs, Res, ResMut, Resource, SystemSet,
-};
-
-use bevy_renet2::{renet2::RenetClient, RenetClientPlugin};
-use bevy_replicon::prelude::{client_connected, ClientId};
+use bevy_renet2::renet2::RenetClient;
 
 use crate::{connection_config, PlayerCommand, PROTOCOL_ID};
 

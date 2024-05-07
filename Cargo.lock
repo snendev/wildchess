@@ -942,6 +942,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_replicon_renet2"
+version = "0.1.0"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_renet2",
+ "bevy_replicon",
+ "renet2",
+]
+
+[[package]]
 name = "bevy_scene"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1448,6 +1459,10 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "games",
+<<<<<<< HEAD
+=======
+ "tokio",
+>>>>>>> fb20d3b (create separate crates for networking vs transport)
  "transport",
 ]
 
@@ -3179,6 +3194,7 @@ dependencies = [
 
 [[package]]
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 name = "networking"
 version = "0.1.0"
@@ -3202,6 +3218,8 @@ dependencies = [
 
 [[package]]
 >>>>>>> 5846353 (start implementing replicon)
+=======
+>>>>>>> fb20d3b (create separate crates for networking vs transport)
 name = "nix"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4759,8 +4777,16 @@ dependencies = [
  "base64 0.22.0",
  "bevy_app",
  "bevy_ecs",
+<<<<<<< HEAD
  "bevy_math",
  "bevy_renet2",
+=======
+ "bevy_log",
+ "bevy_math",
+ "bevy_renet2",
+ "bevy_replicon",
+ "bevy_replicon_renet2",
+>>>>>>> fb20d3b (create separate crates for networking vs transport)
  "bincode",
  "fastrand",
  "renet2",
