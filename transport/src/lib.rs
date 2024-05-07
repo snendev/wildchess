@@ -17,10 +17,14 @@ compile_error!("Must enable one of the transport features: native (UDP), in-memo
 
 use std::time::Duration;
 
+use bevy_app::Plugin;
 use serde::{Deserialize, Serialize};
 
 use bevy_ecs::prelude::{Component, Entity, Event};
-use bevy_renet2::renet2::{ChannelConfig, ClientId, ConnectionConfig, SendType};
+use bevy_renet2::renet2::{ChannelConfig, ConnectionConfig, SendType};
+use bevy_replicon::prelude::ClientId;
+
+mod bevy_replicon_renet2;
 
 #[cfg(feature = "client")]
 pub mod client;
@@ -51,13 +55,6 @@ pub enum ClientChannel {
 pub enum ServerChannel {
     ServerMessages,
     NetworkedEntities,
-}
-
-#[derive(Debug, Serialize, Deserialize, Component)]
-pub enum ServerMessages {
-    PlayerCreate { entity: Entity, id: ClientId },
-    PlayerRemove { id: ClientId },
-    AckCommand { value: u16, player: Entity },
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -121,3 +118,11 @@ pub fn connection_config() -> ConnectionConfig {
         server_channels_config: ServerChannel::channels_config(),
     }
 }
+
+pub struct NetworkingPlugin;
+
+impl Plugin for NetworkingPlugin {
+    fn build(&self, app: &mut bevy_app::App) {}
+}
+
+impl NetworkingPlugin {}

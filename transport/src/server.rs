@@ -1,32 +1,18 @@
-use std::collections::HashMap;
-
 use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::prelude::{Commands, Entity, EventReader, Query, Res, ResMut, Resource, With};
+use bevy_ecs::prelude::{Commands, Entity, EventReader, Query};
 
-use bevy_renet2::{
-    renet2::{ClientId, RenetServer, ServerEvent},
-    RenetServerPlugin,
-};
+use bevy_renet2::{renet2::RenetServer, RenetServerPlugin};
+use bevy_replicon::{core::replication_rules::Replication, prelude::ServerEvent};
 
-use crate::{
-    connection_config, ClientChannel, NetworkedEntities, Player, PlayerCommand, ServerChannel,
-    ServerMessages, PROTOCOL_ID,
-};
+use crate::{connection_config, Player, PROTOCOL_ID};
 
 // use renet2_visualizer::RenetServerVisualizer;
-
-#[derive(Debug, Default, Resource)]
-pub struct ServerLobby {
-    pub players: HashMap<ClientId, Entity>,
-}
 
 pub struct ServerPlugin;
 
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(RenetServerPlugin);
-        app.insert_resource(ServerLobby::default());
-        // app.insert_resource(RenetServerVisualizer::<200>::default());
 
         #[cfg(any(
             feature = "web_transport_server",
@@ -41,117 +27,38 @@ impl Plugin for ServerPlugin {
         app.add_systems(
             Update,
             (
-                Self::server_handle_connections,
-                Self::server_handle_inputs,
-                Self::server_network_sync,
-                // update_visualizer_system,
+                Self::handle_connections,
+                // Self::server_handle_inputs,
             ),
         );
     }
 }
 
 impl ServerPlugin {
-    fn server_handle_connections(
+    fn handle_connections(
         mut commands: Commands,
-        mut server: ResMut<RenetServer>,
-        mut lobby: ResMut<ServerLobby>,
         mut server_events: EventReader<ServerEvent>,
         players: Query<(Entity, &Player)>,
     ) {
         for event in server_events.read() {
             match event {
                 ServerEvent::ClientConnected { client_id } => {
-                    println!("Player {} connected.", client_id);
-                    // visualizer.add_client(*client_id);
-
-                    // Initialize other players for this new client
-                    for (entity, player) in players.iter() {
-                        let message = bincode::serialize(&ServerMessages::PlayerCreate {
-                            id: player.id,
-                            entity,
-                        })
-                        .unwrap();
-                        server.send_message(*client_id, ServerChannel::ServerMessages, message);
-                    }
-
-                    // Spawn new player
-                    let player_entity = commands.spawn(Player { id: *client_id }).id();
-
-                    lobby.players.insert(*client_id, player_entity);
-
-                    let message = bincode::serialize(&ServerMessages::PlayerCreate {
-                        id: *client_id,
-                        entity: player_entity,
-                    })
-                    .unwrap();
-                    server.broadcast_message(ServerChannel::ServerMessages, message);
+                    #[cfg(feature = "log")]
+                    bevy_log::info!("Player {} connected.", client_id.get());
+                    // Spawn new player entity
+                    commands.spawn((Replication, Player { id: *client_id }));
                 }
                 ServerEvent::ClientDisconnected { client_id, reason } => {
-                    println!("Player {} disconnected: {}", client_id, reason);
-                    // visualizer.remove_client(*client_id);
-                    if let Some(player_entity) = lobby.players.remove(client_id) {
+                    if let Some((player_entity, _)) =
+                        players.iter().find(|(_, Player { id })| *id == *client_id)
+                    {
+                        #[cfg(feature = "log")]
+                        bevy_log::debug!("Player disconnected: {}", reason);
                         commands.entity(player_entity).despawn();
                     }
-
-                    let message =
-                        bincode::serialize(&ServerMessages::PlayerRemove { id: *client_id })
-                            .unwrap();
-                    server.broadcast_message(ServerChannel::ServerMessages, message);
                 }
             }
         }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn server_handle_inputs(lobby: Res<ServerLobby>, mut server: ResMut<RenetServer>) {
-        for client_id in server.clients_id() {
-            while let Some(message) = server.receive_message(client_id, ClientChannel::Command) {
-                let command: PlayerCommand = bincode::deserialize(&message).unwrap();
-                match command {
-                    PlayerCommand::FakeCommand { value } => {
-                        println!("Received fake command from client {}: {}", client_id, value);
-
-                        if let Some(player_entity) = lobby.players.get(&client_id) {
-                            let message = ServerMessages::AckCommand {
-                                value,
-                                player: *player_entity,
-                            };
-                            let message = bincode::serialize(&message).unwrap();
-                            server.broadcast_message(ServerChannel::ServerMessages, message);
-                        }
-                    }
-                }
-            }
-
-            // N.B. alternative for messages by insert:
-
-            // while let Some(message) = server.receive_message(client_id, ClientChannel::Input) {
-            //     let input: PlayerInput = bincode::deserialize(&message).unwrap();
-            //     if let Some(player_entity) = lobby.players.get(&client_id) {
-            //         commands.entity(*player_entity).insert(input);
-            //     }
-            // }
-        }
-    }
-
-    // fn update_visualizer_system(
-    //     mut egui_contexts: EguiContexts,
-    //     mut visualizer: ResMut<RenetServerVisualizer<200>>,
-    //     server: Res<RenetServer>,
-    // ) {
-    //     visualizer.update(&server);
-    //     visualizer.show_window(egui_contexts.ctx_mut());
-    // }
-
-    #[allow(clippy::type_complexity)]
-    fn server_network_sync(mut server: ResMut<RenetServer>, query: Query<Entity, With<Player>>) {
-        let mut networked_entities = NetworkedEntities::default();
-        for entity in query.iter() {
-            networked_entities.entities.push(entity);
-        }
-
-        let sync_message = bincode::serialize(&networked_entities).unwrap();
-        server.broadcast_message(ServerChannel::NetworkedEntities, sync_message);
     }
 }
 

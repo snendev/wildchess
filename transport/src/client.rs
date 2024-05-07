@@ -6,19 +6,10 @@ use bevy_ecs::prelude::{
     IntoSystemSetConfigs, Res, ResMut, Resource, SystemSet,
 };
 
-use bevy_renet2::{
-    client_connected,
-    renet2::{ClientId, RenetClient},
-    RenetClientPlugin,
-};
+use bevy_renet2::{renet2::RenetClient, RenetClientPlugin};
+use bevy_replicon::prelude::{client_connected, ClientId};
 
-#[cfg(feature = "visualizer")]
-use renet2_visualizer::{RenetClientVisualizer, RenetVisualizerStyle};
-
-use crate::{
-    connection_config, ClientChannel, NetworkedEntities, Player, PlayerCommand, ServerChannel,
-    ServerMessages, PROTOCOL_ID,
-};
+use crate::{connection_config, PlayerCommand, PROTOCOL_ID};
 
 #[derive(Event)]
 pub struct TestAckEvent(pub u16, pub Entity);
@@ -26,37 +17,12 @@ pub struct TestAckEvent(pub u16, pub Entity);
 #[derive(Component)]
 struct ControlledPlayer;
 
-#[derive(Default, Resource)]
-struct NetworkMapping(HashMap<Entity, Entity>);
-
-#[derive(Debug)]
-struct PlayerInfo {
-    client_entity: Entity,
-    server_entity: Entity,
-}
-
-#[derive(Debug, Default, Resource)]
-struct ClientLobby {
-    players: HashMap<ClientId, PlayerInfo>,
-}
-
-#[derive(Debug, Resource)]
-struct CurrentClientId(u64);
-
-#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Connected;
-
 pub struct ClientPlugin;
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(RenetClientPlugin);
         app.add_event::<TestAckEvent>();
 
-        app.insert_resource(ClientLobby::default());
-        app.insert_resource(NetworkMapping::default());
-
-        app.configure_sets(Update, Connected.run_if(client_connected));
         let client = RenetClient::new(connection_config());
         app.insert_resource(client);
 
@@ -69,120 +35,7 @@ impl Plugin for ClientPlugin {
         #[cfg(feature = "steam_transport")]
         app.add_plugins(SteamClientTransportPlugin);
 
-        app.add_event::<PlayerCommand>().add_systems(
-            Update,
-            (
-                // Self::client_send_input,
-                Self::client_send_player_commands,
-                Self::client_sync_players,
-            )
-                .in_set(Connected),
-        );
-
-        // #[cfg(feature = "visualizer")]
-        // app.insert_resource(RenetClientVisualizer::<200>::new(
-        //     RenetVisualizerStyle::default(),
-        // ));
-
-        // app.add_systems(
-        //     Startup,
-        //     (Self::setup_level, Self::setup_camera, Self::setup_target),
-        // );
-        // #[cfg(feature = "visualizer")]
-        // app.add_systems(Update, Self::update_visulizer_system);
-    }
-}
-
-impl ClientPlugin {
-    // #[cfg(feature = "visualizer")]
-    // fn update_visulizer_system(
-    //     mut egui_contexts: EguiContexts,
-    //     mut visualizer: ResMut<RenetClientVisualizer<200>>,
-    //     client: Res<RenetClient>,
-    //     mut show_visualizer: Local<bool>,
-    //     keyboard_input: Res<ButtonInput<KeyCode>>,
-    // ) {
-    //     visualizer.add_network_info(client.network_info());
-    //     if keyboard_input.just_pressed(KeyCode::F1) {
-    //         *show_visualizer = !*show_visualizer;
-    //     }
-    //     if *show_visualizer {
-    //         visualizer.show_window(egui_contexts.ctx_mut());
-    //     }
-    // }
-
-    fn client_send_player_commands(
-        mut player_commands: EventReader<PlayerCommand>,
-        mut client: ResMut<RenetClient>,
-    ) {
-        for command in player_commands.read() {
-            let command_message = bincode::serialize(command).unwrap();
-            client.send_message(ClientChannel::Command, command_message);
-        }
-    }
-
-    fn client_sync_players(
-        mut commands: Commands,
-        mut client: ResMut<RenetClient>,
-        client_id: Res<CurrentClientId>,
-        mut lobby: ResMut<ClientLobby>,
-        mut network_mapping: ResMut<NetworkMapping>,
-        mut events: EventWriter<TestAckEvent>,
-    ) {
-        let client_id = client_id.0;
-        while let Some(message) = client.receive_message(ServerChannel::ServerMessages) {
-            let server_message = bincode::deserialize(&message).unwrap();
-            match server_message {
-                ServerMessages::PlayerCreate {
-                    id,
-                    // translation,
-                    entity,
-                } => {
-                    println!("Player {} connected.", id);
-                    let mut client_entity = commands.spawn(Player { id });
-
-                    if client_id == id.raw() {
-                        client_entity.insert(ControlledPlayer);
-                    }
-
-                    let player_info = PlayerInfo {
-                        server_entity: entity,
-                        client_entity: client_entity.id(),
-                    };
-                    lobby.players.insert(id, player_info);
-                    network_mapping.0.insert(entity, client_entity.id());
-                }
-                ServerMessages::PlayerRemove { id } => {
-                    println!("Player {} disconnected.", id);
-                    if let Some(PlayerInfo {
-                        server_entity,
-                        client_entity,
-                    }) = lobby.players.remove(&id)
-                    {
-                        commands.entity(client_entity).despawn();
-                        network_mapping.0.remove(&server_entity);
-                    }
-                }
-                ServerMessages::AckCommand { value, player } => {
-                    events.send(TestAckEvent(value, player));
-                }
-            }
-        }
-
-        while let Some(message) = client.receive_message(ServerChannel::NetworkedEntities) {
-            let networked_entities: NetworkedEntities = bincode::deserialize(&message).unwrap();
-
-            for i in 0..networked_entities.entities.len() {
-                if let Some(_entity) = network_mapping.0.get(&networked_entities.entities[i]) {
-                    // let translation = networked_entities.translations[i].into();
-                    // let transform = Transform {
-                    //     translation,
-                    //     ..Default::default()
-                    // };
-                    // commands.entity(*entity).insert(transform);
-                }
-            }
-        }
+        app.add_event::<PlayerCommand>();
     }
 }
 
@@ -248,7 +101,6 @@ impl Plugin for NativeClientTransportPlugin {
         let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
 
         app.insert_resource(transport);
-        app.insert_resource(CurrentClientId(client_id));
     }
 }
 
@@ -275,7 +127,6 @@ impl Plugin for SteamClientTransportPlugin {
         let server_steam_id = SteamId::from_raw(server_steam_id);
         let transport = SteamClientTransport::new(&steam_client, &server_steam_id).unwrap();
         app.insert_resource(transport);
-        app.insert_resource(CurrentClientId(steam_client.user().steam_id().raw()));
     }
 }
 
