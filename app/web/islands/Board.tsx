@@ -1,55 +1,55 @@
 import { JSX } from "preact";
 import { useEffect, useMemo, useLayoutEffect, useCallback, useRef, useState } from "preact/hooks";
 
+interface ChessBoardControls {
+  boardRef: {current: Element},
+  // map from algebraic square name to piece name (e.g. 'wK', 'bN', 'bP')
+  position: Record<string, string> | null
+  icons: Record<string, string> | null
+  playMove: (source: string, target: string) => boolean,
+  requestTargets: (source: string) => void,
+  resetTargets: () => void,
+}
+
 function useChessBoard({
   boardRef,
-  selectSquare,
-  movePiece,
-  getTargets,
-  getPosition,
-  getIcons,
-  tick,
-}): Object | null {
+  position,
+  icons,
+  requestTargets,
+  resetTargets,
+  playMove,
+}: ChessBoardControls): unknown | null {
   const [board, setBoard] = useState(null);
-  const [selectedSquare, setSelectedSquare] = useState(null);
 
-  const targetedSquares = useMemo(
-    () => selectedSquare ? getTargets(selectedSquare) : null,
-    [getTargets, selectedSquare, tick],
-  );
+  const handleClickEmptySquare = useCallback(() => {
+    resetTargets();
+  }, [resetTargets]);
 
-  const handleClickEmptySquare = useCallback((square) => {
-    // TODO: need to incorporate selecting a targeted square to execute moves
-    // but it would be bad for this to take stateful dependencies because
-    // we would reinitialize the board every time
-    selectSquare(null);
-  }, [selectSquare]);
+  const handleDragStart = useCallback((source: string) => {
+    requestTargets(source);
+  }, [requestTargets]);
 
-  const handleDragStart = useCallback((source) => {
-    selectSquare(source);
-  }, [selectSquare]);
-
-  const handleDrop = useCallback((source, target, piece, newPos, oldPos, orientation) => {
-    const result = movePiece(source, target) ? "drop" : "snapback";
-    if (result === "drop") selectSquare(null);
+  const handleDrop = useCallback((source: string, target: string) => {
+    const result = playMove(source, target) ? "drop" : "snapback";
+    if (result === "drop") resetTargets();
     return result;
-  }, [movePiece, selectSquare]);
+  }, [playMove, resetTargets]);
 
   // TODO:
-  const icons = useMemo(() => getIcons(), [getIcons]);
 
   const config = useMemo(() => ({
-    position: getPosition() ?? 'start',
+    position: position ?? 'start',
     dropOffBoard: "snapback",
     draggable: true,
     onDragStart: handleDragStart,
     onDrop: handleDrop,
     onClickEmptySquare: handleClickEmptySquare,
-    pieceTheme: icons ? (piece) => icons[piece] : undefined,
+    pieceTheme: icons ? (piece: string) => icons[piece] : undefined,
   }), [
-    getPosition,
+    position,
     handleDrop,
     icons,
+    handleClickEmptySquare,
   ]);
 
   useEffect(() => {
@@ -64,54 +64,57 @@ function useChessBoard({
 }
 
 interface ChessBoardProps {
-  size: number
+  size?: number
   dimensions?: [number, number]
   // map from algebraic square name to piece name (e.g. 'wK', 'bN', 'bP')
-  getPosition: () => Record<string, string>
-  getIcons: () => Record<string, string>
-  getTargets: () => string[],
+  position: Record<string, string> | null
+  icons: Record<string, string> | null
+  targetSquares: string[] | null,
   lastMoveSquares: [string, string] | null,
-  movePiece: (source: string, target: string) => "success" | "failure"
-  tick: number
+  setupBoard: () => void,
+  playMove: (source: string, target: string) => boolean,
+  requestTargets: (source: string) => void,
+  resetTargets: () => void,
 }
 
 export default function Board({
   size = 800,
   dimensions = [8, 8],
-  getIcons,
-  getTargets,
-  getPosition,
+  position,
+  icons,
+  targetSquares,
   lastMoveSquares,
-  movePiece,
-  tick,
+  setupBoard,
+  playMove,
+  requestTargets,
+  resetTargets,
 }: ChessBoardProps): JSX.Element {
   const boardRef = useRef(null);
   const [selectedSquare, setSelectedSquare] = useState(null);
+  const selectPiece = useCallback((square: string) => {
+    setSelectedSquare(square);
+    requestTargets(square);
+  }, [])
+
   const board = useChessBoard({
     boardRef,
-    selectSquare: setSelectedSquare,
-    movePiece,
-    getTargets,
-    getPosition,
-    getIcons,
-    tick,
+    position,
+    icons,
+    playMove,
+    requestTargets: selectPiece,
+    resetTargets,
   });
-
-  const targetedSquares = useMemo(
-    () => selectedSquare ? getTargets(selectedSquare) : null,
-    [selectedSquare],
-  );
 
   // manage highlights on the selected square
   useHighlighter(boardRef, board, 'state', useMemo(() => selectedSquare ? [selectedSquare] : null, [selectedSquare]));
   // and any targeted squares
-  useHighlighter(boardRef, board, 'state', targetedSquares);
+  useHighlighter(boardRef, board, 'state', targetSquares);
   // and the last move squares
   useHighlighter(boardRef, board, 'state', lastMoveSquares);
   // and finally the target squares
   // TODO: dots for moves and circles for attacks, instead of backgrounds
   // could use more-transparent circles for unavailable attack squares
-  useHighlighter(boardRef, board, 'targets', targetedSquares);
+  useHighlighter(boardRef, board, 'targets', targetSquares);
 
   return <div ref={boardRef} style={`width: ${size}px`} />;
 }
@@ -171,7 +174,7 @@ function getSquareNode(rootElement: Element, square: string): Element | null {
 function useHighlighter(
   // TODO: get the preact Ref type
   rootRef: { current: Element | null },
-  board: Object | null,
+  board: unknown | null,
   highlight: HighlightKind,
   squaresToHighlight: string[] | null,
 ) {

@@ -1,3 +1,4 @@
+import { IS_BROWSER } from "$fresh/runtime.ts";
 import { useState, useMemo, useCallback, useRef, useEffect, VNode } from "preact/hooks";
 
 import Board from "./Board.tsx";
@@ -8,104 +9,80 @@ interface WasmGameProps {
 }
 
 export default function WasmGame({ name, description }: WasmGameProps) {
-  const { tick, getPosition, getIcons, lastMoveSquares, getTargets, movePiece } = useWasmGame(name);
+  if (!IS_BROWSER) {
+    return <Board />;
+  }
 
   return (
-    <Board
-      getIcons={getIcons}
-      lastMoveSquares={lastMoveSquares}
-      getPosition={getPosition}
-      getTargets={getTargets}
-      movePiece={movePiece}
-      tick={tick}
-    />
+    <Board {...useWasmGame(name)} />
   );
+}
+
+type RecvMessage =
+  | { kind: 'piece-icons', icons: Record<string, string> }
+  | { kind: 'position', position: Record<string, string>, lastMove: [string, string] | null }
+  | { kind: 'targets', source: string, targets: string[] }
+
+type SendMessage =
+  | { kind: 'setup-board' }
+  | { kind: 'remove-board' }
+  | { kind: 'play-move', source: string, target: string }
+  | { kind: 'request-targets', source: string }
+
+function sendMessage(worker: Worker, message: SendMessage) {
+  worker.postMessage(message);
 }
 
 function useWasmGame(game_name: string) {
-  const [app, setApp] = useState(null);
-  const [tick, setTick] = useState(null);
+  const [position, setPosition] = useState<Record<string, string> | null>(null);
+  const [icons, setIcons] = useState<Record<string, string> | null>(null);
+  const [targetSquares, setTargetSquares] = useState<string[] | null>(null);
   const [lastMoveSquares, setLastMoveSquares] = useState<[string, string] | null>(null);
 
-  useEffect(() => {
-      const worker = new Worker(
-        new URL("/js/workers/wasm.js", import.meta.url).href,
-      );
-
-      worker.postMessage({kind: 'start'});
-  }, []);
-
-  const start = useMemo(() => +Date.now() / 1000, []);
-  const value = useRef(0);
-  useInterval(useCallback(() => {
-    if (!app) return null;
-    app.send_server_message(value.current++);
-    app.update();
-  }, [app, start]), 20);
-
-  const movePiece = useCallback((pieceSquare: string, targetSquare: string) => {
-    if (app === null) return;
-    const didMove = app.trigger_move(pieceSquare, targetSquare);
-    if (didMove) {
-      app.update();
-      setLastMoveSquares([pieceSquare, targetSquare]);
-    }
-    return didMove;
-  }, [app]);
-
-  const getTargetSquares = useCallback(
-    (square: string): string[] | null =>
-      app?.get_target_squares(square)?.map((square) => square.get_representation()) ?? null,
-    [app],
-  );
-
-  const getPosition = useCallback(() => {
-    if (!app) return null
-    return Object.fromEntries(
-      app.get_piece_positions()
-        .map((position) => [position.square().get_representation(), position.piece().get_representation()])
-    )
-  }, [app]);
-
-  // todo: enable promotion
-  const getIcons = useCallback(() => {
-    if (!app) return null;
-    return Object.fromEntries(
-      app.get_icons().map((icon) => {
-        const piece = icon.get_piece();
-        return [piece, sanitizeIconSource(icon.to_source())];
-      })
+  const worker = useMemo(() => {
+    const worker = new Worker(
+      new URL("/js/workers/wasm.js", import.meta.url).href,
     );
-  }, [app])
+    setInterval(() => {
+      sendMessage(worker, {kind: "setup-board"});
+    }, 1000)
+    worker.onmessage = (event: MessageEvent<RecvMessage>) => {
+      switch (event.data.kind) {
+        case "piece-icons": {
+          setIcons(event.data.icons);
+          return;
+        }
+        case "position": {
+          setPosition(event.data.position);
+          setLastMoveSquares(event.data.lastMove ?? null);
+          return;
+        }
+        case "targets": {
+          setTargetSquares(event.data.targets);
+          return;
+        }
+        default: {
+          throw new Error(`Unexpected message received from worker: ${JSON.stringify(event.data)}`);
+        }
+      }
+    };
+  }, []);
+    
+  const setupBoard = useCallback(() => {
+    sendMessage(worker, {kind: 'setup-board'});
+  }, [worker]);
 
-  return { tick, getPosition, getIcons, movePiece, getTargets: getTargetSquares, lastMoveSquares };
-}
+  const requestTargets = useCallback((source: string) => {
+    sendMessage(worker, {kind: 'request-targets', source});
+  }, [worker])
 
-function sanitizeIconSource(source: string): string {
-  const trimmedSource = source.replaceAll('\\n', ' ')
-    .replaceAll('\n', ' ')
-    .replaceAll("\\\"", "\"")
-    .replaceAll("\"", "'")
-    .trim();
-  const parser = new DOMParser();
-  const svg = parser.parseFromString(trimmedSource, 'image/svg+xml');
-  const serializer = new XMLSerializer();
-  return serializer.serializeToString(svg);
-}
+  const resetTargets = useCallback(() => {
+    setTargetSquares(null);
+  }, [worker])
 
-function useInterval(callback, delay) {
-  const savedCallback = useRef();
+  const playMove = useCallback((source: string, target: string) => {
+    sendMessage(worker, {kind: 'play-move', source, target});
+  }, [worker]);
 
-  useEffect(() => {
-    savedCallback.current = callback;
-  });
-
-  useEffect(() => {
-    function tick() {
-      savedCallback.current();
-    }
-
-    let id = setInterval(tick, delay);
-    return () => clearInterval(id);
-  }, [delay]);
+  return { position, icons, targetSquares, lastMoveSquares, setupBoard, requestTargets, resetTargets, playMove };
 }
