@@ -20,7 +20,7 @@ export default function WasmGame({ name, description }: WasmGameProps) {
 
 type RecvMessage =
   | { kind: 'piece-icons', icons: Record<string, string> }
-  | { kind: 'position', position: Record<string, string>, lastMove: [string, string] | null }
+  | { kind: 'position', position: Record<string, string>, lastMove: [string, string] | null | undefined }
   | { kind: 'targets', source: string, targets: string[] }
 
 type SendMessage =
@@ -43,9 +43,9 @@ function useWasmGame(game_name: string) {
     const worker = new Worker(
       new URL("/js/workers/wasm.js", import.meta.url).href,
     );
-    setInterval(() => {
+    setTimeout(() => {
       sendMessage(worker, {kind: "setup-board"});
-    }, 1000)
+    }, 1000);
     worker.onmessage = (event: MessageEvent<RecvMessage>) => {
       switch (event.data.kind) {
         case "piece-icons": {
@@ -53,8 +53,9 @@ function useWasmGame(game_name: string) {
           return;
         }
         case "position": {
+            console.log(event.data.position);
           setPosition(event.data.position);
-          setLastMoveSquares(event.data.lastMove ?? null);
+          if (event.data.lastMove !== undefined) setLastMoveSquares(event.data.lastMove ?? null);
           return;
         }
         case "targets": {
@@ -66,6 +67,7 @@ function useWasmGame(game_name: string) {
         }
       }
     };
+    return worker;
   }, []);
     
   const setupBoard = useCallback(() => {

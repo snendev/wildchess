@@ -30,9 +30,8 @@ function useChessBoard({
   }, [requestTargets]);
 
   const handleDrop = useCallback((source: string, target: string) => {
-    const result = playMove(source, target) ? "drop" : "snapback";
-    if (result === "drop") resetTargets();
-    return result;
+    resetTargets();
+    playMove(source, target);
   }, [playMove, resetTargets]);
 
   // TODO:

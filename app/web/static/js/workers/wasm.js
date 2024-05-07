@@ -9,7 +9,7 @@ let app;
 runApp();
 
 function onMessage(event) {
-  console.log(event);
+  //   console.log(event);
   if (app === undefined) {
     console.warn("message received before app is instantiated; ignoring");
     return;
@@ -17,6 +17,8 @@ function onMessage(event) {
   switch (event.data.kind) {
     case "setup-board": {
       app.setup_board();
+      app.update();
+      app.update();
       postMessage({
         kind: "piece-icons",
         icons: Object.fromEntries(
@@ -30,11 +32,36 @@ function onMessage(event) {
     }
     case "remove-board": {
       app.remove_board();
+      app.update();
+      postMessage({
+        kind: "position",
+        position: null,
+        lastMove: null,
+      });
       return;
     }
     case "play-move": {
-      app.trigger_move(event.data.source, event.data.target);
-      app.update();
+      // TODO enable premove
+      const targets = app.get_target_squares(event.data.source).map((square) =>
+        square.get_representation()
+      );
+      if (targets.includes(event.data.target)) {
+        app.trigger_move(event.data.source, event.data.target);
+        app.update();
+        postMessage({
+          kind: "position",
+          position: Object.fromEntries(
+            app.get_piece_positions().map((
+              position,
+            ) => [
+              position.square().get_representation(),
+              position.piece().get_representation(),
+            ]),
+          ),
+          lastMove: [event.data.source, event.data.target],
+        });
+        return;
+      }
       postMessage({
         kind: "position",
         position: Object.fromEntries(
@@ -45,7 +72,7 @@ function onMessage(event) {
             position.piece().get_representation(),
           ]),
         ),
-        lastMove: [event.data.source, event.data.target],
+        lastMove: undefined,
       });
       return;
     }
@@ -82,13 +109,8 @@ async function runApp() {
 }
 
 function sanitizeIconSource(source) {
-  const trimmedSource = source.replaceAll("\\n", " ")
+  return source.replaceAll("\\n", " ")
     .replaceAll("\n", " ")
     .replaceAll('\\"', '"')
-    .replaceAll('"', "'")
     .trim();
-  const parser = new DOMParser();
-  const svg = parser.parseFromString(trimmedSource, "image/svg+xml");
-  const serializer = new XMLSerializer();
-  return serializer.serializeToString(svg);
 }
