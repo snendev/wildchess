@@ -918,8 +918,8 @@ dependencies = [
 
 [[package]]
 name = "bevy_renet2"
-version = "0.0.1"
-source = "git+https://github.com/UkoeHB/renet2#0d9f97a3516265bdac516c4fb9ee4a0289243db7"
+version = "0.0.2"
+source = "git+https://github.com/UkoeHB/renet2#a4ea515b79a03d7544873faf80b29252d373bac8"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -2531,7 +2531,7 @@ dependencies = [
 [[package]]
 name = "h3"
 version = "0.0.4"
-source = "git+https://github.com/hyperium/h3#b44edeb60d234d49c45828395108f7519a048d4b"
+source = "git+https://github.com/hyperium/h3#eb79204f170681f7334d25d1a6aa72718eee35db"
 dependencies = [
  "bytes",
  "fastrand",
@@ -2545,7 +2545,7 @@ dependencies = [
 [[package]]
 name = "h3-quinn"
 version = "0.0.5"
-source = "git+https://github.com/hyperium/h3#b44edeb60d234d49c45828395108f7519a048d4b"
+source = "git+https://github.com/hyperium/h3#eb79204f170681f7334d25d1a6aa72718eee35db"
 dependencies = [
  "bytes",
  "futures",
@@ -2559,7 +2559,7 @@ dependencies = [
 [[package]]
 name = "h3-webtransport"
 version = "0.1.0"
-source = "git+https://github.com/hyperium/h3#b44edeb60d234d49c45828395108f7519a048d4b"
+source = "git+https://github.com/hyperium/h3#eb79204f170681f7334d25d1a6aa72718eee35db"
 dependencies = [
  "bytes",
  "futures-util",
@@ -3899,8 +3899,8 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "renet2"
-version = "0.0.1"
-source = "git+https://github.com/UkoeHB/renet2#0d9f97a3516265bdac516c4fb9ee4a0289243db7"
+version = "0.0.2"
+source = "git+https://github.com/UkoeHB/renet2#a4ea515b79a03d7544873faf80b29252d373bac8"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -3937,8 +3937,8 @@ dependencies = [
 
 [[package]]
 name = "renet2_steam"
-version = "0.0.1"
-source = "git+https://github.com/UkoeHB/renet2#0d9f97a3516265bdac516c4fb9ee4a0289243db7"
+version = "0.0.2"
+source = "git+https://github.com/UkoeHB/renet2#a4ea515b79a03d7544873faf80b29252d373bac8"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -3950,8 +3950,8 @@ dependencies = [
 
 [[package]]
 name = "renetcode2"
-version = "0.0.1"
-source = "git+https://github.com/UkoeHB/renet2#0d9f97a3516265bdac516c4fb9ee4a0289243db7"
+version = "0.0.2"
+source = "git+https://github.com/UkoeHB/renet2#a4ea515b79a03d7544873faf80b29252d373bac8"
 dependencies = [
  "chacha20poly1305",
  "log",
@@ -5117,7 +5117,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot 0.12.2",
+ "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle 0.6.1",
  "smallvec",
@@ -5145,7 +5145,7 @@ dependencies = [
  "log",
  "naga",
  "once_cell",
- "parking_lot 0.12.2",
+ "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle 0.6.1",
  "rustc-hash",
@@ -5187,7 +5187,7 @@ dependencies = [
  "ndk-sys",
  "objc",
  "once_cell",
- "parking_lot 0.12.2",
+ "parking_lot 0.11.2",
  "profiling",
  "range-alloc",
  "raw-window-handle 0.6.1",

@@ -194,7 +194,7 @@ impl Plugin for NativeServerTransportPlugin {
         };
 
         #[derive(Resource)]
-        pub struct TokioRuntime(tokio::runtime::Runtime);
+        pub struct TokioRuntime(#[allow(dead_code)] tokio::runtime::Runtime);
 
         #[cfg(feature = "native_transport")]
         let socket = {
@@ -215,13 +215,9 @@ impl Plugin for NativeServerTransportPlugin {
                 cert_hash_b64
             );
             let runtime = tokio::runtime::Runtime::new().unwrap();
-            let socket = runtime.block_on(async {
-                renet2::transport::WebTransportServer::new(
-                    config,
-                    tokio::runtime::Handle::try_current().unwrap(),
-                )
-                .unwrap()
-            });
+            let socket =
+                renet2::transport::WebTransportServer::new(config, runtime.handle().clone())
+                    .unwrap();
             app.insert_resource(TokioRuntime(runtime));
             socket
         };
