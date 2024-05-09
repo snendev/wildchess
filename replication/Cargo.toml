@@ -1,5 +1,5 @@
 [package]
-name = "transport"
+name = "replication"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -7,22 +7,13 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["log"]
+default = []
 log = ["dep:bevy_log"]
-server = ["dep:fastrand", "dep:tokio"]
-client = []
-native_transport = ["renet2/native_transport"]
-memory_transport = ["renet2/memory_transport"]
-web_transport_client = [
-    "client",
-    "renet2/wt_client_transport",
-    "dep:wasm-timer",
-]
-web_transport_server = ["server", "renet2/wt_server_transport"]
-steam_transport = ["dep:renet2_steam", "dep:steamworks"]
 
 [dependencies]
+serde = { version = "1.0" }
 bevy_app = { version = "0.13" }
 bevy_ecs = { version = "0.13" }
 bevy_log = { version = "0.13", optional = true }
+bevy_replicon = { version = "0.24" }
 transport = { path = "../transport" }

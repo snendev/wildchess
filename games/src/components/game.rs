@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::{Commands, Component};
 
 use chess::board::{Rank, Square};
@@ -6,10 +9,12 @@ use super::Clock;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Component)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Game;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Component)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum GameBoard {
     Chess,
     #[default]
@@ -24,23 +29,27 @@ pub enum GameBoard {
 // additionally capturing on all squares in the region of the capture.
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Atomic;
 
 // A game rule specifying that players can place captured pieces
 // on the board using a turn.
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Crazyhouse;
 
 // A game rule specifying that the typical win condition results in a loss;
 // Pieces must capture if they are able to.
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct AntiGame;
 
 // The set of win conditions for the board
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum WinCondition {
     // The game is won once all enemy Royal pieces are captured.
     #[default]
@@ -56,6 +65,7 @@ pub enum WinCondition {
 
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ClockConfiguration {
     pub clock: Clock,
 }

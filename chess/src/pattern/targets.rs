@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 
@@ -5,6 +8,7 @@ use crate::team::Team;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum TargetKind {
     #[default]
     Enemy,

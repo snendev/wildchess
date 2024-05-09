@@ -1,4 +1,4 @@
-use bevy_app::prelude::{App, Plugin, PostUpdate, Update};
+use bevy_app::prelude::{App, Plugin, PluginGroup, Update};
 use bevy_ecs::prelude::{
     on_event, Added, Component, Condition, IntoSystemConfigs, IntoSystemSetConfigs, Query,
 };
@@ -7,13 +7,19 @@ use chess::{
     actions::Actions,
     behavior::{BehaviorsPlugin, BehaviorsSet, MimicBehavior, PatternBehavior, RelayBehavior},
     pieces::Position,
-    ChessTypesPlugin,
+    ChessPlugin,
 };
+
+#[cfg(feature = "replication")]
+use bevy_replicon::prelude::*;
 
 mod events;
 pub use events::{IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent};
 
-use crate::components::History;
+use crate::components::{
+    AntiGame, Atomic, Clock, ClockConfiguration, Crazyhouse, Game, GameBoard, HasTurn, History,
+    Player, Ply, WinCondition,
+};
 
 use self::events::GameoverEvent;
 
@@ -24,11 +30,11 @@ pub struct GameplayPlugin;
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            ChessTypesPlugin,
+            ChessPlugin,
             BehaviorsPlugin::from_input_system(systems::last_action),
         ))
         .configure_sets(
-            PostUpdate,
+            Update,
             BehaviorsSet
                 .run_if(any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>())),
         )
@@ -55,9 +61,30 @@ impl Plugin for GameplayPlugin {
                 systems::track_turn_history.run_if(on_event::<TurnEvent>()),
                 systems::tick_clocks,
             )
-                .chain(),
+                .chain()
+                .before(BehaviorsSet),
         )
         .add_systems(Update, systems::spawn_game_entities);
+
+        #[cfg(feature = "replication")]
+        if !app.is_plugin_added::<RepliconCorePlugin>() {
+            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
+        }
+        #[cfg(feature = "replication")]
+        app.add_client_event::<IssueMoveEvent>(ChannelKind::Ordered)
+            .add_client_event::<IssueMutationEvent>(ChannelKind::Ordered)
+            .add_server_event::<TurnEvent>(ChannelKind::Ordered)
+            .replicate::<Clock>()
+            .replicate::<Player>()
+            .replicate::<Ply>()
+            .replicate::<HasTurn>()
+            .replicate::<Game>()
+            .replicate::<GameBoard>()
+            .replicate::<Atomic>()
+            .replicate::<Crazyhouse>()
+            .replicate::<AntiGame>()
+            .replicate::<WinCondition>()
+            .replicate::<ClockConfiguration>();
     }
 }
 
@@ -126,6 +153,8 @@ mod tests {
         app.add_plugins(bevy_core::FrameCountPlugin);
         app.add_plugins(bevy_time::TimePlugin);
         app.add_plugins(bevy_app::ScheduleRunnerPlugin::default());
+        #[cfg(feature = "replication")]
+        app.add_plugins(RepliconCorePlugin);
 
         app.add_plugins(GameplayPlugin);
 

@@ -1,3 +1,5 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use bevy_ecs::prelude::{Changed, Commands, Component, Entity, Query, RemovedComponents, With};
@@ -8,12 +10,15 @@ use chess::actions::Action;
 
 use super::{Game, InGame};
 
-#[derive(Clone, Copy, Component, Debug)]
+#[derive(Clone, Copy, Debug)]
+#[derive(Component)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct HasTurn;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Component)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Ply(usize);
 
 impl Ply {
@@ -35,6 +40,7 @@ impl Ply {
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ActionHistory(Vec<(Entity, Action)>);
 
 impl std::ops::Index<Ply> for ActionHistory {
@@ -68,6 +74,7 @@ impl ActionHistory {
 #[derive(Clone, Debug)]
 #[derive(Component)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct History<T>(BTreeMap<Ply, Option<T>>);
 
 impl<T> History<T> {

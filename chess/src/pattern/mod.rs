@@ -1,4 +1,6 @@
 use itertools::Either;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
@@ -25,6 +27,7 @@ use self::capture::CaptureData;
 // The calculation type for board searches
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Pattern {
     // struct that defines how to walk the board space
     pub scanner: Scanner,
@@ -37,6 +40,7 @@ pub struct Pattern {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Constraints {
     pub from_rank: Option<FromRankConstraint>,
     pub forbidden_targets: Option<ForbiddenTargetConstraint>,
@@ -44,9 +48,11 @@ pub struct Constraints {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct FromRankConstraint(pub Rank);
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ForbiddenTargetConstraint(pub Vec<Square>);
 
 // TODO Chains

@@ -15,16 +15,13 @@ compile_error!("Must provide features to enable client or server");
 )))]
 compile_error!("Must enable one of the transport features: native (UDP), in-memory, webtransport, and steam transports are supported.");
 
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use bevy_app::Plugin;
-use serde::{Deserialize, Serialize};
+use bevy_ecs::prelude::{Component, Entity};
 
-use bevy_ecs::prelude::{Component, Entity, Event};
 use bevy_renet2::renet2::{ChannelConfig, ConnectionConfig, SendType};
 use bevy_replicon::prelude::ClientId;
-
-mod bevy_replicon_renet2;
 
 #[cfg(feature = "client")]
 pub mod client;
@@ -39,13 +36,6 @@ pub const PROTOCOL_ID: u64 = 7;
 #[derive(Component)]
 pub struct Player {
     pub id: ClientId,
-}
-
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
-#[derive(Component, Event)]
-pub enum PlayerCommand {
-    FakeCommand { value: u16 },
 }
 
 pub enum ClientChannel {
@@ -111,7 +101,7 @@ impl ServerChannel {
     }
 }
 
-pub fn connection_config() -> ConnectionConfig {
+pub(crate) fn connection_config() -> ConnectionConfig {
     ConnectionConfig {
         available_bytes_per_tick: 1024 * 1024,
         client_channels_config: ClientChannel::channels_config(),

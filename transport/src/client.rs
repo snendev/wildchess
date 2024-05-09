@@ -1,22 +1,14 @@
 use bevy_app::prelude::{App, Plugin};
-use bevy_ecs::prelude::{Component, Entity, Event};
 
 use bevy_renet2::renet2::RenetClient;
 
-use crate::{connection_config, PlayerCommand, PROTOCOL_ID};
-
-#[derive(Event)]
-pub struct TestAckEvent(pub u16, pub Entity);
-
-#[derive(Component)]
-struct ControlledPlayer;
+use crate::{connection_config, PROTOCOL_ID};
 
 pub struct ClientPlugin;
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<TestAckEvent>();
-
+        eprintln!("{}", app.world.is_resource_added::<RenetClient>());
         let client = RenetClient::new(connection_config());
         app.insert_resource(client);
 
@@ -28,8 +20,6 @@ impl Plugin for ClientPlugin {
         app.add_plugins(NativeClientTransportPlugin);
         #[cfg(feature = "steam_transport")]
         app.add_plugins(SteamClientTransportPlugin);
-
-        app.add_event::<PlayerCommand>();
     }
 }
 

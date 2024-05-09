@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
 use bevy_ecs::prelude::{Commands, Component, Entity, In, Query};
@@ -18,9 +21,11 @@ use crate::behavior::Behavior;
 #[derive(Component)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct MimicBehavior;
 
-#[derive(Clone, Component, Debug)]
+#[derive(Clone, Debug)]
+#[derive(Component)]
 pub struct MimicActionsCache(Actions);
 
 impl From<Actions> for MimicActionsCache {

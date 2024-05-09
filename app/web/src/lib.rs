@@ -7,6 +7,9 @@ use wasm_bindgen::prelude::*;
 use bevy_app::{App, PreUpdate};
 use bevy_ecs::prelude::{Entity, Events, Res, Resource, With};
 
+use bevy_replicon::prelude::ClientPlugin as RepliconClientPlugin;
+use bevy_replicon_renet2::RepliconRenetClientPlugin;
+
 use games::{
     chess::{
         actions::Actions,
@@ -17,7 +20,7 @@ use games::{
     components::{GameBoard, GameSpawner, WinCondition},
     GameplayPlugin, IssueMoveEvent,
 };
-use transport::{client::ClientPlugin, PlayerCommand};
+use transport::client::ClientPlugin as ClientTransportPlugin;
 use wild_icons::PieceIconSvg;
 
 // Use this to enable console logging
@@ -42,15 +45,21 @@ impl WasmApp {
             .expect("to be able to create a crossbeam channel");
 
         let mut app = bevy_app::App::default();
-        app.add_plugins(bevy_core::TaskPoolPlugin::default());
-        app.add_plugins(bevy_core::TypeRegistrationPlugin);
-        app.add_plugins(bevy_core::FrameCountPlugin);
-        app.add_plugins(bevy_time::TimePlugin);
-        app.add_plugins(bevy_app::ScheduleRunnerPlugin::default());
-
-        app.add_plugins(GameplayPlugin);
-        app.add_plugins(ClientPlugin);
+        app.add_plugins((
+            bevy_core::TaskPoolPlugin::default(),
+            bevy_core::TypeRegistrationPlugin,
+            bevy_core::FrameCountPlugin,
+            bevy_time::TimePlugin,
+            bevy_app::ScheduleRunnerPlugin::default(),
+        ));
+        app.add_plugins((
+            GameplayPlugin,
+            RepliconClientPlugin,
+            RepliconRenetClientPlugin,
+            ClientTransportPlugin,
+        ));
         app.add_plugins(wild_icons::PieceIconPlugin);
+
         app.insert_resource(PingReceiver(rx));
         app.add_systems(PreUpdate, PingReceiver::receive_message_system);
 
@@ -73,13 +82,6 @@ impl WasmApp {
         for entity in game_query.iter(&self.0.world).collect::<Vec<_>>() {
             self.0.world.entity_mut(entity).despawn();
         }
-    }
-
-    #[wasm_bindgen]
-    pub fn send_server_message(&mut self, value: u16) {
-        self.0
-            .world
-            .send_event(PlayerCommand::FakeCommand { value });
     }
 
     #[wasm_bindgen]

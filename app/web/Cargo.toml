@@ -18,6 +18,10 @@ bevy_app = { version = "0.13" }
 bevy_ecs = { version = "0.13" }
 bevy_core = { version = "0.13" }
 bevy_time = { version = "0.13" }
+bevy_replicon = { version = "0.24" }
+bevy_replicon_renet2 = { path = "../../bevy_replicon_renet2" }
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 console_error_panic_hook = "0.1.7"
 crossbeam = "0.8"
+# fix a bevy_asset bug by including the required feature
+web-sys = { version = "*", features = ["WorkerGlobalScope"] }

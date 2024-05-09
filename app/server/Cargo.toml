@@ -15,3 +15,5 @@ transport = { path = "../../transport", features = [
     "web_transport_server",
 ] }
 bevy = { version = "0.13", default-features = false }
+bevy_replicon = { version = "0.24" }
+bevy_replicon_renet2 = { path = "../../bevy_replicon_renet2" }

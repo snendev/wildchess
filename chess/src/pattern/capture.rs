@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 use bevy_utils::{HashMap, HashSet};
@@ -8,6 +11,7 @@ use super::{scanner::ScanTarget, TargetKind};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum CaptureMode {
     #[default]
     CanCapture,
@@ -16,6 +20,7 @@ pub enum CaptureMode {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum CapturePattern {
     #[default]
     // captures when landing on an enemy square
@@ -34,6 +39,7 @@ pub enum CapturePattern {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CaptureRules {
     pub mode: CaptureMode,
     pub pattern: CapturePattern,

@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::{Entity, Event};
 
 use chess::{actions::Action, pieces::PieceDefinition, team::Team};
@@ -5,6 +8,7 @@ use chess::{actions::Action, pieces::PieceDefinition, team::Team};
 use crate::components::Ply;
 
 #[derive(Event)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct TurnEvent {
     pub ply: Ply,
     pub piece: Entity,
@@ -46,6 +50,7 @@ impl TurnEvent {
 }
 
 #[derive(Event)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct IssueMoveEvent {
     pub piece: Entity,
     pub action: Action,
@@ -54,6 +59,7 @@ pub struct IssueMoveEvent {
 // A useful event for informing the controller that it must provide a mutation to continue
 #[derive(Clone)]
 #[derive(Event)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RequestMutationEvent {
     pub piece: Entity,
     pub action: Action,
@@ -61,6 +67,7 @@ pub struct RequestMutationEvent {
 
 #[derive(Clone)]
 #[derive(Event)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct IssueMutationEvent {
     pub piece: Entity,
     pub action: Action,
@@ -69,6 +76,7 @@ pub struct IssueMutationEvent {
 
 #[derive(Clone)]
 #[derive(Event)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct GameoverEvent {
     pub winner: Team,
 }

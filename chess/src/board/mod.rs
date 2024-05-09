@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
 use bevy_ecs::prelude::{Component, Entity};
@@ -11,6 +14,7 @@ pub use square::{File, Rank, Square};
 #[derive(Component)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 
 pub struct OnBoard(pub Entity);
 
@@ -18,6 +22,7 @@ pub struct OnBoard(pub Entity);
 #[derive(Component)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Board {
     pub size: Square,
 }

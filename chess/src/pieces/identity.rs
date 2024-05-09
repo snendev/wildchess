@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::Component;
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
@@ -12,6 +15,7 @@ use bevy_reflect::Reflect;
 #[derive(Component)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum PieceIdentity {
     // The default: implies that this piece does not fit an existing stereotype
     // #[default]

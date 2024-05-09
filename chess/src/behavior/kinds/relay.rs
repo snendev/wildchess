@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
 use bevy_ecs::prelude::{Commands, Component, Entity, In, Query};
@@ -20,6 +23,7 @@ use crate::behavior::{Behavior, PatternBehavior};
 #[derive(Component)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 // A behavior that "relays" patterns to scanned ally pieces
 pub struct RelayBehavior {
     pub patterns: Vec<Pattern>,

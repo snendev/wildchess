@@ -1,4 +1,5 @@
 use bevy_app::prelude::{App, Plugin};
+use bevy_replicon::prelude::{AppReplicationExt, ParentSyncPlugin, RepliconCorePlugin};
 
 pub mod actions;
 pub mod behavior;
@@ -7,10 +8,25 @@ pub mod pattern;
 pub mod pieces;
 pub mod team;
 
-pub struct ChessTypesPlugin;
+pub struct ChessPlugin;
 
-impl Plugin for ChessTypesPlugin {
+impl Plugin for ChessPlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(feature = "replication")]
+        if !app.is_plugin_added::<RepliconCorePlugin>() {
+            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
+        }
+        // TODO: should be plugins for each submodule instead
+        #[cfg(feature = "replication")]
+        app.replicate::<board::Board>()
+            .replicate::<board::OnBoard>()
+            .replicate::<pieces::Mutation>()
+            .replicate::<pieces::Orientation>()
+            .replicate::<pieces::PieceIdentity>()
+            .replicate::<pieces::Position>()
+            .replicate::<pieces::Royal>()
+            .replicate::<team::Team>();
+
         #[cfg(feature = "reflect")]
         app.register_type::<team::Team>()
             .register_type::<behavior::PatternBehavior>()

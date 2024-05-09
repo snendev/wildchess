@@ -1,19 +1,15 @@
 use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::prelude::{Commands, Entity, EventReader, Query};
+use bevy_ecs::prelude::{Commands, Entity, EventReader, Query, Resource};
 
-use bevy_renet2::{renet2::RenetServer, RenetServerPlugin};
+use bevy_renet2::renet2::RenetServer;
 use bevy_replicon::{core::replication_rules::Replication, prelude::ServerEvent};
 
 use crate::{connection_config, Player, PROTOCOL_ID};
-
-// use renet2_visualizer::RenetServerVisualizer;
 
 pub struct ServerPlugin;
 
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(RenetServerPlugin);
-
         #[cfg(any(
             feature = "web_transport_server",
             feature = "memory_transport",
@@ -112,6 +108,7 @@ impl Plugin for NativeServerTransportPlugin {
             pub struct TokioRuntime(#[allow(dead_code)] tokio::runtime::Runtime);
 
             use base64::Engine;
+
             let (config, cert_hash) =
                 renet2::transport::WebTransportServerConfig::new_selfsigned(public_addr, 4);
 

@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::{Bundle, Commands, Component, Entity, In, Query};
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
@@ -79,6 +82,7 @@ pub trait Behavior {
 
 #[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PieceBehaviors {
     pub pattern: Option<PatternBehavior>,
     pub en_passant: Option<EnPassantBehavior>,

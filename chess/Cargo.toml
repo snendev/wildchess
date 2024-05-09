@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = []
+default = ["serde", "replication"]
 log = ["dep:bevy_log"]
 reflect = ["dep:bevy_reflect"]
+replication = ["dep:bevy_replicon", "serde"]
+serde = ["dep:serde"]
 
 [dependencies]
 bevy_app = { version = "0.13" }
@@ -14,7 +16,8 @@ bevy_ecs = { version = "0.13" }
 bevy_log = { version = "0.13", optional = true }
 bevy_reflect = { version = "0.13", optional = true }
 bevy_utils = { version = "0.13" }
-bevy_replicon = { version = "0.24" }
+bevy_replicon = { version = "0.24", optional = true }
+serde = { version = "1.0", optional = true, features = ["derive"] }
 anyhow = { version = "1.0" }
 bitflags = { version = "2.4" }
 thiserror = { version = "1.0" }
