@@ -17,7 +17,7 @@ use games::{
     components::{GameBoard, GameSpawner, WinCondition},
     GameplayPlugin, IssueMoveEvent,
 };
-use networking::{client::ClientPlugin, PlayerCommand};
+use transport::{client::ClientPlugin, PlayerCommand};
 use wild_icons::PieceIconSvg;
 
 // Use this to enable console logging

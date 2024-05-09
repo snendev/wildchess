@@ -1424,7 +1424,7 @@ dependencies = [
  "bevy",
  "chess_ui",
  "games",
- "networking",
+ "transport",
 ]
 
 [[package]]
@@ -1433,8 +1433,8 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "games",
- "networking",
  "tokio",
+ "transport",
 ]
 
 [[package]]
@@ -1458,7 +1458,7 @@ dependencies = [
  "console_error_panic_hook",
  "crossbeam",
  "games",
- "networking",
+ "transport",
  "wasm-bindgen",
  "wild_icons",
 ]
@@ -3129,25 +3129,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "networking"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.0",
- "bevy_app",
- "bevy_ecs",
- "bevy_math",
- "bevy_renet2",
- "bincode",
- "fastrand",
- "renet2",
- "renet2_steam",
- "serde",
- "steamworks",
- "tokio",
- "wasm-timer",
-]
-
-[[package]]
 name = "nix"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4677,6 +4658,25 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "transport"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.0",
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_math",
+ "bevy_renet2",
+ "bincode",
+ "fastrand",
+ "renet2",
+ "renet2_steam",
+ "serde",
+ "steamworks",
+ "tokio",
+ "wasm-timer",
 ]
 
 [[package]]

@@ -9,7 +9,7 @@ use bevy::{
 };
 
 use games::GameplayPlugin;
-use networking::server::ServerPlugin;
+use transport::server::ServerPlugin;
 
 fn main() {
     App::default()

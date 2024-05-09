@@ -9,7 +9,7 @@ publish = false
 [dependencies]
 games = { path = "../../games" }
 bevy = { version = "0.13", default-features = false }
-networking = { path = "../../networking", features = [
+transport = { path = "../../transport", features = [
     "client",
     "native_transport",
 ] }

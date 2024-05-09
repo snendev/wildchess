@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 games = { path = "../../games" }
-networking = { path = "../../networking", features = [
+transport = { path = "../../transport", features = [
     # "server",
     # "native_transport",
     # "steam_transport",
