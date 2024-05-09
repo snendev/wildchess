@@ -3,8 +3,8 @@
 compile_error!("Must provide features to enable client or server");
 // TODO: ultimately this should be supported to represent P2P cases,
 // but IDK whether webtransport can handle this
-#[cfg(all(feature = "client", feature = "server"))]
-compile_error!("Cannot compile as both client and server");
+// #[cfg(all(feature = "client", feature = "server"))]
+// compile_error!("Cannot compile as both client and server");
 // Ensure that at least one of the supported transports is enabled
 #[cfg(not(any(
     feature = "native_transport",

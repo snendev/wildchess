@@ -193,9 +193,6 @@ impl Plugin for NativeServerTransportPlugin {
             authentication: ServerAuthentication::Unsecure,
         };
 
-        #[derive(Resource)]
-        pub struct TokioRuntime(#[allow(dead_code)] tokio::runtime::Runtime);
-
         #[cfg(feature = "native_transport")]
         let socket = {
             let udp_socket = std::net::UdpSocket::bind(public_addr).unwrap();
@@ -204,6 +201,9 @@ impl Plugin for NativeServerTransportPlugin {
 
         #[cfg(feature = "web_transport_server")]
         let socket = {
+            #[derive(Resource)]
+            pub struct TokioRuntime(#[allow(dead_code)] tokio::runtime::Runtime);
+
             use base64::Engine;
             let (config, cert_hash) =
                 renet2::transport::WebTransportServerConfig::new_selfsigned(public_addr, 4);
