@@ -193,11 +193,15 @@ impl Plugin for NativeServerTransportPlugin {
             authentication: ServerAuthentication::Unsecure,
         };
 
+        #[derive(Resource)]
+        pub struct TokioRuntime(tokio::runtime::Runtime);
+
         #[cfg(feature = "native_transport")]
         let socket = {
             let udp_socket = std::net::UdpSocket::bind(public_addr).unwrap();
             renet2::transport::NativeSocket::new(udp_socket).unwrap()
         };
+
         #[cfg(feature = "web_transport_server")]
         let socket = {
             use base64::Engine;
@@ -210,10 +214,16 @@ impl Plugin for NativeServerTransportPlugin {
                 "WT SERVER CERT HASH (PASTE ME TO CLIENTS): {:?}",
                 cert_hash_b64
             );
-            let runtime_handle = tokio::runtime::Handle::try_current().expect(
-                "to be run inside a tokio runtime when compiling with webtransport enabled",
-            );
-            renet2::transport::WebTransportServer::new(config, runtime_handle).unwrap()
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            let socket = runtime.block_on(async {
+                renet2::transport::WebTransportServer::new(
+                    config,
+                    tokio::runtime::Handle::try_current().unwrap(),
+                )
+                .unwrap()
+            });
+            app.insert_resource(TokioRuntime(runtime));
+            socket
         };
 
         let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
