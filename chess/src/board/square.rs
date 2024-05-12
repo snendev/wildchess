@@ -1,5 +1,4 @@
 use anyhow::Error as AnyError;
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -11,7 +10,7 @@ use crate::{pieces::Orientation, team::Team};
 use super::Board;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct File(pub u16);
 
@@ -94,7 +93,7 @@ impl From<&File> for u16 {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Rank(pub u16);
 
@@ -179,8 +178,8 @@ impl From<&Rank> for u16 {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Square {
     pub file: File,
     pub rank: Rank,

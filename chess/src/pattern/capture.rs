@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
@@ -10,8 +9,8 @@ use crate::{actions::Action, board::Square, team::Team};
 use super::{scanner::ScanTarget, TargetKind};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum CaptureMode {
     #[default]
     CanCapture,
@@ -19,8 +18,8 @@ pub enum CaptureMode {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum CapturePattern {
     #[default]
     // captures when landing on an enemy square
@@ -38,8 +37,8 @@ pub enum CapturePattern {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CaptureRules {
     pub mode: CaptureMode,
     pub pattern: CapturePattern,

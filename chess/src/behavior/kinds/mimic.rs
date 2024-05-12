@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
@@ -19,9 +18,9 @@ use crate::behavior::Behavior;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct MimicBehavior;
 
 #[derive(Clone, Debug)]

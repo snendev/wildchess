@@ -12,12 +12,10 @@ pub struct ChessPlugin;
 
 impl Plugin for ChessPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(feature = "replication")]
         if !app.is_plugin_added::<RepliconCorePlugin>() {
             app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
         }
         // TODO: should be plugins for each submodule instead
-        #[cfg(feature = "replication")]
         app.replicate::<board::Board>()
             .replicate::<board::OnBoard>()
             .replicate::<pieces::Mutation>()

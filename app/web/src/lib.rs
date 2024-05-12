@@ -1,14 +1,13 @@
 // #[cfg(not(target_arch = "wasm32"))]
 // compile_error!("Compile this for wasm32 only!");
 
-use crossbeam::channel::{unbounded, Receiver, Sender};
 use wasm_bindgen::prelude::*;
 
-use bevy_app::{App, PreUpdate};
-use bevy_ecs::prelude::{Entity, Events, Res, Resource, With};
-
-use bevy_replicon::prelude::ClientPlugin as RepliconClientPlugin;
-use bevy_replicon_renet2::RepliconRenetClientPlugin;
+use bevy_app::App;
+use bevy_ecs::{
+    prelude::{Entity, Events, With},
+    system::RunSystemOnce,
+};
 
 use games::{
     chess::{
@@ -18,8 +17,9 @@ use games::{
         team::Team,
     },
     components::{GameBoard, GameSpawner, WinCondition},
-    GameplayPlugin, IssueMoveEvent,
+    GameOpponent, GameplayPlugin, RequestJoinGameEvent, RequestTurnEvent,
 };
+use replication::{network_conditions, ConnectToServerEvent, ReplicationPlugin};
 use transport::client::ClientPlugin as ClientTransportPlugin;
 use wild_icons::PieceIconSvg;
 
@@ -39,11 +39,6 @@ impl WasmApp {
     pub fn new() -> WasmApp {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-        let (tx, rx) = unbounded::<Ping>();
-        CHANNEL
-            .set(tx)
-            .expect("to be able to create a crossbeam channel");
-
         let mut app = bevy_app::App::default();
         app.add_plugins((
             bevy_core::TaskPoolPlugin::default(),
@@ -54,26 +49,48 @@ impl WasmApp {
         ));
         app.add_plugins((
             GameplayPlugin,
-            RepliconClientPlugin,
-            RepliconRenetClientPlugin,
+            ReplicationPlugin::Client,
             ClientTransportPlugin,
         ));
         app.add_plugins(wild_icons::PieceIconPlugin);
-
-        app.insert_resource(PingReceiver(rx));
-        app.add_systems(PreUpdate, PingReceiver::receive_message_system);
 
         WasmApp(app)
     }
 
     #[wasm_bindgen]
+    pub fn start_game(&mut self) {
+        self.0.world.send_event(ConnectToServerEvent);
+        self.0.world.send_event(RequestJoinGameEvent {
+            game: Some(GameSpawner::new_game(
+                GameBoard::WildChess,
+                WinCondition::RoyalCapture,
+            )),
+            opponent: GameOpponent::Online,
+        });
+    }
+
+    #[wasm_bindgen]
+    pub fn is_connected(&mut self) -> bool {
+        self.0
+            .world
+            .run_system_once(network_conditions::client_connected)
+    }
+
+    #[wasm_bindgen]
+    pub fn is_in_game(&mut self) -> bool {
+        let mut query = self.0.world.query::<&GameBoard>();
+        query.iter(&self.0.world).count() > 0
+    }
+
+    #[wasm_bindgen]
     pub fn setup_board(&mut self) {
-        let game_spawner = GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture);
-        self.0.world.spawn((
-            game_spawner.game,
-            game_spawner.board,
-            game_spawner.win_condition,
-        ));
+        // let game_spawner = GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture);
+        self.0.world.send_event(ConnectToServerEvent);
+        // self.0.world.spawn((
+        //     game_spawner.game,
+        //     game_spawner.board,
+        //     game_spawner.win_condition,
+        // ));
     }
 
     #[wasm_bindgen]
@@ -154,11 +171,8 @@ impl WasmApp {
         };
         let action = action.clone();
 
-        let mut move_events = self.0.world.resource_mut::<Events<IssueMoveEvent>>();
-        move_events.send(IssueMoveEvent {
-            piece,
-            action: action.clone(),
-        });
+        let mut move_events = self.0.world.resource_mut::<Events<RequestTurnEvent>>();
+        move_events.send(RequestTurnEvent::new(piece, action.clone()));
         true
     }
 
@@ -245,30 +259,4 @@ impl WasmIcon {
     pub fn to_source(self) -> String {
         self.svg_source
     }
-}
-
-struct Ping;
-
-static CHANNEL: std::sync::OnceLock<Sender<Ping>> = std::sync::OnceLock::new();
-
-#[wasm_bindgen]
-pub struct PingSender(Sender<Ping>);
-
-#[wasm_bindgen]
-impl PingSender {
-    pub fn get() -> Self {
-        PingSender(CHANNEL.get().expect("channel to be initialized").clone())
-    }
-
-    #[wasm_bindgen]
-    pub fn send(&self) {
-        // self.
-    }
-}
-
-#[derive(Resource)]
-pub struct PingReceiver(Receiver<Ping>);
-
-impl PingReceiver {
-    fn receive_message_system(receiver: Res<PingReceiver>) {}
 }

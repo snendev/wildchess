@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use bevy_ecs::prelude::Component;
@@ -10,9 +9,9 @@ use bevy_reflect::Reflect;
 // Once all Royal pieces are captured, a player loses the game.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum Orientation {
     #[default]
     Up,

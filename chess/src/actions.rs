@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
@@ -11,8 +10,8 @@ use bevy_utils::{HashMap, HashSet};
 use crate::{board::Square, pattern::Pattern, pieces::Orientation};
 
 #[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Movement {
     pub from: Square,
     pub to: Square,
@@ -42,8 +41,8 @@ impl Movement {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Action {
     pub movement: Movement,
     pub side_effects: Vec<(Entity, Movement)>,
@@ -74,10 +73,11 @@ impl Action {
     }
 }
 
-#[derive(Clone, Component, Debug, Default)]
+#[derive(Clone, Debug, Default)]
+#[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Actions(pub HashMap<Square, Action>);
 
 impl Actions {

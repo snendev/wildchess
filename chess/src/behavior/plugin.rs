@@ -15,7 +15,7 @@ use super::{
 
 // N.B. Use this to configure run conditions so that actions are not calculated every frame
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
-pub struct BehaviorsSet;
+pub struct BehaviorsSystems;
 
 pub struct BehaviorsPlugin<System, Params>
 where
@@ -49,6 +49,9 @@ where
     Params: Send + Sync + 'static,
 {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<RepliconCorePlugin>() {
+            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
+        }
         app.add_systems(
             Update,
             (
@@ -82,14 +85,9 @@ where
                 ),
             )
                 .chain()
-                .in_set(BehaviorsSet),
+                .in_set(BehaviorsSystems),
         );
 
-        #[cfg(feature = "replication")]
-        if !app.is_plugin_added::<RepliconCorePlugin>() {
-            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
-        }
-        #[cfg(feature = "replication")]
         app.replicate::<PatternBehavior>()
             .replicate::<CastlingBehavior>()
             .replicate::<CastlingTarget>()

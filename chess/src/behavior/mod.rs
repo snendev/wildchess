@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use bevy_ecs::prelude::{Bundle, Commands, Component, Entity, In, Query};
@@ -22,7 +21,7 @@ pub use kinds::{
 };
 
 mod plugin;
-pub use plugin::{BehaviorsPlugin, BehaviorsSet};
+pub use plugin::{BehaviorsPlugin, BehaviorsSystems};
 
 pub trait Behavior {
     // Each behavior supplies is own sink for calculating actions.
@@ -81,8 +80,8 @@ pub trait Behavior {
 // ) {}
 
 #[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PieceBehaviors {
     pub pattern: Option<PatternBehavior>,
     pub en_passant: Option<EnPassantBehavior>,

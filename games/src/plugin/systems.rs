@@ -1,8 +1,14 @@
+use itertools::Itertools;
+
 use bevy_core::Name;
-use bevy_ecs::prelude::{Added, Commands, Entity, EventReader, EventWriter, Query, Res, With};
+use bevy_ecs::prelude::{
+    Added, Commands, Entity, EventReader, EventWriter, Query, Res, ResMut, Resource, With,
+};
 #[cfg(feature = "log")]
 use bevy_log::{debug, info};
 use bevy_time::Time;
+
+use bevy_replicon::prelude::{ClientId, FromClient, ToClients};
 
 use chess::{
     actions::Action,
@@ -21,8 +27,62 @@ use crate::components::{
 };
 
 use super::{
-    events::GameoverEvent, IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent,
+    GameOpponent, GameoverEvent, RequestJoinGameEvent, RequestTurnEvent, RequireMutationEvent,
+    TurnEvent,
 };
+
+#[derive(Default)]
+#[derive(Resource)]
+pub(super) struct WaitingClients(Vec<FromClient<RequestJoinGameEvent>>);
+
+pub(super) fn handle_game_lobby(
+    mut join_requests: EventReader<FromClient<RequestJoinGameEvent>>,
+    mut waiting_clients: ResMut<WaitingClients>,
+) {
+    let mut requests_iter = join_requests.read();
+    while let Some(event) = requests_iter.next() {
+        match event.event.opponent {
+            GameOpponent::Online => {
+                eprintln!("Client {} seeking match...", event.client_id.get());
+                waiting_clients.0.push(event.clone());
+            }
+            GameOpponent::Local | GameOpponent::AgainstBot | GameOpponent::Analysis => {
+                unimplemented!("Can't play games against bots yet :(");
+            }
+        }
+    }
+}
+
+pub(super) fn start_games(mut commands: Commands, mut waiting_clients: ResMut<WaitingClients>) {
+    let (mut specified_games, mut unspecified_games): (Vec<_>, Vec<_>) = waiting_clients
+        .0
+        .drain(..)
+        .partition(|event| event.event.game.is_some());
+    // TODO: maybe do a pass to find matching settings
+    // while let Some(host) = specified_games.pop() {
+    //     if let Some(opponent) = unspecified_games.pop() {
+    //         host.event
+    //             .game
+    //             .expect("host of matching pair to have specified game settings")
+    //             .spawn(&mut commands);
+    //         // TODO: attach host and opponent client ids...?
+    //     }
+    // }
+    let mut chunks = specified_games.chunks_exact(2);
+    while let Some(chunk) = chunks.next() {
+        let mut iter = chunk.iter();
+        let p1 = iter.next().unwrap();
+        let p2 = iter.next().unwrap();
+        p1.event
+            .game
+            .clone()
+            .expect("host of matching pair to have specified game settings")
+            .spawn(&mut commands);
+        eprintln!("Game spawned!!!!");
+    }
+    waiting_clients.0.extend_from_slice(chunks.remainder());
+    waiting_clients.0.extend(unspecified_games);
+}
 
 pub(super) fn spawn_game_entities(
     mut commands: Commands,
@@ -119,21 +179,27 @@ pub(super) fn detect_turn(
     game_query: Query<&Ply, With<Game>>,
     board_query: Query<&Board>,
     piece_query: Query<(&Team, &OnBoard, &InGame, Option<&Mutation>)>,
-    mut move_reader: EventReader<IssueMoveEvent>,
-    mut mutation_reader: EventReader<IssueMutationEvent>,
-    mut mutation_request_writer: EventWriter<RequestMutationEvent>,
+    mut requested_turns: EventReader<FromClient<RequestTurnEvent>>,
+    mut require_mutation_writer: EventWriter<RequireMutationEvent>,
     mut turn_writer: EventWriter<TurnEvent>,
 ) {
-    for IssueMoveEvent { piece, action } in move_reader.read() {
-        eprintln!("1 : Hello??");
+    for FromClient {
+        event:
+            RequestTurnEvent {
+                piece,
+                action,
+                promotion,
+            },
+        ..
+    } in requested_turns.read()
+    {
         let Ok((team, on_board, in_game, mutation)) = piece_query.get(*piece) else {
             continue;
         };
-        eprintln!("2 : Hello??");
         let Ok(ply) = game_query.get(in_game.0) else {
             continue;
         };
-        eprintln!("3 : Hello??");
+
         if let Some(mutation) = mutation {
             let Ok(board) = board_query.get(on_board.0) else {
                 continue;
@@ -159,8 +225,17 @@ pub(super) fn detect_turn(
                             action.clone(),
                             mutation.to_piece.first().unwrap().clone(),
                         ));
+                    } else if let Some(promotion) = promotion {
+                        turn_writer.send(TurnEvent::mutation(
+                            *ply,
+                            *piece,
+                            on_board.0,
+                            in_game.0,
+                            action.clone(),
+                            promotion.clone(),
+                        ));
                     } else {
-                        mutation_request_writer.send(RequestMutationEvent {
+                        require_mutation_writer.send(RequireMutationEvent {
                             piece: *piece,
                             action: action.clone(),
                         });
@@ -180,36 +255,14 @@ pub(super) fn detect_turn(
             ));
         }
     }
-    // TODO make a separate system
-    for IssueMutationEvent {
-        piece,
-        action,
-        piece_definition,
-    } in mutation_reader.read()
-    {
-        let Ok((_, on_board, in_game, _)) = piece_query.get(*piece) else {
-            continue;
-        };
-        let Ok(ply) = game_query.get(in_game.0) else {
-            continue;
-        };
-        turn_writer.send(TurnEvent::mutation(
-            *ply,
-            *piece,
-            on_board.0,
-            in_game.0,
-            action.clone(),
-            piece_definition.clone(),
-        ));
-    }
 }
 
 pub(super) fn execute_turn_movement(
     mut commands: Commands,
     mut piece_query: Query<(Entity, &mut Position, &OnBoard)>,
-    mut turn_reader: EventReader<TurnEvent>,
+    mut turn_reader: EventReader<ToClients<TurnEvent>>,
 ) {
-    for event in turn_reader.read() {
+    for ToClients { event, .. } in turn_reader.read() {
         if let Ok((_, mut current_square, _)) = piece_query.get_mut(event.piece) {
             current_square.0 = event.action.movement.to;
         }
@@ -245,9 +298,9 @@ pub(super) fn execute_turn_movement(
 
 pub(super) fn execute_turn_mutations(
     mut commands: Commands,
-    mut turn_reader: EventReader<TurnEvent>,
+    mut turn_reader: EventReader<ToClients<TurnEvent>>,
 ) {
-    for event in turn_reader.read() {
+    for ToClients { event, .. } in turn_reader.read() {
         if let Some(mutated_piece) = &event.mutation {
             // remove any existing behaviors and mutation
             commands
@@ -402,8 +455,11 @@ pub(super) fn detect_gameover(
     }
 }
 
-pub fn log_gameover_events(mut gameovers: EventReader<GameoverEvent>) {
-    for gameover in gameovers.read() {
+pub fn log_gameover_events(mut gameovers: EventReader<ToClients<GameoverEvent>>) {
+    for ToClients {
+        event: gameover, ..
+    } in gameovers.read()
+    {
         #[cfg(feature = "log")]
         info!("Team {:?} won!", gameover.winner);
         // TODO: display this somewhere

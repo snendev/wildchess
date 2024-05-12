@@ -8,10 +8,8 @@ use bevy::{
     MinimalPlugins,
 };
 
-use bevy_replicon::prelude::ServerPlugin as RepliconServerPlugin;
-use bevy_replicon_renet2::RepliconRenetServerPlugin;
-
 use games::GameplayPlugin;
+use replication::ReplicationPlugin;
 use transport::server::ServerPlugin as ServerTransportPlugin;
 
 fn main() {
@@ -29,8 +27,7 @@ fn main() {
         ))
         .add_plugins((
             GameplayPlugin,
-            RepliconServerPlugin::default(),
-            RepliconRenetServerPlugin,
+            ReplicationPlugin::Server,
             ServerTransportPlugin,
         ))
         .run();

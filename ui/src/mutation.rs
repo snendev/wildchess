@@ -5,19 +5,19 @@ use games::{
         pieces::{Mutation, PieceDefinition, Royal},
         team::Team,
     },
-    RequestMutationEvent,
+    RequireMutationEvent,
 };
 use wild_icons::PieceIconSvg;
 
 #[allow(clippy::type_complexity)]
 #[derive(Default, Resource)]
 pub struct IntendedMutation(
-    pub Option<(RequestMutationEvent, Vec<(PieceIconSvg, PieceDefinition)>)>,
+    pub Option<(RequireMutationEvent, Vec<(PieceIconSvg, PieceDefinition)>)>,
 );
 
 // pub fn read_mutation_options(
 //     mut intended_mutation: ResMut<IntendedMutation>,
-//     mut mutation_reader: EventReader<RequestMutationEvent>,
+//     mut mutation_reader: EventReader<RequireMutationEvent>,
 //     piece_query: Query<(&Mutation, &Team, Option<&Royal>)>,
 // ) {
 //     for event in mutation_reader.read() {

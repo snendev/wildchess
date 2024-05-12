@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use bevy_ecs::prelude::Component;
@@ -11,9 +10,9 @@ use crate::board::{File, Rank, Square};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Position(pub Square);
 
 impl From<Square> for Position {

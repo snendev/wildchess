@@ -1,14 +1,31 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use bevy_ecs::prelude::{Entity, Event};
 
 use chess::{actions::Action, pieces::PieceDefinition, team::Team};
 
-use crate::components::Ply;
+use crate::components::{GameSpawner, Ply};
+
+#[derive(Clone)]
+#[derive(Deserialize, Serialize)]
+pub enum GameOpponent {
+    Online,
+    Local,
+    AgainstBot,
+    Analysis,
+}
+
+#[derive(Clone)]
+#[derive(Event)]
+#[derive(Deserialize, Serialize)]
+pub struct RequestJoinGameEvent {
+    // TODO: more configuration
+    pub game: Option<GameSpawner>,
+    pub opponent: GameOpponent,
+}
 
 #[derive(Event)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 pub struct TurnEvent {
     pub ply: Ply,
     pub piece: Entity,
@@ -49,34 +66,45 @@ impl TurnEvent {
     }
 }
 
+#[derive(Clone)]
 #[derive(Event)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct IssueMoveEvent {
+#[derive(Deserialize, Serialize)]
+pub struct RequestTurnEvent {
     pub piece: Entity,
     pub action: Action,
+    pub promotion: Option<PieceDefinition>,
+}
+
+impl RequestTurnEvent {
+    pub fn new(piece: Entity, action: Action) -> Self {
+        Self {
+            piece,
+            action,
+            promotion: None,
+        }
+    }
+
+    pub fn new_with_mutation(piece: Entity, action: Action, promotion: PieceDefinition) -> Self {
+        Self {
+            piece,
+            action,
+            promotion: Some(promotion),
+        }
+    }
 }
 
 // A useful event for informing the controller that it must provide a mutation to continue
 #[derive(Clone)]
 #[derive(Event)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct RequestMutationEvent {
+#[derive(Deserialize, Serialize)]
+pub struct RequireMutationEvent {
     pub piece: Entity,
     pub action: Action,
 }
 
 #[derive(Clone)]
 #[derive(Event)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct IssueMutationEvent {
-    pub piece: Entity,
-    pub action: Action,
-    pub piece_definition: PieceDefinition,
-}
-
-#[derive(Clone)]
-#[derive(Event)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 pub struct GameoverEvent {
     pub winner: Team,
 }

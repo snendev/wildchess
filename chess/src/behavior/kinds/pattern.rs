@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
@@ -21,9 +20,9 @@ use crate::behavior::Behavior;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PatternBehavior {
     // in practice, this should rarely be more than one or two Patterns
     pub patterns: Vec<Pattern>,

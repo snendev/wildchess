@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -12,13 +11,13 @@ use super::{Game, InGame};
 
 #[derive(Clone, Copy, Debug)]
 #[derive(Component)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 pub struct HasTurn;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Ply(usize);
 
 impl Ply {
@@ -39,8 +38,8 @@ impl Ply {
 // It tracks the action made each ply.
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ActionHistory(Vec<(Entity, Action)>);
 
 impl std::ops::Index<Ply> for ActionHistory {
@@ -73,8 +72,8 @@ impl ActionHistory {
 // It is kept sparse in order to minimize cloning.
 #[derive(Clone, Debug)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct History<T>(BTreeMap<Ply, Option<T>>);
 
 impl<T> History<T> {

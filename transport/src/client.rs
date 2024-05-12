@@ -1,17 +1,11 @@
 use bevy_app::prelude::{App, Plugin};
 
-use bevy_renet2::renet2::RenetClient;
-
-use crate::{connection_config, PROTOCOL_ID};
+use crate::PROTOCOL_ID;
 
 pub struct ClientPlugin;
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
-        eprintln!("{}", app.world.is_resource_added::<RenetClient>());
-        let client = RenetClient::new(connection_config());
-        app.insert_resource(client);
-
         #[cfg(any(
             feature = "native_transport",
             feature = "memory_transport",

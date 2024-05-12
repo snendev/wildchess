@@ -1,10 +1,9 @@
 use bevy_app::prelude::{App, Plugin, Update};
 use bevy_ecs::prelude::{Commands, Entity, EventReader, Query, Resource};
 
-use bevy_renet2::renet2::RenetServer;
-use bevy_replicon::{core::replication_rules::Replication, prelude::ServerEvent};
+use bevy_replicon::prelude::{Replication, RepliconChannels, ServerEvent};
 
-use crate::{connection_config, Player, PROTOCOL_ID};
+use crate::{Player, PROTOCOL_ID};
 
 pub struct ServerPlugin;
 
@@ -79,9 +78,6 @@ impl Plugin for NativeServerTransportPlugin {
         use std::time::SystemTime;
 
         app.add_plugins(NetcodeServerPlugin);
-
-        let server = RenetServer::new(connection_config());
-        app.insert_resource(server);
 
         let public_addr = "127.0.0.1:5000".parse().unwrap();
 

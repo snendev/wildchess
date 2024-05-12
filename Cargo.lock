@@ -1460,9 +1460,8 @@ name = "chess_app_server"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_replicon",
- "bevy_replicon_renet2",
  "games",
+ "replication",
  "transport",
 ]
 
@@ -1483,12 +1482,10 @@ dependencies = [
  "bevy_app",
  "bevy_core",
  "bevy_ecs",
- "bevy_replicon",
- "bevy_replicon_renet2",
  "bevy_time",
  "console_error_panic_hook",
- "crossbeam",
  "games",
+ "replication",
  "transport",
  "wasm-bindgen",
  "web-sys",
@@ -2357,6 +2354,7 @@ dependencies = [
  "bevy_replicon",
  "bevy_time",
  "chess",
+ "itertools",
  "layouts",
  "serde",
 ]
@@ -4025,6 +4023,7 @@ dependencies = [
  "bevy_ecs",
  "bevy_log",
  "bevy_replicon",
+ "bevy_replicon_renet2",
  "serde",
  "transport",
 ]

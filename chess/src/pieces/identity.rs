@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use bevy_ecs::prelude::Component;
@@ -13,9 +12,9 @@ use bevy_reflect::Reflect;
 // particular icon.
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum PieceIdentity {
     // The default: implies that this piece does not fit an existing stereotype
     // #[default]

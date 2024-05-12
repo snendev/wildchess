@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use std::cmp::Ordering;
@@ -35,16 +34,16 @@ pub(crate) fn disable_on_move<T: Component>(
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CastlingTarget;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CastlingBehavior;
 
 // Enable performing whatever Pattern was executed in the last turn

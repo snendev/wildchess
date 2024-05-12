@@ -8,6 +8,9 @@ self.onmessage = onMessage;
 let app;
 runApp();
 
+let connected = false;
+let inGame = false;
+
 function onMessage(event) {
   //   console.log(event);
   if (app === undefined) {
@@ -15,19 +18,8 @@ function onMessage(event) {
     return;
   }
   switch (event.data.kind) {
-    case "setup-board": {
-      app.setup_board();
-      app.update();
-      app.update();
-      postMessage({
-        kind: "piece-icons",
-        icons: Object.fromEntries(
-          app.get_icons().map((icon) => {
-            const piece = icon.get_piece();
-            return [piece, sanitizeIconSource(icon.to_source())];
-          }),
-        ),
-      });
+    case "start-game": {
+      app.start_game();
       return;
     }
     case "remove-board": {
@@ -102,6 +94,23 @@ async function runApp() {
   // loop update calls
   while (true) {
     app.update();
+    if (!connected && app.is_connected()) {
+      connected = true;
+      console.log("we connected!");
+    }
+    if (!inGame && app.is_in_game()) {
+      inGame = true;
+      console.log("we in a game!");
+      postMessage({
+        kind: "piece-icons",
+        icons: Object.fromEntries(
+          app.get_icons().map((icon) => {
+            const piece = icon.get_piece();
+            return [piece, sanitizeIconSource(icon.to_source())];
+          }),
+        ),
+      });
+    }
     await new Promise((resolve) => {
       setTimeout(resolve, 50);
     });

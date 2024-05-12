@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use bevy_ecs::prelude::{Component, Entity};
@@ -16,10 +15,10 @@ mod turns;
 pub use turns::{ActionHistory, HasTurn, History, Ply};
 
 #[derive(Component)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 pub struct Player;
 
 #[derive(Clone, Copy, Component, Debug)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 pub struct InGame(pub Entity);

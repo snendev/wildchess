@@ -24,7 +24,7 @@ type RecvMessage =
   | { kind: 'targets', source: string, targets: string[] }
 
 type SendMessage =
-  | { kind: 'setup-board' }
+  | { kind: 'start-game' }
   | { kind: 'remove-board' }
   | { kind: 'play-move', source: string, target: string }
   | { kind: 'request-targets', source: string }
@@ -44,8 +44,8 @@ function useWasmGame(game_name: string) {
       new URL("/js/workers/wasm.js", import.meta.url).href,
     );
     setTimeout(() => {
-      sendMessage(worker, {kind: "setup-board"});
-    }, 1000);
+      sendMessage(worker, {kind: "start-game"});
+    }, 2000);
     worker.onmessage = (event: MessageEvent<RecvMessage>) => {
       switch (event.data.kind) {
         case "piece-icons": {
@@ -71,7 +71,7 @@ function useWasmGame(game_name: string) {
   }, []);
     
   const setupBoard = useCallback(() => {
-    sendMessage(worker, {kind: 'setup-board'});
+    sendMessage(worker, {kind: 'start-game'});
   }, [worker]);
 
   const requestTargets = useCallback((source: string) => {

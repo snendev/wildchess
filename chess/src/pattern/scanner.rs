@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
@@ -14,8 +13,8 @@ use crate::{
 use super::{Step, TargetKind};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum ScanMode {
     #[default]
     // Step until reaching a colliding piece
@@ -34,7 +33,7 @@ pub enum ScanMode {
 
 // The calculation type for board searches
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Scanner {
     // the unit of "stepping" for searching the board
@@ -139,7 +138,7 @@ impl Scanner {
 }
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct ScanTarget {
     pub target: Square,

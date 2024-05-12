@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use bevy_ecs::prelude::Bundle;
@@ -44,8 +43,8 @@ impl PieceBundle {
 }
 
 #[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PieceDefinition {
     pub behaviors: PieceBehaviors,
     pub identity: PieceIdentity,

@@ -1,4 +1,3 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -9,8 +8,8 @@ use bevy_time::Stopwatch;
 
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Clock {
     duration: Duration,
     increment: Duration,

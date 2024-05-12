@@ -1,11 +1,10 @@
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum Step {
     OneDim(i16, RSymmetry),
@@ -163,9 +162,9 @@ impl Default for Step {
 // ordinal directions to make the reasoning a little easier
 bitflags::bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    #[derive(Deserialize, Serialize)]
     #[cfg_attr(feature = "reflect", derive(Reflect))]
     #[cfg_attr(feature = "reflect", reflect_value)]
-    #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
     pub struct RSymmetry: u8 {
         const RIGHT = 0b00000001;
         const FORWARD_RIGHT = 0b00000010;
@@ -234,9 +233,9 @@ impl Default for RSymmetry {
 
 bitflags::bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    #[derive(Deserialize, Serialize)]
     #[cfg_attr(feature = "reflect", derive(Reflect))]
     #[cfg_attr(feature = "reflect", reflect_value)]
-    #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
     pub struct ABSymmetry: u8 {
         const FORWARD_RIGHT_RIGHT = 0b00000001;
         const FORWARD_FORWARD_RIGHT = 0b00000010;
