@@ -2,7 +2,7 @@ use rand::{thread_rng, Rng};
 
 use chess::{
     behavior::PatternBehavior,
-    pattern::{Pattern, RSymmetry, Step},
+    pattern::{CapturePattern, CaptureRules, Pattern, RSymmetry, Step},
 };
 
 use super::PieceBuilder;
@@ -29,16 +29,23 @@ struct InfantryBuilder;
 impl InfantryBuilder {
     pub fn random_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
-        match rng.gen_range(0..=2) {
-            0 => Self::grunt(),
-            1 => Self::hound(),
+        match rng.gen_range(0..=4) {
+            0 => Self::raven(),
+            1 => Self::acolyte(),
+            2 => Self::hound(),
+            3 => Self::grunt(),
             _ => Self::squire(),
         }
     }
 
-    pub fn grunt() -> PatternBehavior {
+    pub fn raven() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::orthogonal().range(3).captures_by_displacement())
+    }
+
+    pub fn acolyte() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::diagonal().range(3).captures_by_displacement())
     }
 
     pub fn hound() -> PatternBehavior {
@@ -57,6 +64,10 @@ impl InfantryBuilder {
             )
     }
 
+    pub fn grunt() -> PatternBehavior {
+        PatternBehavior::default().with_pattern(Pattern::radial().leaper())
+    }
+
     pub fn squire() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::new(Step::from_r(
@@ -73,10 +84,13 @@ pub struct MinorBuilder;
 impl MinorBuilder {
     pub fn random_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
-        match rng.gen_range(0..=3) {
+        match rng.gen_range(0..=6) {
             0 => Self::knight(),
-            1 => Self::scorpion(),
-            2 => Self::fencer(),
+            1 => Self::camel(),
+            2 => Self::scorpion(),
+            3 => Self::fencer(),
+            4 => Self::ranger(),
+            5 => Self::dancer(),
             _ => Self::prince(),
         }
     }
@@ -84,6 +98,11 @@ impl MinorBuilder {
     pub fn knight() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::knight().leaper().captures_by_displacement())
+    }
+
+    pub fn camel() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::camel().leaper().captures_by_displacement())
     }
 
     pub fn scorpion() -> PatternBehavior {
@@ -111,6 +130,17 @@ impl MinorBuilder {
             .with_pattern(Pattern::horizontal().range(1))
     }
 
+    pub fn ranger() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::orthogonal().range(4).captures_by_displacement())
+    }
+
+    pub fn dancer() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::diagonal())
+            .with_pattern(Pattern::orthogonal().only_captures_by_displacement())
+    }
+
     pub fn prince() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::radial().range(2).captures_by_displacement())
@@ -127,7 +157,7 @@ impl AdvancedBuilder {
             0 => Self::bishop(),
             1 => Self::jester(),
             2 => Self::scoundrel(),
-            3 => Self::dancer(),
+            3 => Self::ogre(),
             _ => Self::aiofe(),
         }
     }
@@ -142,16 +172,16 @@ impl AdvancedBuilder {
             .with_pattern(Pattern::orthogonal().range(2).pierces())
     }
 
+    pub fn ogre() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::orthogonal().range(4).captures_by_displacement())
+            .with_pattern(Pattern::diagonal().leaper().captures_by_displacement())
+    }
+
     pub fn scoundrel() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::knight().leaper().captures_by_displacement())
             .with_pattern(Pattern::radial().leaper())
-    }
-
-    pub fn dancer() -> PatternBehavior {
-        PatternBehavior::default()
-            .with_pattern(Pattern::diagonal())
-            .with_pattern(Pattern::orthogonal().only_captures_by_displacement())
     }
 
     pub fn aiofe() -> PatternBehavior {
@@ -167,11 +197,14 @@ pub struct MajorBuilder;
 impl MajorBuilder {
     pub fn random_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
-        match rng.gen_range(0..=3) {
+        match rng.gen_range(0..=6) {
             0 => Self::rook(),
             1 => Self::cardinal(),
             2 => Self::butterfly(),
-            _ => Self::lord(),
+            3 => Self::lord(),
+            4 => Self::ninja(),
+            5 => Self::falconer(),
+            _ => Self::sentry(),
         }
     }
 
@@ -201,6 +234,27 @@ impl MajorBuilder {
             .with_pattern(Pattern::knight().leaper().captures_by_displacement())
             .with_pattern(Pattern::orthogonal().range(3).captures_by_displacement())
     }
+
+    pub fn ninja() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::diagonal().captures_by_displacement())
+            .with_pattern(Pattern::knight().captures_by_displacement().leaper())
+    }
+
+    pub fn falconer() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::diagonal().captures_by_displacement())
+            .with_pattern(Pattern::camel().captures_by_displacement())
+    }
+
+    pub fn sentry() -> PatternBehavior {
+        PatternBehavior::default().with_pattern(Pattern::radial().range(3).with_capture(
+            CaptureRules {
+                pattern: CapturePattern::CaptureInPassing,
+                ..Default::default()
+            },
+        ))
+    }
 }
 
 // "Elite" class
@@ -209,10 +263,11 @@ pub struct EliteBuilder;
 impl EliteBuilder {
     pub fn random_behavior() -> PatternBehavior {
         let mut rng = rand::thread_rng();
-        match rng.gen_range(0..=3) {
+        match rng.gen_range(0..=4) {
             0 => Self::queen(),
             1 => Self::chancellor(),
-            2 => Self::panther(),
+            2 => Self::executioner(),
+            3 => Self::panther(),
             _ => Self::dominator(),
         }
     }
@@ -225,6 +280,12 @@ impl EliteBuilder {
         PatternBehavior::default()
             .with_pattern(Pattern::orthogonal().captures_by_displacement())
             .with_pattern(Pattern::knight().leaper().captures_by_displacement())
+    }
+
+    pub fn executioner() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::orthogonal().captures_by_displacement())
+            .with_pattern(Pattern::diagonal_forward().captures_by_displacement())
     }
 
     pub fn panther() -> PatternBehavior {
