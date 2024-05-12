@@ -27,10 +27,30 @@ pub(crate) fn home_menu(mut commands: Commands, mut egui_ctx: EguiContexts) {
                     }
                 });
                 ui.allocate_ui(Vec2::new(250., 120.), |ui| {
-                    if ui.button("Play Featured Wild Position").clicked() {
+                    if ui.button("Play Featured Position 1").clicked() {
                         GameSpawner::new_game(
                             GameBoard::Chess,
-                            FeaturedWildLayout::pieces().into(),
+                            FeaturedWildLayout::One.pieces().into(),
+                            WinCondition::RoyalCapture,
+                        )
+                        .spawn(&mut commands);
+                    }
+                });
+                ui.allocate_ui(Vec2::new(250., 120.), |ui| {
+                    if ui.button("Play Featured Position 2").clicked() {
+                        GameSpawner::new_game(
+                            GameBoard::Chess,
+                            FeaturedWildLayout::Two.pieces().into(),
+                            WinCondition::RoyalCapture,
+                        )
+                        .spawn(&mut commands);
+                    }
+                });
+                ui.allocate_ui(Vec2::new(250., 120.), |ui| {
+                    if ui.button("Play Featured Position 3").clicked() {
+                        GameSpawner::new_game(
+                            GameBoard::Chess,
+                            FeaturedWildLayout::Three.pieces().into(),
                             WinCondition::RoyalCapture,
                         )
                         .spawn(&mut commands);

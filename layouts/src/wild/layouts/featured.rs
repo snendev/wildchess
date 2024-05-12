@@ -2,7 +2,8 @@ use chess::{behavior::CastlingTarget, pieces::PieceDefinition};
 
 use crate::{
     wild::pieces::{
-        AdvancedBuilder, EliteBuilder, KingBuilder, MajorBuilder, MinorBuilder, PawnBuilder,
+        AdvancedBuilder, EliteBuilder, InfantryBuilder, KingBuilder, MajorBuilder, MinorBuilder,
+        PawnBuilder,
     },
     PieceSpecification,
 };
@@ -75,9 +76,9 @@ impl FeaturedWildLayout {
 
     fn three() -> WildPieceSet {
         // pieces
-        let major: PieceDefinition = piece(, Some(CastlingTarget));
-        let minor1 = piece(, None);
-        let minor2 = piece(, None);
+        let major: PieceDefinition = piece(InfantryBuilder::raven(), Some(CastlingTarget));
+        let minor1 = piece(MajorBuilder::cardinal(), None);
+        let minor2 = piece(MinorBuilder::prince(), None);
         let elite = piece(EliteBuilder::chancellor(), None);
 
         // pawns

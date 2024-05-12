@@ -24,7 +24,7 @@ impl PieceBuilder {
     }
 }
 
-struct InfantryBuilder;
+pub struct InfantryBuilder;
 
 impl InfantryBuilder {
     pub fn random_behavior() -> PatternBehavior {
@@ -55,13 +55,7 @@ impl InfantryBuilder {
                     .range(2)
                     .captures_by_displacement(),
             )
-            .with_pattern(
-                Pattern::new(Step::from_r(
-                    1,
-                    RSymmetry::BACKWARD | RSymmetry::horizontal(),
-                ))
-                .range(1),
-            )
+            .with_pattern(Pattern::orthogonal().leaper())
     }
 
     pub fn grunt() -> PatternBehavior {
@@ -244,7 +238,7 @@ impl MajorBuilder {
     pub fn falconer() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::diagonal().captures_by_displacement())
-            .with_pattern(Pattern::camel().captures_by_displacement())
+            .with_pattern(Pattern::camel().leaper().captures_by_displacement())
     }
 
     pub fn sentry() -> PatternBehavior {
