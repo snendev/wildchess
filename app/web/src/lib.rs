@@ -16,7 +16,7 @@ use games::{
         pieces::{Orientation, PieceIdentity, Position},
         team::Team,
     },
-    components::{Game, GameBoard, GameRequestClock, GameRequestVariant, LastMove},
+    components::{Game, GameBoard, GameRequestClock, GameRequestVariant, HasTurn, LastMove},
     GameOpponent, GameplayPlugin, MatchmakingPlugin, RequestJoinGameEvent, RequestTurnEvent,
 };
 use replication::{
@@ -125,6 +125,23 @@ impl WasmApp {
             buffer.push_str(format!("{:?} {:?}: {:?}\n", team, identity, position).as_str());
         }
         buffer
+    }
+
+    #[wasm_bindgen]
+    pub fn is_my_turn(&mut self) -> bool {
+        let Some(client_id) = self
+            .0
+            .world
+            .get_resource::<RepliconClient>()
+            .and_then(|client| client.id())
+        else {
+            return false;
+        };
+        let mut query = self.0.world.query_filtered::<&Player, With<HasTurn>>();
+        query
+            .iter(&self.0.world)
+            .find(|player| player.id == client_id)
+            .is_some()
     }
 
     #[wasm_bindgen]

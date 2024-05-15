@@ -44,15 +44,18 @@ function onMessage(event) {
     case "play-move": {
       // TODO enable premove
       app.update();
-      const targets = app.get_target_squares(event.data.source)?.map((square) =>
-        square.get_representation()
-      );
-      const pieceTeam = app.get_piece_team(event.data.source);
+
+      // perform a pre-check in order to render the board optimistically
       if (
-        pieceTeam && pieceTeam === myTeam &&
-        targets?.includes(event.data.target)
+        // it's my turn
+        app.is_my_turn() &&
+        // the selected piece is one of my pieces
+        app.get_piece_team(event.data.source) === myTeam &&
+        // the target square is one of the allowed targets
+        app.get_target_squares(event.data.source)?.map((square) =>
+          square.get_representation()
+        )?.includes(event.data.target)
       ) {
-        // set state to wait on a result from server
         // send move event
         app.trigger_move(event.data.source, event.data.target);
       } else {

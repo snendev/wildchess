@@ -43,6 +43,7 @@ impl Plugin for GameplayPlugin {
             BehaviorsSystems
                 .run_if(any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>())),
         )
+        .configure_sets(Update, GameSystems.before(BehaviorsSystems))
         .add_mapped_client_event::<RequestTurnEvent>(ChannelKind::Ordered)
         .add_mapped_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
         .add_server_event::<GameoverEvent>(ChannelKind::Ordered)
