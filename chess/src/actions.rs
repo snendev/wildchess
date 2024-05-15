@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::prelude::{Component, Entity};
+use bevy_ecs::{
+    entity::{EntityMapper, MapEntities},
+    prelude::{Component, Entity},
+};
 #[cfg(feature = "reflect")]
 use bevy_reflect::prelude::Reflect;
 use bevy_utils::{HashMap, HashSet};
@@ -96,5 +99,17 @@ impl Actions {
 
     pub fn clear(&mut self) {
         self.0.clear()
+    }
+}
+
+impl MapEntities for Actions {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        for (_, action) in self.0.iter_mut() {
+            action.side_effects = action
+                .side_effects
+                .iter()
+                .map(|(entity, movement)| (mapper.map_entity(*entity), movement.clone()))
+                .collect();
+        }
     }
 }

@@ -1,6 +1,7 @@
+use bevy_replicon::core::replication_rules::Replication;
 use serde::{Deserialize, Serialize};
 
-use bevy_ecs::prelude::{Commands, Component};
+use bevy_ecs::prelude::{Commands, Component, Entity};
 
 use chess::board::{Rank, Square};
 
@@ -118,9 +119,9 @@ impl GameSpawner {
         self
     }
 
-    pub fn spawn(self, commands: &mut Commands) {
+    pub fn spawn(self, commands: &mut Commands) -> Entity {
         let entity = commands
-            .spawn((self.game, self.board, self.win_condition))
+            .spawn((self.game, self.board, self.win_condition, Replication))
             .id();
         let mut builder = commands.entity(entity);
         if let Some(clock) = self.clock {
@@ -135,5 +136,6 @@ impl GameSpawner {
         if self.anti.is_some() {
             builder.insert(AntiGame);
         }
+        entity
     }
 }

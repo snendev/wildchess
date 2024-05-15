@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_ecs::prelude::{Component, Entity};
+use bevy_ecs::{
+    entity::MapEntities,
+    prelude::{Component, Entity, EntityMapper},
+};
 #[cfg(feature = "reflect")]
 use bevy_reflect::prelude::Reflect;
 
@@ -14,11 +17,14 @@ pub use clock::Clock;
 mod turns;
 pub use turns::{ActionHistory, HasTurn, History, Ply};
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]
-pub struct Player;
-
-#[derive(Clone, Copy, Component, Debug)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[derive(Deserialize, Serialize)]
 pub struct InGame(pub Entity);
+
+impl MapEntities for InGame {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.0 = mapper.map_entity(self.0);
+    }
+}

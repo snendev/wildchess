@@ -34,10 +34,13 @@ function onMessage(event) {
     }
     case "play-move": {
       // TODO enable premove
+      app.update();
       const targets = app.get_target_squares(event.data.source).map((square) =>
         square.get_representation()
       );
+      console.log({ source: event.data.source, targets });
       if (targets.includes(event.data.target)) {
+        console.log("executing move!");
         app.trigger_move(event.data.source, event.data.target);
         app.update();
         postMessage({
@@ -84,6 +87,8 @@ function onMessage(event) {
   }
 }
 
+let last_player_count = 0;
+
 async function runApp() {
   // initialize the wasm
   await wasm_bindgen("/wasm/chess_app_web_bg.wasm");
@@ -96,19 +101,29 @@ async function runApp() {
     app.update();
     if (!connected && app.is_connected()) {
       connected = true;
-      console.log("we connected!");
+      console.log("connected to server!");
     }
     if (!inGame && app.is_in_game()) {
       inGame = true;
-      console.log("we in a game!");
+      console.log("connected to a game!");
+      app.update();
+      const icons = Object.fromEntries(
+        app.get_icons().map((icon) => {
+          const piece = icon.get_piece();
+          return [piece, sanitizeIconSource(icon.to_source())];
+        }),
+      );
       postMessage({
         kind: "piece-icons",
-        icons: Object.fromEntries(
-          app.get_icons().map((icon) => {
-            const piece = icon.get_piece();
-            return [piece, sanitizeIconSource(icon.to_source())];
-          }),
-        ),
+        icons: icons,
+      });
+    }
+    const player_count = app.get_player_count();
+    if (player_count !== last_player_count) {
+      last_player_count = player_count;
+      postMessage({
+        kind: "player-count",
+        count: app.get_player_count(),
       });
     }
     await new Promise((resolve) => {

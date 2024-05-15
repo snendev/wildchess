@@ -35,7 +35,7 @@ function useChessBoard({
   }, [playMove, resetTargets]);
 
   // TODO:
-
+  console.log(icons);
   const config = useMemo(() => ({
     position: position ?? 'start',
     dropOffBoard: "snapback",

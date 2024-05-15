@@ -1,28 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_ecs::prelude::{Entity, Event};
+use bevy_ecs::{
+    entity::MapEntities,
+    prelude::{Entity, EntityMapper, Event},
+};
 
 use chess::{actions::Action, pieces::PieceDefinition, team::Team};
 
-use crate::components::{GameSpawner, Ply};
-
-#[derive(Clone)]
-#[derive(Deserialize, Serialize)]
-pub enum GameOpponent {
-    Online,
-    Local,
-    AgainstBot,
-    Analysis,
-}
-
-#[derive(Clone)]
-#[derive(Event)]
-#[derive(Deserialize, Serialize)]
-pub struct RequestJoinGameEvent {
-    // TODO: more configuration
-    pub game: Option<GameSpawner>,
-    pub opponent: GameOpponent,
-}
+use crate::components::Ply;
 
 #[derive(Event)]
 #[derive(Deserialize, Serialize)]
@@ -66,6 +51,20 @@ impl TurnEvent {
     }
 }
 
+impl MapEntities for TurnEvent {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.piece = mapper.map_entity(self.piece);
+        self.board = mapper.map_entity(self.board);
+        self.game = mapper.map_entity(self.game);
+        self.action.side_effects = self
+            .action
+            .side_effects
+            .iter()
+            .map(|(entity, data)| (mapper.map_entity(*entity), data.clone()))
+            .collect();
+    }
+}
+
 #[derive(Clone)]
 #[derive(Event)]
 #[derive(Deserialize, Serialize)]
@@ -93,6 +92,18 @@ impl RequestTurnEvent {
     }
 }
 
+impl MapEntities for RequestTurnEvent {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.piece = mapper.map_entity(self.piece);
+        self.action.side_effects = self
+            .action
+            .side_effects
+            .iter()
+            .map(|(entity, data)| (mapper.map_entity(*entity), data.clone()))
+            .collect();
+    }
+}
+
 // A useful event for informing the controller that it must provide a mutation to continue
 #[derive(Clone)]
 #[derive(Event)]
@@ -100,6 +111,18 @@ impl RequestTurnEvent {
 pub struct RequireMutationEvent {
     pub piece: Entity,
     pub action: Action,
+}
+
+impl MapEntities for RequireMutationEvent {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.piece = mapper.map_entity(self.piece);
+        self.action.side_effects = self
+            .action
+            .side_effects
+            .iter()
+            .map(|(entity, data)| (mapper.map_entity(*entity), data.clone()))
+            .collect();
+    }
 }
 
 #[derive(Clone)]

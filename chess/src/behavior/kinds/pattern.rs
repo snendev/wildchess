@@ -67,7 +67,8 @@ impl PatternBehavior {
     }
 }
 
-#[derive(Clone, Component, Debug)]
+#[derive(Clone, Debug)]
+#[derive(Component)]
 pub struct PatternActionsCache(Actions);
 
 impl From<Actions> for PatternActionsCache {

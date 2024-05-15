@@ -1,9 +1,7 @@
-use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::prelude::{Commands, Entity, EventReader, Query, Resource};
+use bevy_app::prelude::{App, Plugin};
+use bevy_ecs::prelude::Resource;
 
-use bevy_replicon::prelude::{Replication, RepliconChannels, ServerEvent};
-
-use crate::{Player, PROTOCOL_ID};
+use crate::PROTOCOL_ID;
 
 pub struct ServerPlugin;
 
@@ -18,42 +16,6 @@ impl Plugin for ServerPlugin {
 
         #[cfg(feature = "steam_transport")]
         app.add_plugins(SteamServerTransportPlugin);
-
-        app.add_systems(
-            Update,
-            (
-                Self::handle_connections,
-                // Self::server_handle_inputs,
-            ),
-        );
-    }
-}
-
-impl ServerPlugin {
-    fn handle_connections(
-        mut commands: Commands,
-        mut server_events: EventReader<ServerEvent>,
-        players: Query<(Entity, &Player)>,
-    ) {
-        for event in server_events.read() {
-            match event {
-                ServerEvent::ClientConnected { client_id } => {
-                    #[cfg(feature = "log")]
-                    bevy_log::info!("Player {} connected.", client_id.get());
-                    // Spawn new player entity
-                    commands.spawn((Replication, Player { id: *client_id }));
-                }
-                ServerEvent::ClientDisconnected { client_id, reason } => {
-                    if let Some((player_entity, _)) =
-                        players.iter().find(|(_, Player { id })| *id == *client_id)
-                    {
-                        #[cfg(feature = "log")]
-                        bevy_log::debug!("Player disconnected: {}", reason);
-                        commands.entity(player_entity).despawn();
-                    }
-                }
-            }
-        }
     }
 }
 

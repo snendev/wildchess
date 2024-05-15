@@ -1,13 +1,27 @@
-use bevy_app::{Plugin, Startup};
-use bevy_ecs::prelude::{Commands, Event, Res, World};
+use serde::{Deserialize, Serialize};
 
-use bevy_replicon::prelude::{ClientPlugin, RepliconChannels, ServerPlugin};
+use bevy_app::prelude::{Plugin, Startup, Update};
+use bevy_ecs::prelude::{Commands, Component, Entity, Event, EventReader, Query, Res, World};
+
+use bevy_replicon::{
+    core::{replication_rules::AppReplicationExt, RepliconCorePlugin},
+    parent_sync::ParentSyncPlugin,
+    prelude::{ClientId, ClientPlugin, Replication, RepliconChannels, ServerEvent, ServerPlugin},
+    server::VisibilityPolicy,
+};
 use bevy_replicon_renet2::{
     renet2::{ConnectionConfig, RenetClient, RenetServer},
     RenetChannelsExt, RepliconRenetClientPlugin, RepliconRenetServerPlugin,
 };
 
 pub use bevy_replicon::core::common_conditions as network_conditions;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Component)]
+#[derive(Deserialize, Serialize)]
+pub struct Player {
+    pub id: ClientId,
+}
 
 pub enum ReplicationPlugin {
     Server,
@@ -16,10 +30,23 @@ pub enum ReplicationPlugin {
 
 impl Plugin for ReplicationPlugin {
     fn build(&self, app: &mut bevy_app::App) {
+        if !app.is_plugin_added::<RepliconCorePlugin>() {
+            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
+        }
+
+        app.replicate::<Player>();
+
         match self {
             ReplicationPlugin::Server => {
-                app.add_plugins((ServerPlugin::default(), RepliconRenetServerPlugin))
-                    .add_systems(Startup, start_server);
+                app.add_plugins((
+                    ServerPlugin {
+                        visibility_policy: VisibilityPolicy::Whitelist,
+                        ..Default::default()
+                    },
+                    RepliconRenetServerPlugin,
+                ))
+                .add_systems(Startup, start_server)
+                .add_systems(Update, handle_connections);
             }
             ReplicationPlugin::Client => {
                 app.add_plugins((ClientPlugin, RepliconRenetClientPlugin));
@@ -63,4 +90,30 @@ fn connect_to_server(world: &mut World) {
         ..Default::default()
     });
     world.insert_resource(client);
+}
+
+fn handle_connections(
+    mut commands: Commands,
+    mut server_events: EventReader<ServerEvent>,
+    players: Query<(Entity, &Player)>,
+) {
+    for event in server_events.read() {
+        match event {
+            ServerEvent::ClientConnected { client_id } => {
+                #[cfg(feature = "log")]
+                bevy_log::info!("Player {} connected.", client_id.get());
+                // Spawn new player entity
+                commands.spawn((Replication, Player { id: *client_id }));
+            }
+            ServerEvent::ClientDisconnected { client_id, reason } => {
+                if let Some((player_entity, _)) =
+                    players.iter().find(|(_, Player { id })| *id == *client_id)
+                {
+                    #[cfg(feature = "log")]
+                    bevy_log::debug!("Player disconnected: {}", reason);
+                    commands.entity(player_entity).despawn();
+                }
+            }
+        }
+    }
 }

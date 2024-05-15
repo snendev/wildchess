@@ -8,7 +8,7 @@ use bevy::{
     MinimalPlugins,
 };
 
-use games::GameplayPlugin;
+use games::{GameplayPlugin, MatchmakingPlugin};
 use replication::ReplicationPlugin;
 use transport::server::ServerPlugin as ServerTransportPlugin;
 
@@ -27,6 +27,7 @@ fn main() {
         ))
         .add_plugins((
             GameplayPlugin,
+            MatchmakingPlugin,
             ReplicationPlugin::Server,
             ServerTransportPlugin,
         ))

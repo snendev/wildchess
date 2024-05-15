@@ -1,179 +1,22 @@
-use itertools::Itertools;
-
-use bevy_core::Name;
-use bevy_ecs::prelude::{
-    Added, Commands, Entity, EventReader, EventWriter, Query, Res, ResMut, Resource, With,
-};
+use bevy_ecs::prelude::{Commands, Entity, EventReader, EventWriter, Query, Res, With};
 #[cfg(feature = "log")]
 use bevy_log::{debug, info};
 use bevy_time::Time;
 
-use bevy_replicon::prelude::{ClientId, FromClient, ToClients};
+use bevy_replicon::prelude::{FromClient, ToClients};
 
 use chess::{
     actions::Action,
-    behavior::{BoardPieceCache, BoardThreatsCache, PieceBehaviorsBundle},
+    behavior::PieceBehaviorsBundle,
     board::{Board, OnBoard},
-    pieces::{Mutation, MutationCondition, PieceBundle, Position, Royal},
+    pieces::{Mutation, MutationCondition, Position, Royal},
     team::Team,
 };
-use layouts::{
-    ClassicalLayout, KnightRelayLayout, PieceSpecification, SuperRelayLayout, WildLayout,
-};
+use replication::Player;
 
-use crate::components::{
-    ActionHistory, Clock, ClockConfiguration, Game, GameBoard, HasTurn, History, InGame, Player,
-    Ply, WinCondition,
-};
+use crate::components::{ActionHistory, Clock, Game, HasTurn, InGame, Ply, WinCondition};
 
-use super::{
-    GameOpponent, GameoverEvent, RequestJoinGameEvent, RequestTurnEvent, RequireMutationEvent,
-    TurnEvent,
-};
-
-#[derive(Default)]
-#[derive(Resource)]
-pub(super) struct WaitingClients(Vec<FromClient<RequestJoinGameEvent>>);
-
-pub(super) fn handle_game_lobby(
-    mut join_requests: EventReader<FromClient<RequestJoinGameEvent>>,
-    mut waiting_clients: ResMut<WaitingClients>,
-) {
-    let mut requests_iter = join_requests.read();
-    while let Some(event) = requests_iter.next() {
-        match event.event.opponent {
-            GameOpponent::Online => {
-                eprintln!("Client {} seeking match...", event.client_id.get());
-                waiting_clients.0.push(event.clone());
-            }
-            GameOpponent::Local | GameOpponent::AgainstBot | GameOpponent::Analysis => {
-                unimplemented!("Can't play games against bots yet :(");
-            }
-        }
-    }
-}
-
-pub(super) fn start_games(mut commands: Commands, mut waiting_clients: ResMut<WaitingClients>) {
-    let (mut specified_games, mut unspecified_games): (Vec<_>, Vec<_>) = waiting_clients
-        .0
-        .drain(..)
-        .partition(|event| event.event.game.is_some());
-    // TODO: maybe do a pass to find matching settings
-    // while let Some(host) = specified_games.pop() {
-    //     if let Some(opponent) = unspecified_games.pop() {
-    //         host.event
-    //             .game
-    //             .expect("host of matching pair to have specified game settings")
-    //             .spawn(&mut commands);
-    //         // TODO: attach host and opponent client ids...?
-    //     }
-    // }
-    let mut chunks = specified_games.chunks_exact(2);
-    while let Some(chunk) = chunks.next() {
-        let mut iter = chunk.iter();
-        let p1 = iter.next().unwrap();
-        let p2 = iter.next().unwrap();
-        p1.event
-            .game
-            .clone()
-            .expect("host of matching pair to have specified game settings")
-            .spawn(&mut commands);
-        eprintln!("Game spawned!!!!");
-    }
-    waiting_clients.0.extend_from_slice(chunks.remainder());
-    waiting_clients.0.extend(unspecified_games);
-}
-
-pub(super) fn spawn_game_entities(
-    mut commands: Commands,
-    query: Query<(Entity, &GameBoard, Option<&ClockConfiguration>), Added<GameBoard>>,
-) {
-    for (game_entity, game_board, clock) in query.iter() {
-        // add move history to the game
-        commands
-            .entity(game_entity)
-            .insert((Ply::default(), ActionHistory::default()));
-
-        // create an entity to manage board properties
-        let board = match game_board {
-            GameBoard::Chess
-            | GameBoard::WildChess
-            | GameBoard::KnightRelayChess
-            | GameBoard::SuperRelayChess => Board::chess_board(),
-        };
-        // TODO: Some sort of board bundle?
-        let board_entity = commands
-            .spawn((
-                board,
-                InGame(game_entity),
-                BoardPieceCache::default(),
-                BoardThreatsCache::default(),
-            ))
-            .id();
-
-        // spawn all game pieces
-        let pieces_per_player = match game_board {
-            GameBoard::Chess => ClassicalLayout::pieces(),
-            GameBoard::WildChess => WildLayout::pieces(),
-            GameBoard::KnightRelayChess => KnightRelayLayout::pieces(),
-            GameBoard::SuperRelayChess => SuperRelayLayout::pieces(),
-        };
-
-        for team in [Team::White, Team::Black].into_iter() {
-            let mut player_builder =
-                commands.spawn((Player, team, team.orientation(), InGame(game_entity)));
-            if team == Team::White {
-                player_builder.insert(HasTurn);
-            }
-            if let Some(ClockConfiguration { clock }) = clock {
-                player_builder.insert(clock.clone());
-            }
-
-            for PieceSpecification {
-                piece,
-                start_square,
-            } in pieces_per_player.iter()
-            {
-                let start_square = start_square.reorient(team.orientation(), &board);
-                let name = Name::new(format!("{:?} {}-{:?}", team, start_square, piece.identity));
-
-                let mut piece_builder = commands.spawn((
-                    name,
-                    piece.identity,
-                    PieceBundle::new(start_square.into(), team),
-                    InGame(game_entity),
-                    OnBoard(board_entity),
-                    History::<Position>::default(),
-                ));
-
-                if piece.royal.is_some() {
-                    piece_builder.insert(Royal);
-                }
-                if let Some(mutation) = &piece.mutation {
-                    piece_builder.insert(mutation.clone());
-                }
-                if let Some(behavior) = piece.behaviors.mimic {
-                    piece_builder.insert(behavior);
-                }
-                if let Some(behavior) = &piece.behaviors.pattern {
-                    piece_builder.insert(behavior.clone());
-                }
-                if let Some(behavior) = &piece.behaviors.relay {
-                    piece_builder.insert(behavior.clone());
-                }
-                if let Some(behavior) = piece.behaviors.en_passant {
-                    piece_builder.insert(behavior);
-                }
-                if let Some(behavior) = piece.behaviors.castling {
-                    piece_builder.insert(behavior);
-                }
-                if let Some(behavior) = piece.behaviors.castling_target {
-                    piece_builder.insert(behavior);
-                }
-            }
-        }
-    }
-}
+use super::{GameoverEvent, RequestTurnEvent, RequireMutationEvent, TurnEvent};
 
 pub(super) fn detect_turn(
     game_query: Query<&Ply, With<Game>>,

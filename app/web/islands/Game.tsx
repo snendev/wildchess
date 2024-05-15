@@ -22,6 +22,7 @@ type RecvMessage =
   | { kind: 'piece-icons', icons: Record<string, string> }
   | { kind: 'position', position: Record<string, string>, lastMove: [string, string] | null | undefined }
   | { kind: 'targets', source: string, targets: string[] }
+  | { kind: 'player-count', count: number }
 
 type SendMessage =
   | { kind: 'start-game' }
@@ -44,6 +45,7 @@ function useWasmGame(game_name: string) {
       new URL("/js/workers/wasm.js", import.meta.url).href,
     );
     setTimeout(() => {
+      console.log("sending start signal")
       sendMessage(worker, {kind: "start-game"});
     }, 2000);
     worker.onmessage = (event: MessageEvent<RecvMessage>) => {
@@ -53,7 +55,7 @@ function useWasmGame(game_name: string) {
           return;
         }
         case "position": {
-            console.log(event.data.position);
+          console.log(event.data.position);
           setPosition(event.data.position);
           if (event.data.lastMove !== undefined) setLastMoveSquares(event.data.lastMove ?? null);
           return;
@@ -61,6 +63,10 @@ function useWasmGame(game_name: string) {
         case "targets": {
           setTargetSquares(event.data.targets);
           return;
+        }
+        case "player-count": {
+            console.log("player count: " + event.data.count);
+            return;
         }
         default: {
           throw new Error(`Unexpected message received from worker: ${JSON.stringify(event.data)}`);
@@ -83,6 +89,7 @@ function useWasmGame(game_name: string) {
   }, [worker])
 
   const playMove = useCallback((source: string, target: string) => {
+    console.log({source, target});
     sendMessage(worker, {kind: 'play-move', source, target});
   }, [worker]);
 

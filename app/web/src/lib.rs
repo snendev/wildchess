@@ -16,19 +16,19 @@ use games::{
         pieces::{PieceIdentity, Position},
         team::Team,
     },
-    components::{GameBoard, GameSpawner, WinCondition},
-    GameOpponent, GameplayPlugin, RequestJoinGameEvent, RequestTurnEvent,
+    components::{Game, GameBoard, GameRequestClock, GameRequestVariant},
+    GameOpponent, GameplayPlugin, MatchmakingPlugin, RequestJoinGameEvent, RequestTurnEvent,
 };
-use replication::{network_conditions, ConnectToServerEvent, ReplicationPlugin};
+use replication::{network_conditions, ConnectToServerEvent, Player, ReplicationPlugin};
 use transport::client::ClientPlugin as ClientTransportPlugin;
 use wild_icons::PieceIconSvg;
 
 // Use this to enable console logging
-// #[wasm_bindgen]
-// extern "C" {
-//     #[wasm_bindgen(js_namespace = console)]
-//     fn log(s: &str);
-// }
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
 
 #[wasm_bindgen]
 pub struct WasmApp(App);
@@ -49,6 +49,7 @@ impl WasmApp {
         ));
         app.add_plugins((
             GameplayPlugin,
+            MatchmakingPlugin,
             ReplicationPlugin::Client,
             ClientTransportPlugin,
         ));
@@ -61,11 +62,9 @@ impl WasmApp {
     pub fn start_game(&mut self) {
         self.0.world.send_event(ConnectToServerEvent);
         self.0.world.send_event(RequestJoinGameEvent {
-            game: Some(GameSpawner::new_game(
-                GameBoard::WildChess,
-                WinCondition::RoyalCapture,
-            )),
             opponent: GameOpponent::Online,
+            game: Some(GameRequestVariant::FeaturedGameOne),
+            clock: Some(GameRequestClock::Rapid),
         });
     }
 
@@ -78,8 +77,20 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn is_in_game(&mut self) -> bool {
-        let mut query = self.0.world.query::<&GameBoard>();
+        let mut query = self.0.world.query::<&Game>();
         query.iter(&self.0.world).count() > 0
+    }
+
+    #[wasm_bindgen]
+    pub fn get_entity_count(&mut self) -> usize {
+        let mut query = self.0.world.query::<Entity>();
+        query.iter(&self.0.world).count()
+    }
+
+    #[wasm_bindgen]
+    pub fn get_player_count(&mut self) -> usize {
+        let mut query = self.0.world.query::<&Player>();
+        query.iter(&self.0.world).count()
     }
 
     #[wasm_bindgen]
@@ -95,6 +106,8 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn remove_board(&mut self) {
+        // TODO: this queries for both game instance and board instance
+        // what is the intended lifecycle of these components?
         let mut game_query = self.0.world.query_filtered::<Entity, With<GameBoard>>();
         for entity in game_query.iter(&self.0.world).collect::<Vec<_>>() {
             self.0.world.entity_mut(entity).despawn();
@@ -139,10 +152,12 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn get_target_squares(&mut self, square: String) -> Option<Vec<WasmSquare>> {
+        // TODO: not working
         let mut query = self.0.world.query::<(&Position, &Actions)>();
         let (_, actions) = query
             .iter(&self.0.world)
             .find(|(position, _)| position.0 == square.as_str().try_into().unwrap())?;
+        log(format!("{:?}", actions).as_str());
         Some(
             actions
                 .0

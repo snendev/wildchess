@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use bevy_ecs::prelude::{Changed, Commands, Component, Entity, Query, RemovedComponents, With};
+use bevy_ecs::{
+    entity::MapEntities,
+    prelude::{Changed, Commands, Component, Entity, EntityMapper, Query, RemovedComponents, With},
+};
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 
@@ -65,6 +68,16 @@ impl ActionHistory {
 
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+}
+
+impl MapEntities for ActionHistory {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.0 = self
+            .0
+            .iter()
+            .map(|(entity, action)| (mapper.map_entity(*entity), action.clone()))
+            .collect()
     }
 }
 
@@ -154,5 +167,25 @@ impl<T> History<T> {
 impl<T> Default for History<T> {
     fn default() -> Self {
         History::new()
+    }
+}
+
+// In case we track History for anything that carries Entity data
+impl<T: Clone + MapEntities> MapEntities for History<T> {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.0 = self
+            .0
+            .iter()
+            .map(|(ply, option)| {
+                (
+                    *ply,
+                    option.as_ref().map(|value| {
+                        let mut new_value = value.clone();
+                        new_value.map_entities(mapper);
+                        new_value
+                    }),
+                )
+            })
+            .collect()
     }
 }

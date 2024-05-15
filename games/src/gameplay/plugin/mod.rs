@@ -14,17 +14,14 @@ use chess::{
 use bevy_replicon::prelude::*;
 
 mod events;
-pub use events::{
-    GameOpponent, GameoverEvent, RequestJoinGameEvent, RequestTurnEvent, RequireMutationEvent,
-    TurnEvent,
-};
+pub use events::{GameoverEvent, RequestTurnEvent, RequireMutationEvent, TurnEvent};
 
 use crate::components::{
     AntiGame, Atomic, Clock, ClockConfiguration, Crazyhouse, Game, GameBoard, HasTurn, History,
-    Player, Ply, WinCondition,
+    Ply, WinCondition,
 };
 
-use self::systems::WaitingClients;
+use super::components::{ActionHistory, InGame};
 
 mod systems;
 
@@ -48,16 +45,15 @@ impl Plugin for GameplayPlugin {
             BehaviorsSystems
                 .run_if(any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>())),
         )
-        .init_resource::<WaitingClients>()
-        .add_client_event::<RequestTurnEvent>(ChannelKind::Ordered)
-        .add_client_event::<RequestJoinGameEvent>(ChannelKind::Ordered)
-        .add_server_event::<TurnEvent>(ChannelKind::Ordered)
-        .add_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
+        .configure_sets(Update, GameSystems.before(BehaviorsSystems))
+        .add_mapped_client_event::<RequestTurnEvent>(ChannelKind::Ordered)
+        .add_mapped_server_event::<TurnEvent>(ChannelKind::Ordered)
+        .add_mapped_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
         .add_server_event::<GameoverEvent>(ChannelKind::Ordered)
         .replicate::<Clock>()
-        .replicate::<Player>()
         .replicate::<Ply>()
         .replicate::<HasTurn>()
+        .replicate_mapped::<InGame>()
         .replicate::<Game>()
         .replicate::<GameBoard>()
         .replicate::<Atomic>()
@@ -65,6 +61,11 @@ impl Plugin for GameplayPlugin {
         .replicate::<AntiGame>()
         .replicate::<WinCondition>()
         .replicate::<ClockConfiguration>()
+        .replicate_mapped::<ActionHistory>()
+        .replicate::<History<Position>>()
+        .replicate::<History<PatternBehavior>>()
+        .replicate::<History<MimicBehavior>>()
+        .replicate::<History<RelayBehavior>>()
         .add_systems(
             Update,
             (
@@ -84,17 +85,7 @@ impl Plugin for GameplayPlugin {
                 systems::tick_clocks,
             )
                 .chain()
-                .before(BehaviorsSystems),
-        )
-        .add_systems(
-            Update,
-            (
-                systems::handle_game_lobby,
-                systems::start_games,
-                systems::spawn_game_entities,
-            )
-                .run_if(has_authority)
-                .chain(),
+                .in_set(GameSystems),
         );
     }
 }
@@ -161,7 +152,6 @@ mod tests {
         app.add_plugins(bevy_core::FrameCountPlugin);
         app.add_plugins(bevy_time::TimePlugin);
         app.add_plugins(bevy_app::ScheduleRunnerPlugin::default());
-        #[cfg(feature = "replication")]
         app.add_plugins(RepliconCorePlugin);
 
         app.add_plugins(GameplayPlugin);

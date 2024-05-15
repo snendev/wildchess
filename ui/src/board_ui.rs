@@ -12,7 +12,7 @@ use bevy_egui::{
 
 use games::{
     chess::{board::Square, pieces::PieceDefinition, team::Team},
-    components::{ActionHistory, Clock, HasTurn, Player, Ply},
+    components::{ActionHistory, Clock, HasTurn, Ply},
     RequestTurnEvent,
 };
 use wild_icons::PieceIconSvg;
@@ -122,7 +122,7 @@ pub(crate) fn egui_history_panel(
 pub(crate) fn egui_information_panel(
     mut contexts: EguiContexts,
     piece_query: Query<PieceQuery>,
-    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>), With<Player>>,
+    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>)>,
     mut mutation_writer: EventWriter<RequestTurnEvent>,
     mut intended_mutation: ResMut<IntendedMutation>,
     selected_square: Res<SelectedSquare>,
@@ -212,7 +212,7 @@ pub(crate) fn egui_information_panel(
 pub(crate) fn egui_chessboard(
     mut contexts: EguiContexts,
     piece_query: Query<PieceQuery>,
-    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>), With<Player>>,
+    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>)>,
     mut move_writer: EventWriter<RequestTurnEvent>,
     mut intended_mutation: ResMut<IntendedMutation>,
     mut last_selected_square: ResMut<SelectedSquare>,

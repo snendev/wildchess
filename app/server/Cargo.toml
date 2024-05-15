@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 games = { path = "../../games" }
-replication = { path = "../../replication" }
+replication = { path = "../../replication", features = ["log"] }
 transport = { path = "../../transport", features = [
     # "server",
     # "native_transport",

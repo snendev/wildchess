@@ -16,8 +16,9 @@ impl Plugin for ChessPlugin {
             app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
         }
         // TODO: should be plugins for each submodule instead
-        app.replicate::<board::Board>()
-            .replicate::<board::OnBoard>()
+        app.replicate_mapped::<actions::Actions>()
+            .replicate::<board::Board>()
+            .replicate_mapped::<board::OnBoard>()
             .replicate::<pieces::Mutation>()
             .replicate::<pieces::Orientation>()
             .replicate::<pieces::PieceIdentity>()
