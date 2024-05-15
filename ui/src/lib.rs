@@ -4,7 +4,10 @@ use bevy::prelude::{
 
 pub use bevy_egui;
 
-use games::components::{Game, History};
+use games::{
+    chess::pieces::Orientation,
+    components::{Game, History},
+};
 use wild_icons::{PieceIconCharacter, PieceIconPlugin, PieceIconSvg};
 
 pub(crate) mod mutation;
@@ -31,9 +34,8 @@ impl Plugin for EguiBoardUIPlugin {
         if !app.is_plugin_added::<bevy_egui::EguiPlugin>() {
             app.add_plugins(bevy_egui::EguiPlugin);
         }
-        if !app.is_plugin_added::<PieceIconPlugin>() {
-            app.add_plugins(PieceIconPlugin);
-        }
+
+        app.add_plugins(PieceIconPlugin::new(get_orientation));
 
         app.init_resource::<mutation::IntendedMutation>()
             .init_resource::<SelectedSquare>()
@@ -57,4 +59,8 @@ fn set_game(mut game: ResMut<SelectedGame>, game_query: Query<Entity, Added<Game
     for added_game in game_query.iter() {
         game.0 = Some(added_game);
     }
+}
+
+fn get_orientation() -> Orientation {
+    Orientation::Up
 }

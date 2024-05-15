@@ -14,7 +14,7 @@ use bevy_replicon_renet2::{
     RenetChannelsExt, RepliconRenetClientPlugin, RepliconRenetServerPlugin,
 };
 
-pub use bevy_replicon::core::common_conditions as network_conditions;
+pub use bevy_replicon;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[derive(Component)]

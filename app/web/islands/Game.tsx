@@ -21,8 +21,9 @@ export default function WasmGame({ name, description }: WasmGameProps) {
 type RecvMessage =
   | { kind: 'piece-icons', icons: Record<string, string> }
   | { kind: 'position', position: Record<string, string>, lastMove: [string, string] | null | undefined }
-  | { kind: 'targets', source: string, targets: string[] }
+  | { kind: 'targets', source: string, targets?: string[] }
   | { kind: 'player-count', count: number }
+  | { kind: 'orientation', orientation: 'white' | 'black'}
 
 type SendMessage =
   | { kind: 'start-game' }
@@ -36,6 +37,7 @@ function sendMessage(worker: Worker, message: SendMessage) {
 
 function useWasmGame(game_name: string) {
   const [position, setPosition] = useState<Record<string, string> | null>(null);
+  const [orientation, setOrientation] = useState<string>('white');
   const [icons, setIcons] = useState<Record<string, string> | null>(null);
   const [targetSquares, setTargetSquares] = useState<string[] | null>(null);
   const [lastMoveSquares, setLastMoveSquares] = useState<[string, string] | null>(null);
@@ -55,18 +57,21 @@ function useWasmGame(game_name: string) {
           return;
         }
         case "position": {
-          console.log(event.data.position);
           setPosition(event.data.position);
           if (event.data.lastMove !== undefined) setLastMoveSquares(event.data.lastMove ?? null);
           return;
         }
         case "targets": {
-          setTargetSquares(event.data.targets);
+          setTargetSquares(event.data.targets ?? null);
           return;
         }
         case "player-count": {
-            console.log("player count: " + event.data.count);
-            return;
+          console.log("player count: " + event.data.count);
+          return;
+        }
+        case 'orientation': {
+          setOrientation(event.data.orientation);
+          return;
         }
         default: {
           throw new Error(`Unexpected message received from worker: ${JSON.stringify(event.data)}`);
@@ -93,5 +98,5 @@ function useWasmGame(game_name: string) {
     sendMessage(worker, {kind: 'play-move', source, target});
   }, [worker]);
 
-  return { position, icons, targetSquares, lastMoveSquares, setupBoard, requestTargets, resetTargets, playMove };
+  return { position, icons, targetSquares, lastMoveSquares, orientation, setupBoard, requestTargets, resetTargets, playMove };
 }

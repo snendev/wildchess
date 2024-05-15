@@ -15,7 +15,7 @@ mod clock;
 pub use clock::Clock;
 
 mod turns;
-pub use turns::{ActionHistory, HasTurn, History, Ply};
+pub use turns::{ActionHistory, HasTurn, History, LastMove, Ply};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[derive(Component)]

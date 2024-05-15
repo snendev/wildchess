@@ -3,7 +3,10 @@ use bevy_ecs::prelude::{Commands, Entity, EventReader, EventWriter, Query, Res, 
 use bevy_log::{debug, info};
 use bevy_time::Time;
 
-use bevy_replicon::prelude::{FromClient, ToClients};
+use bevy_replicon::{
+    core::ClientId,
+    prelude::{FromClient, ToClients},
+};
 
 use chess::{
     actions::Action,
@@ -14,13 +17,17 @@ use chess::{
 };
 use replication::Player;
 
-use crate::components::{ActionHistory, Clock, Game, HasTurn, InGame, Ply, WinCondition};
+use crate::{
+    components::{ActionHistory, Clock, Game, HasTurn, InGame, Ply, WinCondition},
+    gameplay::components::LastMove,
+};
 
 use super::{GameoverEvent, RequestTurnEvent, RequireMutationEvent, TurnEvent};
 
 pub(super) fn detect_turn(
     game_query: Query<&Ply, With<Game>>,
     board_query: Query<&Board>,
+    player_query: Query<(&Team, &Player), With<HasTurn>>,
     piece_query: Query<(&Team, &OnBoard, &InGame, Option<&Mutation>)>,
     mut requested_turns: EventReader<FromClient<RequestTurnEvent>>,
     mut require_mutation_writer: EventWriter<RequireMutationEvent>,
@@ -33,17 +40,31 @@ pub(super) fn detect_turn(
                 action,
                 promotion,
             },
-        ..
+        client_id,
     } in requested_turns.read()
     {
+        eprintln!(
+            "Turn requested: {:?}: {} -> {}",
+            *piece, action.movement.from, action.movement.to
+        );
+        let Some((player_team, _)) = player_query
+            .iter()
+            .find(|(_, player)| player.id == *client_id)
+        else {
+            continue;
+        };
         let Ok((team, on_board, in_game, mutation)) = piece_query.get(*piece) else {
             continue;
         };
+        if team != player_team {
+            continue;
+        }
         let Ok(ply) = game_query.get(in_game.0) else {
             continue;
         };
-
+        eprintln!("Turn:");
         if let Some(mutation) = mutation {
+            eprintln!("Sending promotion event!");
             let Ok(board) = board_query.get(on_board.0) else {
                 continue;
             };
@@ -52,6 +73,7 @@ pub(super) fn detect_turn(
                     let reoriented_rank =
                         action.movement.to.reorient(team.orientation(), board).rank;
                     if rank != reoriented_rank {
+                        eprintln!("Just kidding, regular turn");
                         turn_writer.send(TurnEvent::action(
                             *ply,
                             *piece,
@@ -89,6 +111,7 @@ pub(super) fn detect_turn(
                 }
             }
         } else {
+            eprintln!("Sending turn event!");
             turn_writer.send(TurnEvent::action(
                 *ply,
                 *piece,
@@ -103,9 +126,10 @@ pub(super) fn detect_turn(
 pub(super) fn execute_turn_movement(
     mut commands: Commands,
     mut piece_query: Query<(Entity, &mut Position, &OnBoard)>,
-    mut turn_reader: EventReader<ToClients<TurnEvent>>,
+    mut turn_reader: EventReader<TurnEvent>,
 ) {
-    for ToClients { event, .. } in turn_reader.read() {
+    for event in turn_reader.read() {
+        eprintln!("Executing turn: {:?}", event);
         if let Ok((_, mut current_square, _)) = piece_query.get_mut(event.piece) {
             current_square.0 = event.action.movement.to;
         }
@@ -141,9 +165,9 @@ pub(super) fn execute_turn_movement(
 
 pub(super) fn execute_turn_mutations(
     mut commands: Commands,
-    mut turn_reader: EventReader<ToClients<TurnEvent>>,
+    mut turn_reader: EventReader<TurnEvent>,
 ) {
-    for ToClients { event, .. } in turn_reader.read() {
+    for event in turn_reader.read() {
         if let Some(mutated_piece) = &event.mutation {
             // remove any existing behaviors and mutation
             commands
@@ -181,6 +205,24 @@ pub(super) fn execute_turn_mutations(
                 commands
                     .entity(event.piece)
                     .insert(mutation_behavior.clone());
+            }
+        }
+    }
+}
+
+pub(super) fn set_last_move(
+    mut commands: Commands,
+    mut turn_reader: EventReader<TurnEvent>,
+    mut boards: Query<(Entity, Option<&mut LastMove>), With<Board>>,
+) {
+    for event in turn_reader.read() {
+        if let Ok((entity, maybe_move)) = boards.get_mut(event.board) {
+            if let Some(mut last_move) = maybe_move {
+                last_move.0 = event.action.clone();
+            } else {
+                commands
+                    .entity(entity)
+                    .insert(LastMove(event.action.clone()));
             }
         }
     }

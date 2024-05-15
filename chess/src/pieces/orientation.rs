@@ -21,6 +21,15 @@ pub enum Orientation {
 }
 
 impl Orientation {
+    pub fn flip(self) -> Self {
+        match self {
+            Orientation::Up => Orientation::Down,
+            Orientation::Down => Orientation::Up,
+            Orientation::Left => Orientation::Right,
+            Orientation::Right => Orientation::Left,
+        }
+    }
+
     pub fn orient(&self, (x, y): (i16, i16)) -> (i16, i16) {
         match self {
             Orientation::Up => (x, y),

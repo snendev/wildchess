@@ -88,7 +88,9 @@ where
                 .in_set(BehaviorsSystems),
         );
 
-        app.replicate::<PatternBehavior>()
+        app.replicate::<BoardPieceCache>()
+            .replicate::<BoardThreatsCache>()
+            .replicate::<PatternBehavior>()
             .replicate::<CastlingBehavior>()
             .replicate::<CastlingTarget>()
             .replicate::<EnPassantBehavior>()

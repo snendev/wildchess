@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use bevy_app::App;
 use bevy_ecs::{
-    prelude::{Entity, Events, With},
+    prelude::{Entity, Events, Query, Res, With},
     system::RunSystemOnce,
 };
 
@@ -13,13 +13,16 @@ use games::{
     chess::{
         actions::Actions,
         board::Square,
-        pieces::{PieceIdentity, Position},
+        pieces::{Orientation, PieceIdentity, Position},
         team::Team,
     },
-    components::{Game, GameBoard, GameRequestClock, GameRequestVariant},
+    components::{Game, GameBoard, GameRequestClock, GameRequestVariant, LastMove},
     GameOpponent, GameplayPlugin, MatchmakingPlugin, RequestJoinGameEvent, RequestTurnEvent,
 };
-use replication::{network_conditions, ConnectToServerEvent, Player, ReplicationPlugin};
+use replication::{
+    bevy_replicon::{core::common_conditions as network_conditions, prelude::RepliconClient},
+    ConnectToServerEvent, Player, ReplicationPlugin,
+};
 use transport::client::ClientPlugin as ClientTransportPlugin;
 use wild_icons::PieceIconSvg;
 
@@ -53,7 +56,7 @@ impl WasmApp {
             ReplicationPlugin::Client,
             ClientTransportPlugin,
         ));
-        app.add_plugins(wild_icons::PieceIconPlugin);
+        app.add_plugins(wild_icons::PieceIconPlugin::new(get_orientation));
 
         WasmApp(app)
     }
@@ -125,6 +128,61 @@ impl WasmApp {
     }
 
     #[wasm_bindgen]
+    // specifically, returns either "white" or "black"
+    // TODO: be less "stringly typed" in a useful way?
+    pub fn get_my_team(&mut self) -> Option<String> {
+        let Some(client_id) = self
+            .0
+            .world
+            .get_resource::<RepliconClient>()
+            .and_then(|client| client.id())
+        else {
+            return None;
+        };
+
+        let mut query = self.0.world.query::<(&Player, &Team)>();
+        let Some((_, team)) = query
+            .iter(&self.0.world)
+            .find(|(player, _)| player.id == client_id)
+        else {
+            return None;
+        };
+
+        Some(
+            match team {
+                Team::White => "white",
+                Team::Black => "black",
+            }
+            .to_string(),
+        )
+    }
+
+    #[wasm_bindgen]
+    // specifically, returns either "white" or "black"
+    // TODO: be less "stringly typed" in a useful way?
+    pub fn get_piece_team(&mut self, square: String) -> Option<String> {
+        let Ok(square): Result<Square, _> = square.as_str().try_into() else {
+            return None;
+        };
+
+        let mut query = self.0.world.query::<(&Position, &Team)>();
+        let Some((_, team)) = query
+            .iter(&self.0.world)
+            .find(|(position, _)| position.0 == square)
+        else {
+            return None;
+        };
+
+        Some(
+            match team {
+                Team::White => "white",
+                Team::Black => "black",
+            }
+            .to_string(),
+        )
+    }
+
+    #[wasm_bindgen]
     pub fn get_piece_positions(&mut self) -> Vec<WasmPiecePosition> {
         let mut query = self.0.world.query::<(&Position, &Team, &PieceIdentity)>();
         query
@@ -152,12 +210,11 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn get_target_squares(&mut self, square: String) -> Option<Vec<WasmSquare>> {
-        // TODO: not working
+        // TODO: not working after a first move is made
         let mut query = self.0.world.query::<(&Position, &Actions)>();
         let (_, actions) = query
             .iter(&self.0.world)
             .find(|(position, _)| position.0 == square.as_str().try_into().unwrap())?;
-        log(format!("{:?}", actions).as_str());
         Some(
             actions
                 .0
@@ -165,6 +222,19 @@ impl WasmApp {
                 .map(|action| WasmSquare(*action.0))
                 .collect::<Vec<_>>(),
         )
+    }
+
+    // Vec should be size 2
+    #[wasm_bindgen]
+    pub fn get_last_move(&mut self) -> Option<Vec<WasmSquare>> {
+        let mut query = self.0.world.query::<&LastMove>();
+        let Ok(last_move) = query.get_single(&self.0.world) else {
+            return None;
+        };
+        Some(vec![
+            WasmSquare(last_move.0.movement.from),
+            WasmSquare(last_move.0.movement.to),
+        ])
     }
 
     #[wasm_bindgen]
@@ -185,6 +255,7 @@ impl WasmApp {
             return false;
         };
         let action = action.clone();
+        log(format!("{:?}", actions).as_str());
 
         let mut move_events = self.0.world.resource_mut::<Events<RequestTurnEvent>>();
         move_events.send(RequestTurnEvent::new(piece, action.clone()));
@@ -273,5 +344,19 @@ impl WasmIcon {
     #[wasm_bindgen]
     pub fn to_source(self) -> String {
         self.svg_source
+    }
+}
+
+fn get_orientation(
+    client: Option<Res<RepliconClient>>,
+    players: Query<(&Player, &Team)>,
+) -> Orientation {
+    if let Some((_, team)) = client
+        .and_then(|client| client.id())
+        .and_then(|client_id| players.iter().find(|(player, _)| player.id == client_id))
+    {
+        team.orientation()
+    } else {
+        Orientation::Up
     }
 }

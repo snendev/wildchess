@@ -60,9 +60,7 @@ For a full example of how to initialize a server or client see the example in th
 repository.
 */
 
-pub use bevy_renet2::renet2;
-#[cfg(feature = "renet_transport")]
-pub use bevy_renet2::transport;
+pub use bevy_renet2::{renet2, transport};
 
 use bevy_app::{App, Plugin, PluginGroup, PluginGroupBuilder, PostUpdate, PreUpdate};
 use bevy_ecs::prelude::{
@@ -71,11 +69,8 @@ use bevy_ecs::prelude::{
 };
 use bevy_renet2::{RenetClientPlugin, RenetReceive, RenetSend, RenetServerPlugin};
 use bevy_replicon::prelude::*;
-use renet2::{ChannelConfig, RenetClient, RenetServer, SendType};
-#[cfg(feature = "renet_transport")]
-use {
-    renet::transport::NetcodeClientTransport,
-    transport::{NetcodeClientPlugin, NetcodeServerPlugin},
+use renet2::{
+    transport::NetcodeClientTransport, ChannelConfig, RenetClient, RenetServer, SendType,
 };
 
 pub struct RepliconRenetServerPlugin;
@@ -104,9 +99,6 @@ impl Plugin for RepliconRenetServerPlugin {
                     .in_set(ServerSet::SendPackets)
                     .run_if(resource_exists::<RenetServer>),
             );
-
-        #[cfg(feature = "renet_transport")]
-        app.add_plugins(NetcodeServerPlugin);
     }
 }
 
@@ -206,16 +198,8 @@ impl RepliconRenetClientPlugin {
         client.set_status(RepliconClientStatus::Connecting);
     }
 
-    fn set_connected(
-        mut client: ResMut<RepliconClient>,
-        #[cfg(feature = "renet_transport")] transport: Res<NetcodeClientTransport>,
-    ) {
-        // In renet only transport knows the ID.
-        // TODO: Pending renet issue https://github.com/lucaspoffo/renet/issues/153
-        #[cfg(feature = "renet_transport")]
+    fn set_connected(mut client: ResMut<RepliconClient>, transport: Res<NetcodeClientTransport>) {
         let client_id = Some(ClientId::new(transport.client_id().raw()));
-        #[cfg(not(feature = "renet_transport"))]
-        let client_id = None;
 
         client.set_status(RepliconClientStatus::Connected { client_id });
     }

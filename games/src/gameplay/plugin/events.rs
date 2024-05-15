@@ -9,6 +9,7 @@ use chess::{actions::Action, pieces::PieceDefinition, team::Team};
 
 use crate::components::Ply;
 
+#[derive(Debug)]
 #[derive(Event)]
 #[derive(Deserialize, Serialize)]
 pub struct TurnEvent {
@@ -48,20 +49,6 @@ impl TurnEvent {
             action,
             mutation: Some(mutated_piece),
         }
-    }
-}
-
-impl MapEntities for TurnEvent {
-    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
-        self.piece = mapper.map_entity(self.piece);
-        self.board = mapper.map_entity(self.board);
-        self.game = mapper.map_entity(self.game);
-        self.action.side_effects = self
-            .action
-            .side_effects
-            .iter()
-            .map(|(entity, data)| (mapper.map_entity(*entity), data.clone()))
-            .collect();
     }
 }
 

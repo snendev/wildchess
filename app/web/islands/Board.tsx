@@ -6,6 +6,7 @@ interface ChessBoardControls {
   // map from algebraic square name to piece name (e.g. 'wK', 'bN', 'bP')
   position: Record<string, string> | null
   icons: Record<string, string> | null
+  orientation: "white" | "black",
   playMove: (source: string, target: string) => boolean,
   requestTargets: (source: string) => void,
   resetTargets: () => void,
@@ -15,6 +16,7 @@ function useChessBoard({
   boardRef,
   position,
   icons,
+  orientation,
   requestTargets,
   resetTargets,
   playMove,
@@ -35,9 +37,9 @@ function useChessBoard({
   }, [playMove, resetTargets]);
 
   // TODO:
-  console.log(icons);
   const config = useMemo(() => ({
     position: position ?? 'start',
+    orientation,
     dropOffBoard: "snapback",
     draggable: true,
     onDragStart: handleDragStart,
@@ -48,6 +50,7 @@ function useChessBoard({
     position,
     handleDrop,
     icons,
+    orientation,
     handleClickEmptySquare,
   ]);
 
@@ -68,6 +71,7 @@ interface ChessBoardProps {
   // map from algebraic square name to piece name (e.g. 'wK', 'bN', 'bP')
   position: Record<string, string> | null
   icons: Record<string, string> | null
+  orientation: "white" | "black",
   targetSquares: string[] | null,
   lastMoveSquares: [string, string] | null,
   setupBoard: () => void,
@@ -81,6 +85,7 @@ export default function Board({
   dimensions = [8, 8],
   position,
   icons,
+  orientation,
   targetSquares,
   lastMoveSquares,
   setupBoard,
@@ -99,6 +104,7 @@ export default function Board({
     boardRef,
     position,
     icons,
+    orientation,
     playMove,
     requestTargets: selectPiece,
     resetTargets,

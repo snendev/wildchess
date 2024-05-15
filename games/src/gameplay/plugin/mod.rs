@@ -17,11 +17,9 @@ mod events;
 pub use events::{GameoverEvent, RequestTurnEvent, RequireMutationEvent, TurnEvent};
 
 use crate::components::{
-    AntiGame, Atomic, Clock, ClockConfiguration, Crazyhouse, Game, GameBoard, HasTurn, History,
-    Ply, WinCondition,
+    ActionHistory, AntiGame, Atomic, Clock, ClockConfiguration, Crazyhouse, Game, GameBoard,
+    HasTurn, History, InGame, LastMove, Ply, WinCondition,
 };
-
-use super::components::{ActionHistory, InGame};
 
 mod systems;
 
@@ -45,16 +43,16 @@ impl Plugin for GameplayPlugin {
             BehaviorsSystems
                 .run_if(any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>())),
         )
-        .configure_sets(Update, GameSystems.before(BehaviorsSystems))
         .add_mapped_client_event::<RequestTurnEvent>(ChannelKind::Ordered)
-        .add_mapped_server_event::<TurnEvent>(ChannelKind::Ordered)
         .add_mapped_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
         .add_server_event::<GameoverEvent>(ChannelKind::Ordered)
+        .add_event::<TurnEvent>()
         .replicate::<Clock>()
         .replicate::<Ply>()
         .replicate::<HasTurn>()
         .replicate_mapped::<InGame>()
         .replicate::<Game>()
+        .replicate::<LastMove>()
         .replicate::<GameBoard>()
         .replicate::<Atomic>()
         .replicate::<Crazyhouse>()
@@ -80,6 +78,7 @@ impl Plugin for GameplayPlugin {
                 systems::detect_turn,
                 systems::execute_turn_movement.run_if(on_event::<TurnEvent>()),
                 systems::execute_turn_mutations.run_if(on_event::<TurnEvent>()),
+                systems::set_last_move.run_if(on_event::<TurnEvent>()),
                 systems::end_turn.run_if(on_event::<TurnEvent>()),
                 systems::track_turn_history.run_if(on_event::<TurnEvent>()),
                 systems::tick_clocks,
