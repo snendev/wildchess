@@ -13,14 +13,15 @@ let inGame = false;
 let myTeam = "white";
 
 function onMessage(event) {
-  //   console.log(event);
   if (app === undefined) {
     console.warn("message received before app is instantiated; ignoring");
     return;
   }
   switch (event.data.kind) {
-    case "start-game": {
-      app.start_game();
+    case "request-game": {
+      const gameRequest = makeGameRequest(event.data.variant, event.data.clock);
+      app.request_game(gameRequest);
+      postMessage({ kind: "network-state", state: "awaiting-game" });
       return;
     }
     case "remove-board": {
@@ -75,7 +76,7 @@ function onMessage(event) {
       return;
     }
     default: {
-      throw new Error("Unexpected message received: {}", event.data);
+      throw new Error("Unexpected message received: " + event.data);
     }
   }
 }
@@ -101,17 +102,16 @@ async function runApp() {
     // check connections
     if (!connected && app.is_connected()) {
       connected = true;
-      console.log("connected to server!");
+      postMessage({ kind: "network-state", state: "connected" });
     }
 
     // check game status
     if (!inGame && app.is_in_game()) {
       inGame = true;
-      console.log("connected to a game!");
+      postMessage({ kind: "network-state", state: "in-game" });
       app.update();
       const orientation = app.get_my_team();
       myTeam = orientation;
-      console.log(orientation);
       postMessage({ kind: "orientation", orientation: orientation ?? "white" });
     }
 
@@ -164,6 +164,56 @@ async function runApp() {
       setTimeout(resolve, 50);
     });
   }
+}
+
+function makeGameRequest(variant, clock) {
+  let gameRequest = wasm_bindgen.WasmGameRequest.new();
+  switch (variant) {
+    case "featured-1": {
+      gameRequest = gameRequest.with_featured_game_one();
+      break;
+    }
+    case "featured-2": {
+      gameRequest = gameRequest.with_featured_game_two();
+      break;
+    }
+    case "featured-3": {
+      gameRequest = gameRequest.with_featured_game_three();
+      break;
+    }
+    case "wild": {
+      gameRequest = gameRequest.with_wild_game();
+      break;
+    }
+    case null:
+      break;
+    default:
+      throw new Error("Unexpected game request kind: " + variant);
+  }
+  switch (clock) {
+    case "classical": {
+      gameRequest = gameRequest.with_classical_clock();
+      break;
+    }
+    case "rapid": {
+      gameRequest = gameRequest.with_rapid_clock();
+      break;
+    }
+    case "blitz": {
+      gameRequest = gameRequest.with_blitz_clock();
+      break;
+    }
+    case "bullet": {
+      gameRequest = gameRequest.with_bullet_clock();
+      break;
+    }
+    case null: {
+      break;
+    }
+    default:
+      throw new Error("Unexpected game clock: " + clock);
+  }
+  return gameRequest;
 }
 
 function sanitizeIconSource(source) {

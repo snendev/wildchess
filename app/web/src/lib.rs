@@ -57,17 +57,17 @@ impl WasmApp {
             ClientTransportPlugin,
         ));
         app.add_plugins(wild_icons::PieceIconPlugin::new(get_orientation));
+        app.world.send_event(ConnectToServerEvent);
 
         WasmApp(app)
     }
 
     #[wasm_bindgen]
-    pub fn start_game(&mut self) {
-        self.0.world.send_event(ConnectToServerEvent);
+    pub fn request_game(&mut self, game_request: WasmGameRequest) {
         self.0.world.send_event(RequestJoinGameEvent {
             opponent: GameOpponent::Online,
-            game: Some(GameRequestVariant::FeaturedGameOne),
-            clock: Some(GameRequestClock::Rapid),
+            game: game_request.variant,
+            clock: game_request.clock,
         });
     }
 
@@ -344,6 +344,71 @@ impl WasmIcon {
     #[wasm_bindgen]
     pub fn to_source(self) -> String {
         self.svg_source
+    }
+}
+
+#[wasm_bindgen]
+pub struct WasmGameRequest {
+    pub(crate) variant: Option<GameRequestVariant>,
+    pub(crate) clock: Option<GameRequestClock>,
+}
+
+#[wasm_bindgen]
+impl WasmGameRequest {
+    #[wasm_bindgen]
+    pub fn new() -> Self {
+        Self {
+            variant: None,
+            clock: None,
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn with_featured_game_one(mut self) -> Self {
+        self.variant = Some(GameRequestVariant::FeaturedGameOne);
+        self
+    }
+
+    #[wasm_bindgen]
+    pub fn with_featured_game_two(mut self) -> Self {
+        self.variant = Some(GameRequestVariant::FeaturedGameTwo);
+        self
+    }
+
+    #[wasm_bindgen]
+    pub fn with_featured_game_three(mut self) -> Self {
+        self.variant = Some(GameRequestVariant::FeaturedGameThree);
+        self
+    }
+
+    #[wasm_bindgen]
+    pub fn with_wild_game(mut self) -> Self {
+        self.variant = Some(GameRequestVariant::Wild);
+        self
+    }
+
+    #[wasm_bindgen]
+    pub fn with_classical_clock(mut self) -> Self {
+        self.clock = Some(GameRequestClock::Classical);
+        self
+    }
+
+    #[wasm_bindgen]
+    pub fn with_rapid_clock(mut self) -> Self {
+        self.clock = Some(GameRequestClock::Rapid);
+        self
+    }
+
+    #[wasm_bindgen]
+    pub fn with_blitz_clock(mut self) -> Self {
+        self.clock = Some(GameRequestClock::Blitz);
+        self
+    }
+
+    #[wasm_bindgen]
+    pub fn with_bullet_clock(mut self) -> Self {
+        self.clock = Some(GameRequestClock::Bullet);
+        self
     }
 }
 

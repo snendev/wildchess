@@ -302,7 +302,6 @@ pub(super) fn handle_visibility(
 ) {
     // players not in game can see all other players in lobby
     for [(entity1, player1), (entity2, player2)] in players_not_in_game.iter_combinations() {
-        eprintln!("Players {:?} and {:?} can see each other", entity1, entity2);
         let client1 = connected_clients.client_mut(player1.id);
         let visibility1 = client1.visibility_mut();
         visibility1.set_visibility(entity2, true);
@@ -317,24 +316,15 @@ pub(super) fn handle_visibility(
         let client = connected_clients.client_mut(player.id);
         let visibility = client.visibility_mut();
 
-        eprintln!(
-            "Making self and game instance {:?} visible to player {:?}",
-            player_game.0, entity
-        );
         // player can see themselves
         visibility.set_visibility(entity, true);
         // and the game instance
         // TODO: turning this off when switching / ending games?
         visibility.set_visibility(player_game.0, true);
 
-        eprintln!(
-            "Making game {:?} entities visible to player {:?}",
-            player_game.0, entity
-        );
         // player can see other game entities
         for (entity, in_game) in game_entities.iter() {
             if in_game == player_game {
-                eprintln!("...including entity {:?}", entity);
                 visibility.set_visibility(entity, true);
             } else {
                 visibility.set_visibility(entity, false);
@@ -344,8 +334,6 @@ pub(super) fn handle_visibility(
     // let players have visibility of other players present in the same game
     for [(entity1, player1, game1), (entity2, player2, game2)] in players.iter_combinations() {
         let is_visible = game1 == game2;
-
-        eprintln!("Players {:?} and {:?} can see each other", entity1, entity2);
 
         let client1 = connected_clients.client_mut(player1.id);
         let visibility1 = client1.visibility_mut();
