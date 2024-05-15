@@ -44,13 +44,15 @@ pub(super) fn handle_game_requests(
                     .iter()
                     .find(|(_, player)| player.id == event.client_id)
                 else {
-                    eprintln!(
+                    #[cfg(feature = "log")]
+                    bevy_log::info!(
                         "Join request received from player without player entity! Client {}",
                         event.client_id.get()
                     );
                     continue;
                 };
-                eprintln!(
+                #[cfg(feature = "log")]
+                bevy_log::info!(
                     "Player {:?} (client {}) seeking match...",
                     player,
                     event.client_id.get()
@@ -89,18 +91,17 @@ pub(super) fn match_specified_game_requests(
             continue;
         }
         if variant1 == variant2 && clock1 == clock2 {
+            #[cfg(feature = "log")]
+            bevy_log::info!("Spawning game for players {:?} and {:?}", entity1, entity2);
+
             matched_entities.push(entity1);
             matched_entities.push(entity2);
 
-            eprintln!("Spawning game for players {:?} and {:?}", entity1, entity2);
             // TODO: incorporate featured boards
             let game = GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture)
                 .with_clock(clock1.to_clock())
                 .spawn(&mut commands);
-            eprintln!(
-                "Adding InGame {:?} to players {:?} and {:?}",
-                game, entity1, entity2
-            );
+
             commands.entity(entity1).insert(InGame(game));
             commands.entity(entity2).insert(InGame(game));
         }
@@ -151,6 +152,9 @@ pub(super) fn match_remaining_game_requests(
             continue;
         }
 
+        #[cfg(feature = "log")]
+        bevy_log::info!("Spawning game for players {:?} and {:?}", entity1, entity2);
+
         let variant = variant1
             .or(variant2)
             .unwrap_or(&GameRequestVariant::FeaturedGameOne);
@@ -159,15 +163,11 @@ pub(super) fn match_remaining_game_requests(
         matched_entities.push(entity1);
         matched_entities.push(entity2);
 
-        eprintln!("Spawning game for players {:?} and {:?}", entity1, entity2);
         // TODO: incorporate featured boards
         let game = GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture)
             .with_clock(clock.to_clock())
             .spawn(&mut commands);
-        eprintln!(
-            "Adding InGame {:?} to players {:?} and {:?}",
-            game, entity1, entity2
-        );
+
         commands.entity(entity1).insert(InGame(game));
         commands.entity(entity2).insert(InGame(game));
     }
@@ -191,9 +191,12 @@ pub(super) fn assign_game_teams(
             let Ok(clock) = games.get(in_game.0) else {
                 continue 'outer;
             };
-            eprintln!(
+            #[cfg(feature = "log")]
+            bevy_log::info!(
                 "Setting player {:?} to team {:?} in game {:?}",
-                entity, team, in_game.0
+                entity,
+                team,
+                in_game.0
             );
             let mut builder = commands.entity(*entity);
             builder.insert((team, team.orientation()));
@@ -213,7 +216,8 @@ pub(super) fn spawn_game_entities(
     query: Query<(Entity, &GameBoard), Added<Game>>,
 ) {
     for (game_entity, game_board) in query.iter() {
-        eprintln!("Spawning pieces for game {:?}", game_entity);
+        #[cfg(feature = "log")]
+        bevy_log::info!("Spawning pieces for game {:?}", game_entity);
 
         // add move history to the game
         commands

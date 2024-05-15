@@ -43,10 +43,6 @@ pub(super) fn detect_turn(
         client_id,
     } in requested_turns.read()
     {
-        eprintln!(
-            "Turn requested: {:?}: {} -> {}",
-            *piece, action.movement.from, action.movement.to
-        );
         let Some((player_team, _)) = player_query
             .iter()
             .find(|(_, player)| player.id == *client_id)
@@ -62,9 +58,8 @@ pub(super) fn detect_turn(
         let Ok(ply) = game_query.get(in_game.0) else {
             continue;
         };
-        eprintln!("Turn:");
+
         if let Some(mutation) = mutation {
-            eprintln!("Sending promotion event!");
             let Ok(board) = board_query.get(on_board.0) else {
                 continue;
             };
@@ -73,7 +68,6 @@ pub(super) fn detect_turn(
                     let reoriented_rank =
                         action.movement.to.reorient(team.orientation(), board).rank;
                     if rank != reoriented_rank {
-                        eprintln!("Just kidding, regular turn");
                         turn_writer.send(TurnEvent::action(
                             *ply,
                             *piece,
@@ -111,7 +105,6 @@ pub(super) fn detect_turn(
                 }
             }
         } else {
-            eprintln!("Sending turn event!");
             turn_writer.send(TurnEvent::action(
                 *ply,
                 *piece,
@@ -129,7 +122,6 @@ pub(super) fn execute_turn_movement(
     mut turn_reader: EventReader<TurnEvent>,
 ) {
     for event in turn_reader.read() {
-        eprintln!("Executing turn: {:?}", event);
         if let Ok((_, mut current_square, _)) = piece_query.get_mut(event.piece) {
             current_square.0 = event.action.movement.to;
         }

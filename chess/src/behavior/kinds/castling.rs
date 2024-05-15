@@ -149,15 +149,7 @@ impl CastlingBehavior {
                         ||
                         // movement collides with piece (except the rook)
                         *scan != *target && pieces.teams.contains_key(scan));
-                if let Some(square) = scanned_squares.iter().find(|scan|
-                            // scanned square is check
-                            threats.is_threatened(**scan, *team)
-                            ||
-                            // movement collides with piece (except the rook)
-                            **scan != *target && pieces.teams.contains_key(*scan))
-                {
-                    eprintln!("{} targeted", square,);
-                }
+
                 let collides_rook = target_landing_square != *target
                     && pieces.teams.contains_key(&target_landing_square);
 
