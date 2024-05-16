@@ -24,6 +24,10 @@ export default function AboutBlurb(): JSX.Element {
       </p>
       <br />
       <p>
+        This website may not be functional on all browsers! If your browser crashes, please try loading in Chrome.
+      </p>
+      <br />
+      <p>
         In the future, expect the following features:
       </p>
       <ul class="p-2 list-disc list-inside">
