@@ -27,7 +27,8 @@ impl Plugin for ChessPlugin {
             .replicate::<team::Team>();
 
         #[cfg(feature = "reflect")]
-        app.register_type::<team::Team>()
+        app.register_type::<actions::Action>()
+            .register_type::<actions::Actions>()
             .register_type::<behavior::PatternBehavior>()
             .register_type::<board::Square>()
             .register_type::<board::Rank>()
@@ -46,8 +47,11 @@ impl Plugin for ChessPlugin {
             .register_type::<pattern::RSymmetry>()
             .register_type::<pattern::ABSymmetry>()
             .register_type::<pattern::TargetKind>()
+            .register_type::<pieces::Mutation>()
+            .register_type::<pieces::Orientation>()
+            .register_type::<pieces::PieceIdentity>()
             .register_type::<pieces::Position>()
-            .register_type::<actions::Action>()
-            .register_type::<actions::Actions>();
+            .register_type::<pieces::Royal>()
+            .register_type::<team::Team>();
     }
 }
