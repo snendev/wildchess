@@ -17,13 +17,14 @@ use chess::{
     team::Team,
 };
 use layouts::{
-    ClassicalLayout, KnightRelayLayout, PieceSpecification, SuperRelayLayout, WildLayout,
+    ClassicalLayout, FeaturedWildLayout, KnightRelayLayout, PieceSpecification, RandomWildLayout,
+    SuperRelayLayout, WildPieceSet,
 };
 use replication::Player;
 
 use crate::{
     components::{ActionHistory, ClockConfiguration, GameBoard, HasTurn, History, InGame, Ply},
-    gameplay::components::{Clock, Game, GameSpawner, WinCondition},
+    gameplay::components::{Clock, Game, GameSpawner, PieceSet, WinCondition},
 };
 
 use super::{
@@ -97,10 +98,17 @@ pub(super) fn match_specified_game_requests(
             matched_entities.push(entity1);
             matched_entities.push(entity2);
 
+            let piece_set = PieceSet(match variant1 {
+                GameRequestVariant::FeaturedGameOne => FeaturedWildLayout::One.pieces(),
+                GameRequestVariant::FeaturedGameTwo => FeaturedWildLayout::Two.pieces(),
+                GameRequestVariant::FeaturedGameThree => FeaturedWildLayout::Three.pieces(),
+                GameRequestVariant::Wild => RandomWildLayout::pieces(),
+            });
             // TODO: incorporate featured boards
-            let game = GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture)
-                .with_clock(clock1.to_clock())
-                .spawn(&mut commands);
+            let game =
+                GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture)
+                    .with_clock(clock1.to_clock())
+                    .spawn(&mut commands);
 
             commands.entity(entity1).insert(InGame(game));
             commands.entity(entity2).insert(InGame(game));
@@ -163,8 +171,15 @@ pub(super) fn match_remaining_game_requests(
         matched_entities.push(entity1);
         matched_entities.push(entity2);
 
+        let piece_set = PieceSet(match variant {
+            GameRequestVariant::FeaturedGameOne => FeaturedWildLayout::One.pieces(),
+            GameRequestVariant::FeaturedGameTwo => FeaturedWildLayout::Two.pieces(),
+            GameRequestVariant::FeaturedGameThree => FeaturedWildLayout::Three.pieces(),
+            GameRequestVariant::Wild => RandomWildLayout::pieces(),
+        });
+
         // TODO: incorporate featured boards
-        let game = GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture)
+        let game = GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture)
             .with_clock(clock.to_clock())
             .spawn(&mut commands);
 
@@ -214,9 +229,9 @@ pub(super) fn assign_game_teams(
 // TODO: this system belongs in the other plugin
 pub(super) fn spawn_game_entities(
     mut commands: Commands,
-    query: Query<(Entity, &GameBoard), Added<Game>>,
+    query: Query<(Entity, &PieceSet, &GameBoard), Added<Game>>,
 ) {
-    for (game_entity, game_board) in query.iter() {
+    for (game_entity, piece_set, game_board) in query.iter() {
         #[cfg(feature = "log")]
         bevy_log::info!("Spawning pieces for game {:?}", game_entity);
 
@@ -227,10 +242,7 @@ pub(super) fn spawn_game_entities(
 
         // create an entity to manage board properties
         let board = match game_board {
-            GameBoard::Chess
-            | GameBoard::WildChess
-            | GameBoard::KnightRelayChess
-            | GameBoard::SuperRelayChess => Board::chess_board(),
+            GameBoard::Chess => Board::chess_board(),
         };
         // TODO: Some sort of board bundle?
         let board_entity = commands
@@ -245,18 +257,11 @@ pub(super) fn spawn_game_entities(
             .id();
 
         // spawn all game pieces
-        let pieces_per_player = match game_board {
-            GameBoard::Chess => ClassicalLayout::pieces(),
-            GameBoard::WildChess => WildLayout::pieces(),
-            GameBoard::KnightRelayChess => KnightRelayLayout::pieces(),
-            GameBoard::SuperRelayChess => SuperRelayLayout::pieces(),
-        };
-
         for team in [Team::White, Team::Black].into_iter() {
             for PieceSpecification {
                 piece,
                 start_square,
-            } in pieces_per_player.iter()
+            } in piece_set.0.iter()
             {
                 let start_square = start_square.reorient(team.orientation(), &board);
                 let name = Name::new(format!("{:?} {}-{:?}", team, start_square, piece.identity));

@@ -10,6 +10,7 @@ use bevy_reflect::Reflect;
 use bevy_replicon::prelude::Replication;
 
 use chess::board::{Rank, Square};
+use layouts::PieceSpecification;
 
 use super::Clock;
 
@@ -24,13 +25,21 @@ pub struct Game;
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub enum GameBoard {
-    Chess,
     #[default]
-    WildChess,
-    SuperRelayChess,
-    KnightRelayChess,
+    Chess,
     // Shogi,    // TODO
     // Checkers, // TODO
+}
+
+#[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
+#[derive(Component)]
+pub struct PieceSet(pub Vec<PieceSpecification>);
+
+impl From<Vec<PieceSpecification>> for PieceSet {
+    fn from(pieces: Vec<PieceSpecification>) -> Self {
+        Self(pieces)
+    }
 }
 
 // A game rule specifying that captures result in an "explosion"
@@ -90,6 +99,7 @@ pub struct ClockConfiguration {
 pub struct GameSpawner {
     pub game: Game,
     pub board: GameBoard,
+    pub piece_set: PieceSet,
     pub win_condition: WinCondition,
     pub clock: Option<ClockConfiguration>,
     pub atomic: Option<Atomic>,
@@ -99,9 +109,10 @@ pub struct GameSpawner {
 
 impl GameSpawner {
     #[must_use]
-    pub fn new_game(board: GameBoard, win_condition: WinCondition) -> Self {
+    pub fn new_game(board: GameBoard, piece_set: PieceSet, win_condition: WinCondition) -> Self {
         Self {
             board,
+            piece_set,
             win_condition,
             ..Default::default()
         }
@@ -141,6 +152,7 @@ impl GameSpawner {
                 self.name(),
                 self.game,
                 self.board,
+                self.piece_set,
                 self.win_condition,
                 Replication,
             ))

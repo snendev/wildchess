@@ -114,6 +114,10 @@ impl Pattern {
         Pattern::new(Step::forward_leaper(2, 1))
     }
 
+    pub fn camel() -> Self {
+        Pattern::new(Step::from_ab(3, 1, ABSymmetry::narrow_forward()))
+    }
+
     // classical en passant
     // (N.B. this only describes the attack pattern, and does not take into account
     // whether the target piece is a pawn)
@@ -146,38 +150,44 @@ impl Pattern {
         self
     }
 
-    // common capture rules
+    // capture rules
+    pub fn with_capture(mut self, capture: CaptureRules) -> Self {
+        self.capture = Some(capture);
+        self
+    }
 
-    pub fn captures_by_displacement(mut self) -> Self {
-        self.capture = Some(CaptureRules {
+    pub fn captures_by_displacement(self) -> Self {
+        self.with_capture(CaptureRules {
             mode: CaptureMode::CanCapture,
             pattern: CapturePattern::CaptureByDisplacement,
             target: TargetKind::Enemy,
-        });
-        self
+        })
     }
 
-    pub fn only_captures_by_displacement(mut self) -> Self {
-        self.capture = Some(CaptureRules {
+    pub fn only_captures_by_displacement(self) -> Self {
+        self.with_capture(CaptureRules {
             mode: CaptureMode::MustCapture,
             pattern: CapturePattern::CaptureByDisplacement,
             target: TargetKind::Enemy,
-        });
-        self
+        })
     }
 
-    pub fn captures_by_overtake(mut self) -> Self {
-        self.capture = Some(CaptureRules {
+    pub fn captures_by_overtake(self) -> Self {
+        self.with_capture(CaptureRules {
             mode: CaptureMode::MustCapture,
             pattern: CapturePattern::CaptureByOvertake,
             target: TargetKind::Enemy,
-        });
-        self
+        })
     }
 
     // scan mode
     pub fn scan_mode(mut self, mode: ScanMode) -> Self {
         self.scanner.mode = mode;
+        self
+    }
+
+    pub fn pierces(mut self) -> Self {
+        self.scanner.mode = ScanMode::Pierce;
         self
     }
 

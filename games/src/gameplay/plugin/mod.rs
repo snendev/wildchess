@@ -108,8 +108,9 @@ pub fn any_with_component_added<T: Component>() -> impl FnMut(Query<(), Added<T>
 mod tests {
     use bevy_ecs::{entity::Entity, event::Events, world::World};
     use chess::board::Square;
+    use layouts::RandomWildLayout;
 
-    use crate::components::{GameBoard, GameSpawner, WinCondition};
+    use crate::components::{GameBoard, GameSpawner, PieceSet, WinCondition};
 
     use super::*;
 
@@ -167,7 +168,11 @@ mod tests {
         app.add_plugins(GameplayPlugin);
 
         // TODO: use blueprints?
-        let game_spawner = GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture);
+        let game_spawner = GameSpawner::new_game(
+            GameBoard::Chess,
+            PieceSet(RandomWildLayout::pieces()),
+            WinCondition::RoyalCapture,
+        );
         app.world.spawn((
             game_spawner.game,
             game_spawner.board,

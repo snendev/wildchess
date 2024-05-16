@@ -1,5 +1,4 @@
-mod layout;
-pub use layout::WildLayout;
+mod layouts;
+pub use layouts::{ClassicWildLayout, FeaturedWildLayout, RandomWildLayout, WildPieceSet};
 
 mod pieces;
-use pieces::random_pieces;
