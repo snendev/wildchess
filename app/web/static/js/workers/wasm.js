@@ -39,7 +39,6 @@ function onMessage(event) {
       currentPosition = null;
       lastMove = null;
       currentIcons = null;
-      attemptedMove = null;
       return;
     }
     case "request-targets": {
@@ -50,7 +49,6 @@ function onMessage(event) {
           square.get_representation()
         ),
       });
-      attemptedMove = null;
       return;
     }
     case "play-move": {
@@ -77,13 +75,11 @@ function onMessage(event) {
           position: currentPosition,
           lastMove,
         });
-        attemptedMove = null;
       }
       return;
     }
     case "select-promotion": {
       // confirm the context is correct
-      console.log(promotionOptions);
       if (
         promotionOptions !== null &&
         app.is_my_turn()
