@@ -13,11 +13,12 @@ use games::{
     chess::{
         actions::Actions,
         board::Square,
-        pieces::{Orientation, PieceIdentity, Position},
+        pieces::{Mutation, Orientation, PieceIdentity, Position, Royal},
         team::Team,
     },
     components::{Game, GameBoard, GameRequestClock, GameRequestVariant, HasTurn, LastMove},
     GameOpponent, GameplayPlugin, MatchmakingPlugin, RequestJoinGameEvent, RequestTurnEvent,
+    RequireMutationEvent,
 };
 use replication::{
     bevy_replicon::{core::common_conditions as network_conditions, prelude::RepliconClient},
@@ -255,12 +256,20 @@ impl WasmApp {
     }
 
     #[wasm_bindgen]
-    pub fn trigger_move(&mut self, piece_square: String, target_square: String) -> bool {
+    pub fn trigger_move(
+        &mut self,
+        piece_square: String,
+        target_square: String,
+        promotion_index: Option<usize>,
+    ) -> bool {
         // selectedPiece
-        let mut query = self.0.world.query::<(Entity, &Position, &Actions)>();
-        let Some((piece, _, actions)) = query
+        let mut query = self
+            .0
+            .world
+            .query::<(Entity, &Position, &Actions, Option<&Mutation>)>();
+        let Some((piece, _, actions, maybe_mutations)) = query
             .iter(&self.0.world)
-            .find(|(_, position, _)| position.0 == piece_square.as_str().try_into().unwrap())
+            .find(|(_, position, _, _)| position.0 == piece_square.as_str().try_into().unwrap())
         else {
             return false;
         };
@@ -272,11 +281,77 @@ impl WasmApp {
             return false;
         };
         let action = action.clone();
-        log(format!("{:?}", actions).as_str());
+
+        let promotion = if let Some(mutation) = maybe_mutations {
+            if let Some(index) = promotion_index {
+                mutation.to_piece.get(index).cloned()
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
         let mut move_events = self.0.world.resource_mut::<Events<RequestTurnEvent>>();
-        move_events.send(RequestTurnEvent::new(piece, action.clone()));
+        move_events.send(RequestTurnEvent {
+            piece,
+            action,
+            promotion,
+        });
         true
+    }
+
+    #[wasm_bindgen]
+    pub fn select_promotion(&mut self, promotions: WasmPromotions, promotion_index: usize) -> bool {
+        self.trigger_move(
+            promotions.source.get_representation(),
+            promotions.target.get_representation(),
+            Some(promotion_index),
+        )
+    }
+
+    #[wasm_bindgen]
+    pub fn get_promotion_request(&mut self) -> Option<WasmPromotions> {
+        let Some(mutation_request_events) =
+            self.0.world.get_resource::<Events<RequireMutationEvent>>()
+        else {
+            return None;
+        };
+
+        let mut reader = mutation_request_events.get_reader();
+        // should only be one...
+        let event = reader.read(&mutation_request_events).last();
+        event.and_then(|event| {
+            let Some(mutation) = self.0.world.get::<Mutation>(event.piece) else {
+                return None;
+            };
+            let Some(team) = self.0.world.get::<Team>(event.piece) else {
+                return None;
+            };
+            let maybe_royal = self.0.world.get::<Royal>(event.piece);
+            let icons = mutation
+                .to_piece
+                .iter()
+                .enumerate()
+                .map(move |(index, option)| {
+                    PieceIconSvg::new(
+                        option.identity,
+                        format!("promotion-{:?}", index),
+                        option.behaviors.pattern.as_ref(),
+                        option.behaviors.relay.as_ref(),
+                        *team,
+                        Orientation::Up,
+                        maybe_royal.is_some(),
+                    )
+                    .source
+                })
+                .collect::<Vec<_>>();
+            Some(WasmPromotions {
+                icons,
+                source: WasmSquare(event.action.movement.from),
+                target: WasmSquare(event.action.movement.to),
+            })
+        })
     }
 
     #[wasm_bindgen]
@@ -347,6 +422,22 @@ impl WasmPiecePosition {
 pub struct WasmIcon {
     piece: WasmPiece,
     svg_source: String,
+}
+
+#[wasm_bindgen]
+pub struct WasmPromotions {
+    icons: Vec<String>,
+    source: WasmSquare,
+    target: WasmSquare,
+}
+
+#[wasm_bindgen]
+impl WasmPromotions {
+    // Returns the piece name, like 'wP' for white pawn or 'bN' for black knight.
+    #[wasm_bindgen]
+    pub fn icons(&self) -> Vec<String> {
+        self.icons.clone()
+    }
 }
 
 #[wasm_bindgen]

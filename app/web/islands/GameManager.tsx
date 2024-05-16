@@ -5,6 +5,7 @@ import useWasmGame from "../game/useWasmGame.ts";
 
 import Board from "./Board.tsx";
 import Lobby from "./Lobby.tsx";
+import PromotionPieces from "./PromotionPieces.tsx";
 
 interface GameManagerProps {
   description: VNode,
@@ -15,7 +16,7 @@ export default function GameManager({ description }: GameManagerProps) {
     return <Lobby requestGame={() => {}} />;
   }
 
-  const {state, requestGame, ...gameState} = useWasmGame();
+  const {state, requestGame, promotionIcons, selectPromotion, ...gameState} = useWasmGame();
 
   switch (state) {
     case "not-connected":
@@ -28,7 +29,12 @@ export default function GameManager({ description }: GameManagerProps) {
       return <div>Finding game...</div>;
     }
     case "in-game": {
-      return <Board {...gameState} size={600} />;
+      return (
+        <div class="flex flex-row gap-2">
+          <Board {...gameState} size={600} />
+          <PromotionPieces icons={promotionIcons} selectIcon={selectPromotion} />
+        </div>
+      );
     }
     default: throw new Error("Unexpected network state: " + state);
   }

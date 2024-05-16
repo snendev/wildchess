@@ -39,6 +39,18 @@ function onMessage(event) {
       currentPosition = null;
       lastMove = null;
       currentIcons = null;
+      attemptedMove = null;
+      return;
+    }
+    case "request-targets": {
+      postMessage({
+        kind: "targets",
+        source: event.data.source,
+        targets: app.get_target_squares(event.data.source)?.map((square) =>
+          square.get_representation()
+        ),
+      });
+      attemptedMove = null;
       return;
     }
     case "play-move": {
@@ -65,17 +77,20 @@ function onMessage(event) {
           position: currentPosition,
           lastMove,
         });
+        attemptedMove = null;
       }
       return;
     }
-    case "request-targets": {
-      postMessage({
-        kind: "targets",
-        source: event.data.source,
-        targets: app.get_target_squares(event.data.source)?.map((square) =>
-          square.get_representation()
-        ),
-      });
+    case "select-promotion": {
+      // confirm the context is correct
+      console.log(promotionOptions);
+      if (
+        promotionOptions !== null &&
+        app.is_my_turn()
+      ) {
+        app.select_promotion(promotionOptions, event.data.promotionIndex);
+        promotionOptions = null;
+      }
       return;
     }
     default: {
@@ -90,6 +105,7 @@ let last_player_count = 0;
 let currentPosition = null;
 let lastMove = null;
 let currentIcons = null;
+let promotionOptions = null;
 
 async function runApp() {
   // initialize the wasm
@@ -160,6 +176,15 @@ async function runApp() {
     if (!deepEqual(icons, currentIcons)) {
       currentIcons = icons;
       postMessage({ kind: "piece-icons", icons });
+    }
+
+    const maybePromotions = app.get_promotion_request();
+    if (maybePromotions !== undefined) {
+      postMessage({
+        kind: "require-promotion",
+        icons: maybePromotions.icons().map((icon) => sanitizeIconSource(icon)),
+      });
+      promotionOptions = maybePromotions;
     }
 
     // request next update

@@ -4,7 +4,7 @@ use bevy_log::{debug, info};
 use bevy_time::Time;
 
 use bevy_replicon::{
-    core::ClientId,
+    network_event::server_event::SendMode,
     prelude::{FromClient, ToClients},
 };
 
@@ -30,7 +30,7 @@ pub(super) fn detect_turn(
     player_query: Query<(&Team, &Player), With<HasTurn>>,
     piece_query: Query<(&Team, &OnBoard, &InGame, Option<&Mutation>)>,
     mut requested_turns: EventReader<FromClient<RequestTurnEvent>>,
-    mut require_mutation_writer: EventWriter<RequireMutationEvent>,
+    mut require_mutation_writer: EventWriter<ToClients<RequireMutationEvent>>,
     mut turn_writer: EventWriter<TurnEvent>,
 ) {
     for FromClient {
@@ -43,7 +43,7 @@ pub(super) fn detect_turn(
         client_id,
     } in requested_turns.read()
     {
-        let Some((player_team, _)) = player_query
+        let Some((player_team, player)) = player_query
             .iter()
             .find(|(_, player)| player.id == *client_id)
         else {
@@ -94,9 +94,12 @@ pub(super) fn detect_turn(
                             promotion.clone(),
                         ));
                     } else {
-                        require_mutation_writer.send(RequireMutationEvent {
-                            piece: *piece,
-                            action: action.clone(),
+                        require_mutation_writer.send(ToClients {
+                            mode: SendMode::Direct(player.id),
+                            event: RequireMutationEvent {
+                                piece: *piece,
+                                action: action.clone(),
+                            },
                         });
                     }
                 }
@@ -276,7 +279,7 @@ pub(super) fn last_action(mut reader: EventReader<TurnEvent>) -> Option<Action> 
 pub(super) fn detect_gameover(
     game_query: Query<(Entity, &WinCondition)>,
     royal_query: Query<(&InGame, &Team, Option<&Position>), With<Royal>>,
-    mut gameover_writer: EventWriter<GameoverEvent>,
+    mut gameover_writer: EventWriter<ToClients<GameoverEvent>>,
 ) {
     for (game_entity, win_condition) in game_query.iter() {
         match win_condition {
@@ -291,13 +294,22 @@ pub(super) fn detect_gameover(
                         == 0
                 };
                 if all_captured(Team::White) {
-                    gameover_writer.send(GameoverEvent {
-                        winner: Team::Black,
+                    // TODO: try to upstream a "DirectGroup" feature if reasonable
+                    // otherwise send individual Direct messages
+                    // this is fine while there is low traffic on servers
+                    gameover_writer.send(ToClients {
+                        mode: SendMode::Broadcast,
+                        event: GameoverEvent {
+                            winner: Team::Black,
+                        },
                     });
                 }
                 if all_captured(Team::Black) {
-                    gameover_writer.send(GameoverEvent {
-                        winner: Team::White,
+                    gameover_writer.send(ToClients {
+                        mode: SendMode::Broadcast,
+                        event: GameoverEvent {
+                            winner: Team::White,
+                        },
                     });
                 }
             }
@@ -312,13 +324,19 @@ pub(super) fn detect_gameover(
                         > 0
                 };
                 if any_captured(Team::White) {
-                    gameover_writer.send(GameoverEvent {
-                        winner: Team::Black,
+                    gameover_writer.send(ToClients {
+                        mode: SendMode::Broadcast,
+                        event: GameoverEvent {
+                            winner: Team::Black,
+                        },
                     });
                 }
                 if any_captured(Team::Black) {
-                    gameover_writer.send(GameoverEvent {
-                        winner: Team::White,
+                    gameover_writer.send(ToClients {
+                        mode: SendMode::Broadcast,
+                        event: GameoverEvent {
+                            winner: Team::White,
+                        },
                     });
                 }
             }
@@ -332,11 +350,8 @@ pub(super) fn detect_gameover(
     }
 }
 
-pub fn log_gameover_events(mut gameovers: EventReader<ToClients<GameoverEvent>>) {
-    for ToClients {
-        event: gameover, ..
-    } in gameovers.read()
-    {
+pub fn log_gameover_events(mut gameovers: EventReader<GameoverEvent>) {
+    for gameover in gameovers.read() {
         #[cfg(feature = "log")]
         info!("Team {:?} won!", gameover.winner);
         // TODO: display this somewhere

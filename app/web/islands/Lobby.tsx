@@ -64,7 +64,7 @@ export default function Lobby({
           <div class="text-sm italic m-2 border-b-[1px] border-black">
             <h4>Time control</h4>
           </div>
-          <div class="flex flex-col gap-2 px-2">
+          <div class="flex flex-col gap-2 px-2 pb-2">
             <button
               class={`text-lg py-1 ${selectedClassName(selectedClock, "rapid") ?? DEFAULT_BUTTON_BG}`}
               onClick={() => setSelectedClock(setOrToggle("rapid"))}
