@@ -282,15 +282,9 @@ impl WasmApp {
         };
         let action = action.clone();
 
-        let promotion = if let Some(mutation) = maybe_mutations {
-            if let Some(index) = promotion_index {
-                mutation.to_piece.get(index).cloned()
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let promotion = maybe_mutations
+            .zip(promotion_index)
+            .and_then(|(mutation, index)| mutation.to_piece.get(index).cloned());
 
         let mut move_events = self.0.world.resource_mut::<Events<RequestTurnEvent>>();
         move_events.send(RequestTurnEvent {

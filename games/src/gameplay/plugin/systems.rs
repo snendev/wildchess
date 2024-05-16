@@ -12,7 +12,7 @@ use chess::{
     actions::Action,
     behavior::PieceBehaviorsBundle,
     board::{Board, OnBoard},
-    pieces::{Mutation, MutationCondition, Position, Royal},
+    pieces::{Mutation, MutationCondition, PieceIdentity, Position, Royal},
     team::Team,
 };
 use replication::Player;
@@ -169,7 +169,10 @@ pub(super) fn execute_turn_mutations(
                 .entity(event.piece)
                 .remove::<PieceBehaviorsBundle>();
             commands.entity(event.piece).remove::<Mutation>();
+            commands.entity(event.piece).remove::<PieceIdentity>();
             commands.entity(event.piece).remove::<Royal>();
+
+            commands.entity(event.piece).insert(mutated_piece.identity);
 
             // add subsequent mutation if specified
             if let Some(new_mutation) = &mutated_piece.mutation {
