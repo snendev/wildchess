@@ -6,7 +6,7 @@ use bevy_reflect::Reflect;
 
 use crate::{
     actions::{Action, Actions},
-    board::Board,
+    board::{Board, OnBoard},
     pieces::{Orientation, Position},
     team::Team,
 };
@@ -37,7 +37,7 @@ pub trait Behavior {
     fn calculate_actions_system(
         last_action: In<Option<Action>>,
         commands: Commands,
-        board_query: Query<(&Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
         piece_query: Query<(
             Entity,
             Option<&Self>,
@@ -45,6 +45,7 @@ pub trait Behavior {
             &Position,
             &Orientation,
             &Team,
+            &OnBoard,
         )>,
     ) where
         Self: Component + Sized;

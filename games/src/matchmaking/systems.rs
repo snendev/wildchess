@@ -177,6 +177,7 @@ pub(super) fn match_remaining_game_requests(
     }
 }
 
+// TODO: Give Players an `OnBoard` as well
 pub(super) fn assign_game_teams(
     mut commands: Commands,
     players: Query<(Entity, &InGame), (With<Player>, Without<Team>, Added<InGame>)>,
@@ -236,6 +237,7 @@ pub(super) fn spawn_game_entities(
             .spawn((
                 board,
                 InGame(game_entity),
+                Name::new(format!("Board (Game {:?})", game_entity)),
                 BoardPieceCache::default(),
                 BoardThreatsCache::default(),
                 Replication,

@@ -10,7 +10,7 @@ use bevy_utils::HashMap;
 use crate::{
     actions::{Action, Actions},
     behavior::BoardPieceCache,
-    board::{Board, Square},
+    board::{Board, OnBoard, Square},
     pattern::Pattern,
     pieces::{Orientation, Position},
     team::Team,
@@ -89,7 +89,7 @@ impl Behavior for EnPassantBehavior {
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<(&Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
         mut piece_query: Query<(
             Entity,
             Option<&EnPassantBehavior>,
@@ -97,31 +97,36 @@ impl Behavior for EnPassantBehavior {
             &Position,
             &Orientation,
             &Team,
+            &OnBoard,
         )>,
     ) {
-        let Ok((board, _pieces)) = board_query.get_single() else {
-            return;
-        };
+        for (board_entity, board, _pieces) in board_query.iter() {
+            let en_passant_pieces = piece_query
+                .iter()
+                .filter(|(_, _, _, _, _, _, on_board)| on_board.0 == board_entity)
+                .map(|(_, en_passant, _, position, _, team, _)| {
+                    (position.0, (en_passant.copied(), *team))
+                })
+                .collect::<HashMap<_, _>>();
 
-        let en_passant_pieces = piece_query
-            .iter()
-            .map(|(_, en_passant, _, position, _, team)| (position.0, (en_passant.copied(), *team)))
-            .collect::<HashMap<_, _>>();
-
-        for (entity, behavior, cache, position, orientation, team) in piece_query.iter_mut() {
-            if let Some(behavior) = behavior {
-                let actions = EnPassantActionsCache::from(behavior.search(
-                    &position.0,
-                    orientation,
-                    team,
-                    board,
-                    &en_passant_pieces,
-                    last_action.as_ref(),
-                ));
-                if let Some(mut cache) = cache {
-                    *cache = actions;
-                } else {
-                    commands.entity(entity).insert(actions);
+            for (entity, behavior, cache, position, orientation, team, _) in piece_query
+                .iter_mut()
+                .filter(|(_, _, _, _, _, _, on_board)| on_board.0 == board_entity)
+            {
+                if let Some(behavior) = behavior {
+                    let actions = EnPassantActionsCache::from(behavior.search(
+                        &position.0,
+                        orientation,
+                        team,
+                        board,
+                        &en_passant_pieces,
+                        last_action.as_ref(),
+                    ));
+                    if let Some(mut cache) = cache {
+                        *cache = actions;
+                    } else {
+                        commands.entity(entity).insert(actions);
+                    }
                 }
             }
         }

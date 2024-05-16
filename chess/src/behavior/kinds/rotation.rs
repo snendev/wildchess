@@ -31,35 +31,33 @@ impl Behavior for RotationBehavior {
             &mut Actions,
         )>,
     ) {
-        let Ok(board) = board_query.get_single() else {
-            return;
-        };
-
-        for (_, position, orientation, team, mut actions) in piece_query.iter_mut() {
-            let rotation_actions = Actions::new(
-                orientation
-                    .other_orientations()
-                    .into_iter()
-                    .flat_map(|orientation: Orientation| {
-                        Scanner::forward()
-                            .scan(&position.0, orientation, team, board, &HashMap::default())
-                            .into_iter()
-                            .map(|scan_target| scan_target.target)
-                            .map(move |square| {
-                                (
-                                    square,
-                                    Action::movement(
-                                        position.0,
-                                        orientation,
-                                        vec![],
-                                        Pattern::default(),
-                                    ),
-                                )
-                            })
-                    })
-                    .collect(),
-            );
-            actions.extend(rotation_actions);
+        for board in board_query.iter() {
+            for (_, position, orientation, team, mut actions) in piece_query.iter_mut() {
+                let rotation_actions = Actions::new(
+                    orientation
+                        .other_orientations()
+                        .into_iter()
+                        .flat_map(|orientation: Orientation| {
+                            Scanner::forward()
+                                .scan(&position.0, orientation, team, board, &HashMap::default())
+                                .into_iter()
+                                .map(|scan_target| scan_target.target)
+                                .map(move |square| {
+                                    (
+                                        square,
+                                        Action::movement(
+                                            position.0,
+                                            orientation,
+                                            vec![],
+                                            Pattern::default(),
+                                        ),
+                                    )
+                                })
+                        })
+                        .collect(),
+                );
+                actions.extend(rotation_actions);
+            }
         }
     }
 }

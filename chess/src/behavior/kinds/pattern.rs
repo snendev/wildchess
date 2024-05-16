@@ -10,7 +10,7 @@ use bevy_utils::HashMap;
 use crate::{
     actions::{Action, Actions},
     behavior::BoardPieceCache,
-    board::{Board, Square},
+    board::{Board, OnBoard, Square},
     pattern::Pattern,
     pieces::{Orientation, Position},
     team::Team,
@@ -89,7 +89,7 @@ impl Behavior for PatternBehavior {
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<(&Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
         mut piece_query: Query<(
             Entity,
             Option<&PatternBehavior>,
@@ -97,26 +97,28 @@ impl Behavior for PatternBehavior {
             &Position,
             &Orientation,
             &Team,
+            &OnBoard,
         )>,
     ) {
-        let Ok((board, pieces)) = board_query.get_single() else {
-            return;
-        };
-
-        for (entity, behavior, cache, position, orientation, team) in piece_query.iter_mut() {
-            if let Some(behavior) = behavior {
-                let actions = PatternActionsCache::from(behavior.search(
-                    &position.0,
-                    orientation,
-                    team,
-                    board,
-                    &pieces.teams,
-                    last_action.as_ref(),
-                ));
-                if let Some(mut cache) = cache {
-                    *cache = actions;
-                } else {
-                    commands.entity(entity).insert(actions);
+        for (board_entity, board, pieces) in board_query.iter() {
+            for (entity, behavior, cache, position, orientation, team, _) in piece_query
+                .iter_mut()
+                .filter(|(_, _, _, _, _, _, on_board)| on_board.0 == board_entity)
+            {
+                if let Some(behavior) = behavior {
+                    let actions = PatternActionsCache::from(behavior.search(
+                        &position.0,
+                        orientation,
+                        team,
+                        board,
+                        &pieces.teams,
+                        last_action.as_ref(),
+                    ));
+                    if let Some(mut cache) = cache {
+                        *cache = actions;
+                    } else {
+                        commands.entity(entity).insert(actions);
+                    }
                 }
             }
         }

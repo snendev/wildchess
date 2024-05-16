@@ -34,6 +34,7 @@ impl Plugin for ChessPlugin {
             .register_type::<board::Rank>()
             .register_type::<board::File>()
             .register_type::<board::Board>()
+            .register_type::<board::OnBoard>()
             .register_type::<pattern::Pattern>()
             .register_type::<pattern::Constraints>()
             .register_type::<pattern::FromRankConstraint>()

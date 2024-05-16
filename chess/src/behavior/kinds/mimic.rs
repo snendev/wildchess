@@ -9,7 +9,7 @@ use bevy_reflect::prelude::Reflect;
 use crate::{
     actions::{Action, Actions},
     behavior::BoardPieceCache,
-    board::Board,
+    board::{Board, OnBoard},
     pieces::{Orientation, Position},
     team::Team,
 };
@@ -46,7 +46,7 @@ impl Behavior for MimicBehavior {
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<(&Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
         mut piece_query: Query<(
             Entity,
             Option<&MimicBehavior>,
@@ -54,9 +54,10 @@ impl Behavior for MimicBehavior {
             &Position,
             &Orientation,
             &Team,
+            &OnBoard,
         )>,
     ) {
-        let Ok((board, pieces)) = board_query.get_single() else {
+        let Ok((board_entity, board, pieces)) = board_query.get_single() else {
             return;
         };
 
@@ -68,8 +69,10 @@ impl Behavior for MimicBehavior {
             return;
         };
 
-        for (entity, mimic, cache, position, orientation, team) in piece_query.iter_mut() {
+        for (entity, mimic, cache, position, orientation, team, on_board) in piece_query.iter_mut()
+        {
             if mimic.is_some() {
+                unimplemented!("Don't use mimic behaviors yet; TODO: setup last actions per board");
                 let actions = MimicActionsCache::from(Actions::new(using_pattern.search(
                     &position.0,
                     orientation,

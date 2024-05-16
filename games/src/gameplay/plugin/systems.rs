@@ -228,20 +228,26 @@ pub(super) fn set_last_move(
 
 #[allow(clippy::type_complexity)]
 pub(super) fn end_turn(
-    mut players_query: Query<(Entity, Option<&mut Clock>, Option<&HasTurn>), With<Player>>,
+    mut players_query: Query<(Entity, &InGame, Option<&mut Clock>, Option<&HasTurn>), With<Player>>,
     mut commands: Commands,
+    mut turn_reader: EventReader<TurnEvent>,
 ) {
-    for (player, clock, my_turn) in players_query.iter_mut() {
-        if my_turn.is_some() {
-            if let Some(mut clock) = clock {
-                clock.pause();
+    for event in turn_reader.read() {
+        for (player, in_game, clock, my_turn) in players_query.iter_mut() {
+            if event.game != in_game.0 {
+                continue;
             }
-            commands.entity(player).remove::<HasTurn>();
-        } else {
-            if let Some(mut clock) = clock {
-                clock.unpause();
+            if my_turn.is_some() {
+                if let Some(mut clock) = clock {
+                    clock.pause();
+                }
+                commands.entity(player).remove::<HasTurn>();
+            } else {
+                if let Some(mut clock) = clock {
+                    clock.unpause();
+                }
+                commands.entity(player).insert(HasTurn);
             }
-            commands.entity(player).insert(HasTurn);
         }
     }
 }

@@ -10,7 +10,7 @@ use bevy_utils::HashMap;
 use crate::{
     actions::{Action, Actions},
     behavior::BoardPieceCache,
-    board::{Board, Square},
+    board::{Board, OnBoard, Square},
     pattern::Pattern,
     pieces::{Orientation, Position},
     team::Team,
@@ -58,7 +58,7 @@ impl Behavior for RelayBehavior {
     fn calculate_actions_system(
         In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<(&Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
         mut piece_query: Query<(
             Entity,
             Option<&RelayBehavior>,
@@ -66,59 +66,66 @@ impl Behavior for RelayBehavior {
             &Position,
             &Orientation,
             &Team,
+            &OnBoard,
         )>,
     ) {
-        let Ok((board, pieces)) = board_query.get_single() else {
-            return;
-        };
+        for (board_entity, board, pieces) in board_query.iter() {
+            // TODO: pre-filter this map so that it only stores the Squares with pieces on them
+            // additionally, this could then only push patterns that match the appropriate team
+            let mut relay_pattern_map: HashMap<Square, Vec<(Pattern, Team)>> = HashMap::new();
 
-        // TODO: pre-filter this map so that it only stores the Squares with pieces on them
-        // additionally, this could then only push patterns that match the appropriate team
-        let mut relay_pattern_map: HashMap<Square, Vec<(Pattern, Team)>> = HashMap::new();
-
-        for (_, relay_behavior, _, position, orientation, team) in piece_query.iter_mut() {
-            if let Some(relay_behavior) = relay_behavior {
-                for pattern in relay_behavior.patterns.iter() {
-                    for scan_target in
-                        pattern
-                            .scanner
-                            .scan(&position.0, *orientation, team, board, &pieces.teams)
-                    {
-                        if let Some(patterns) = relay_pattern_map.get_mut(&scan_target.target) {
-                            patterns.push((pattern.clone(), *team));
-                        } else {
-                            relay_pattern_map
-                                .insert(scan_target.target, vec![(pattern.clone(), *team)]);
+            for (_, relay_behavior, _, position, orientation, team, _) in piece_query
+                .iter_mut()
+                .filter(|(_, _, _, _, _, _, on_board)| on_board.0 == board_entity)
+            {
+                if let Some(relay_behavior) = relay_behavior {
+                    for pattern in relay_behavior.patterns.iter() {
+                        for scan_target in pattern.scanner.scan(
+                            &position.0,
+                            *orientation,
+                            team,
+                            board,
+                            &pieces.teams,
+                        ) {
+                            if let Some(patterns) = relay_pattern_map.get_mut(&scan_target.target) {
+                                patterns.push((pattern.clone(), *team));
+                            } else {
+                                relay_pattern_map
+                                    .insert(scan_target.target, vec![(pattern.clone(), *team)]);
+                            }
                         }
                     }
                 }
             }
-        }
 
-        for (entity, _, cache, position, orientation, team) in piece_query.iter_mut() {
-            if let Some(patterns) = relay_pattern_map.remove(&position.0) {
-                let patterns = patterns
-                    .into_iter()
-                    .filter_map(|(pattern, source_team)| {
-                        if *team == source_team {
-                            Some(pattern)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                let actions = RelayActionsCache::from(PatternBehavior::new(patterns).search(
-                    &position.0,
-                    orientation,
-                    team,
-                    board,
-                    &pieces.teams,
-                    last_action.as_ref(),
-                ));
-                if let Some(mut cache) = cache {
-                    *cache = actions;
-                } else {
-                    commands.entity(entity).insert(actions);
+            for (entity, _, cache, position, orientation, team, _) in piece_query
+                .iter_mut()
+                .filter(|(_, _, _, _, _, _, on_board)| on_board.0 == board_entity)
+            {
+                if let Some(patterns) = relay_pattern_map.remove(&position.0) {
+                    let patterns = patterns
+                        .into_iter()
+                        .filter_map(|(pattern, source_team)| {
+                            if *team == source_team {
+                                Some(pattern)
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    let actions = RelayActionsCache::from(PatternBehavior::new(patterns).search(
+                        &position.0,
+                        orientation,
+                        team,
+                        board,
+                        &pieces.teams,
+                        last_action.as_ref(),
+                    ));
+                    if let Some(mut cache) = cache {
+                        *cache = actions;
+                    } else {
+                        commands.entity(entity).insert(actions);
+                    }
                 }
             }
         }
