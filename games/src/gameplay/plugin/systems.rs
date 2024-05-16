@@ -1,139 +1,64 @@
-use bevy_core::Name;
-use bevy_ecs::prelude::{Added, Commands, Entity, EventReader, EventWriter, Query, Res, With};
+use bevy_ecs::prelude::{Commands, Entity, EventReader, EventWriter, Query, Res, With};
 #[cfg(feature = "log")]
 use bevy_log::{debug, info};
 use bevy_time::Time;
 
+use bevy_replicon::{
+    network_event::server_event::SendMode,
+    prelude::{FromClient, ToClients},
+};
+
 use chess::{
     actions::Action,
-    behavior::{BoardPieceCache, BoardThreatsCache, PieceBehaviorsBundle},
+    behavior::PieceBehaviorsBundle,
     board::{Board, OnBoard},
-    pieces::{Mutation, MutationCondition, PieceBundle, Position, Royal},
+    pieces::{Mutation, MutationCondition, PieceIdentity, Position, Royal},
     team::Team,
 };
-use layouts::{
-    ClassicalLayout, KnightRelayLayout, PieceSpecification, SuperRelayLayout, WildLayout,
+use replication::Player;
+
+use crate::{
+    components::{ActionHistory, Clock, Game, HasTurn, InGame, Ply, WinCondition},
+    gameplay::components::LastMove,
 };
 
-use crate::components::{
-    ActionHistory, Clock, ClockConfiguration, Game, GameBoard, HasTurn, History, InGame, Player,
-    Ply, WinCondition,
-};
-
-use super::{
-    events::GameoverEvent, IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent,
-};
-
-pub(super) fn spawn_game_entities(
-    mut commands: Commands,
-    query: Query<(Entity, &GameBoard, Option<&ClockConfiguration>), Added<GameBoard>>,
-) {
-    for (game_entity, game_board, clock) in query.iter() {
-        // add move history to the game
-        commands
-            .entity(game_entity)
-            .insert((Ply::default(), ActionHistory::default()));
-
-        // create an entity to manage board properties
-        let board = match game_board {
-            GameBoard::Chess
-            | GameBoard::WildChess
-            | GameBoard::KnightRelayChess
-            | GameBoard::SuperRelayChess => Board::chess_board(),
-        };
-        // TODO: Some sort of board bundle?
-        let board_entity = commands
-            .spawn((
-                board,
-                InGame(game_entity),
-                BoardPieceCache::default(),
-                BoardThreatsCache::default(),
-            ))
-            .id();
-
-        // spawn all game pieces
-        let pieces_per_player = match game_board {
-            GameBoard::Chess => ClassicalLayout::pieces(),
-            GameBoard::WildChess => WildLayout::pieces(),
-            GameBoard::KnightRelayChess => KnightRelayLayout::pieces(),
-            GameBoard::SuperRelayChess => SuperRelayLayout::pieces(),
-        };
-
-        for team in [Team::White, Team::Black].into_iter() {
-            let mut player_builder =
-                commands.spawn((Player, team, team.orientation(), InGame(game_entity)));
-            if team == Team::White {
-                player_builder.insert(HasTurn);
-            }
-            if let Some(ClockConfiguration { clock }) = clock {
-                player_builder.insert(clock.clone());
-            }
-
-            for PieceSpecification {
-                piece,
-                start_square,
-            } in pieces_per_player.iter()
-            {
-                let start_square = start_square.reorient(team.orientation(), &board);
-                let name = Name::new(format!("{:?} {}-{:?}", team, start_square, piece.identity));
-
-                let mut piece_builder = commands.spawn((
-                    name,
-                    piece.identity,
-                    PieceBundle::new(start_square.into(), team),
-                    InGame(game_entity),
-                    OnBoard(board_entity),
-                    History::<Position>::default(),
-                ));
-
-                if piece.royal.is_some() {
-                    piece_builder.insert(Royal);
-                }
-                if let Some(mutation) = &piece.mutation {
-                    piece_builder.insert(mutation.clone());
-                }
-                if let Some(behavior) = piece.behaviors.mimic {
-                    piece_builder.insert(behavior);
-                }
-                if let Some(behavior) = &piece.behaviors.pattern {
-                    piece_builder.insert(behavior.clone());
-                }
-                if let Some(behavior) = &piece.behaviors.relay {
-                    piece_builder.insert(behavior.clone());
-                }
-                if let Some(behavior) = piece.behaviors.en_passant {
-                    piece_builder.insert(behavior);
-                }
-                if let Some(behavior) = piece.behaviors.castling {
-                    piece_builder.insert(behavior);
-                }
-                if let Some(behavior) = piece.behaviors.castling_target {
-                    piece_builder.insert(behavior);
-                }
-            }
-        }
-    }
-}
+use super::{GameoverEvent, RequestTurnEvent, RequireMutationEvent, TurnEvent};
 
 pub(super) fn detect_turn(
     game_query: Query<&Ply, With<Game>>,
     board_query: Query<&Board>,
+    player_query: Query<(&Team, &Player), With<HasTurn>>,
     piece_query: Query<(&Team, &OnBoard, &InGame, Option<&Mutation>)>,
-    mut move_reader: EventReader<IssueMoveEvent>,
-    mut mutation_reader: EventReader<IssueMutationEvent>,
-    mut mutation_request_writer: EventWriter<RequestMutationEvent>,
+    mut requested_turns: EventReader<FromClient<RequestTurnEvent>>,
+    mut require_mutation_writer: EventWriter<ToClients<RequireMutationEvent>>,
     mut turn_writer: EventWriter<TurnEvent>,
 ) {
-    for IssueMoveEvent { piece, action } in move_reader.read() {
-        eprintln!("1 : Hello??");
+    for FromClient {
+        event:
+            RequestTurnEvent {
+                piece,
+                action,
+                promotion,
+            },
+        client_id,
+    } in requested_turns.read()
+    {
+        let Some((player_team, player)) = player_query
+            .iter()
+            .find(|(_, player)| player.id == *client_id)
+        else {
+            continue;
+        };
         let Ok((team, on_board, in_game, mutation)) = piece_query.get(*piece) else {
             continue;
         };
-        eprintln!("2 : Hello??");
+        if team != player_team {
+            continue;
+        }
         let Ok(ply) = game_query.get(in_game.0) else {
             continue;
         };
-        eprintln!("3 : Hello??");
+
         if let Some(mutation) = mutation {
             let Ok(board) = board_query.get(on_board.0) else {
                 continue;
@@ -159,10 +84,22 @@ pub(super) fn detect_turn(
                             action.clone(),
                             mutation.to_piece.first().unwrap().clone(),
                         ));
+                    } else if let Some(promotion) = promotion {
+                        turn_writer.send(TurnEvent::mutation(
+                            *ply,
+                            *piece,
+                            on_board.0,
+                            in_game.0,
+                            action.clone(),
+                            promotion.clone(),
+                        ));
                     } else {
-                        mutation_request_writer.send(RequestMutationEvent {
-                            piece: *piece,
-                            action: action.clone(),
+                        require_mutation_writer.send(ToClients {
+                            mode: SendMode::Direct(player.id),
+                            event: RequireMutationEvent {
+                                piece: *piece,
+                                action: action.clone(),
+                            },
                         });
                     }
                 }
@@ -179,28 +116,6 @@ pub(super) fn detect_turn(
                 action.clone(),
             ));
         }
-    }
-    // TODO make a separate system
-    for IssueMutationEvent {
-        piece,
-        action,
-        piece_definition,
-    } in mutation_reader.read()
-    {
-        let Ok((_, on_board, in_game, _)) = piece_query.get(*piece) else {
-            continue;
-        };
-        let Ok(ply) = game_query.get(in_game.0) else {
-            continue;
-        };
-        turn_writer.send(TurnEvent::mutation(
-            *ply,
-            *piece,
-            on_board.0,
-            in_game.0,
-            action.clone(),
-            piece_definition.clone(),
-        ));
     }
 }
 
@@ -246,6 +161,7 @@ pub(super) fn execute_turn_movement(
 pub(super) fn execute_turn_mutations(
     mut commands: Commands,
     mut turn_reader: EventReader<TurnEvent>,
+    query: Query<&Position>,
 ) {
     for event in turn_reader.read() {
         if let Some(mutated_piece) = &event.mutation {
@@ -254,7 +170,17 @@ pub(super) fn execute_turn_mutations(
                 .entity(event.piece)
                 .remove::<PieceBehaviorsBundle>();
             commands.entity(event.piece).remove::<Mutation>();
+            commands.entity(event.piece).remove::<PieceIdentity>();
             commands.entity(event.piece).remove::<Royal>();
+
+            // TODO: Why is this hack necessary?
+            // Without this, the position update is not replicated to clients.
+            commands.entity(event.piece).remove::<Position>();
+            commands
+                .entity(event.piece)
+                .insert(Position(query.get(event.piece).unwrap().0));
+
+            commands.entity(event.piece).insert(mutated_piece.identity);
 
             // add subsequent mutation if specified
             if let Some(new_mutation) = &mutated_piece.mutation {
@@ -290,22 +216,46 @@ pub(super) fn execute_turn_mutations(
     }
 }
 
+pub(super) fn set_last_move(
+    mut commands: Commands,
+    mut turn_reader: EventReader<TurnEvent>,
+    mut boards: Query<(Entity, Option<&mut LastMove>), With<Board>>,
+) {
+    for event in turn_reader.read() {
+        if let Ok((entity, maybe_move)) = boards.get_mut(event.board) {
+            if let Some(mut last_move) = maybe_move {
+                last_move.0 = event.action.clone();
+            } else {
+                commands
+                    .entity(entity)
+                    .insert(LastMove(event.action.clone()));
+            }
+        }
+    }
+}
+
 #[allow(clippy::type_complexity)]
 pub(super) fn end_turn(
-    mut players_query: Query<(Entity, Option<&mut Clock>, Option<&HasTurn>), With<Player>>,
+    mut players_query: Query<(Entity, &InGame, Option<&mut Clock>, Option<&HasTurn>), With<Player>>,
     mut commands: Commands,
+    mut turn_reader: EventReader<TurnEvent>,
 ) {
-    for (player, clock, my_turn) in players_query.iter_mut() {
-        if my_turn.is_some() {
-            if let Some(mut clock) = clock {
-                clock.pause();
+    for event in turn_reader.read() {
+        for (player, in_game, clock, my_turn) in players_query.iter_mut() {
+            if event.game != in_game.0 {
+                continue;
             }
-            commands.entity(player).remove::<HasTurn>();
-        } else {
-            if let Some(mut clock) = clock {
-                clock.unpause();
+            if my_turn.is_some() {
+                if let Some(mut clock) = clock {
+                    clock.pause();
+                }
+                commands.entity(player).remove::<HasTurn>();
+            } else {
+                if let Some(mut clock) = clock {
+                    clock.unpause();
+                }
+                commands.entity(player).insert(HasTurn);
             }
-            commands.entity(player).insert(HasTurn);
         }
     }
 }
@@ -346,7 +296,7 @@ pub(super) fn last_action(mut reader: EventReader<TurnEvent>) -> Option<Action> 
 pub(super) fn detect_gameover(
     game_query: Query<(Entity, &WinCondition)>,
     royal_query: Query<(&InGame, &Team, Option<&Position>), With<Royal>>,
-    mut gameover_writer: EventWriter<GameoverEvent>,
+    mut gameover_writer: EventWriter<ToClients<GameoverEvent>>,
 ) {
     for (game_entity, win_condition) in game_query.iter() {
         match win_condition {
@@ -361,13 +311,22 @@ pub(super) fn detect_gameover(
                         == 0
                 };
                 if all_captured(Team::White) {
-                    gameover_writer.send(GameoverEvent {
-                        winner: Team::Black,
+                    // TODO: try to upstream a "DirectGroup" feature if reasonable
+                    // otherwise send individual Direct messages
+                    // this is fine while there is low traffic on servers
+                    gameover_writer.send(ToClients {
+                        mode: SendMode::Broadcast,
+                        event: GameoverEvent {
+                            winner: Team::Black,
+                        },
                     });
                 }
                 if all_captured(Team::Black) {
-                    gameover_writer.send(GameoverEvent {
-                        winner: Team::White,
+                    gameover_writer.send(ToClients {
+                        mode: SendMode::Broadcast,
+                        event: GameoverEvent {
+                            winner: Team::White,
+                        },
                     });
                 }
             }
@@ -382,13 +341,19 @@ pub(super) fn detect_gameover(
                         > 0
                 };
                 if any_captured(Team::White) {
-                    gameover_writer.send(GameoverEvent {
-                        winner: Team::Black,
+                    gameover_writer.send(ToClients {
+                        mode: SendMode::Broadcast,
+                        event: GameoverEvent {
+                            winner: Team::Black,
+                        },
                     });
                 }
                 if any_captured(Team::Black) {
-                    gameover_writer.send(GameoverEvent {
-                        winner: Team::White,
+                    gameover_writer.send(ToClients {
+                        mode: SendMode::Broadcast,
+                        event: GameoverEvent {
+                            winner: Team::White,
+                        },
                     });
                 }
             }

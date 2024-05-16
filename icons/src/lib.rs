@@ -1,11 +1,16 @@
+use std::marker::PhantomData;
+
 use bevy::{
-    prelude::{App, Changed, Commands, Component, Entity, Local, Or, Plugin, PreUpdate, Query},
+    prelude::{
+        App, Changed, Commands, Component, Entity, In, IntoSystem, Local, Or, Plugin, PreUpdate,
+        Query,
+    },
     utils::HashMap,
 };
 
 use games::chess::{
     behavior::{PatternBehavior, RelayBehavior},
-    pieces::{PieceIdentity, Royal},
+    pieces::{Orientation, PieceIdentity, Royal},
     team::Team,
 };
 
@@ -36,6 +41,7 @@ impl PieceIconSvg {
         patterns: Option<&PatternBehavior>,
         relays: Option<&RelayBehavior>,
         team: Team,
+        board_orientation: Orientation,
         is_royal: bool,
     ) -> Self {
         // let image = ImageSource::Bytes {
@@ -45,7 +51,12 @@ impl PieceIconSvg {
         let patterns = patterns
             .map(|behavior| &behavior.patterns)
             .or(relays.map(|behavior| &behavior.patterns));
-        let icon_source = wild_behavior_icon(patterns.unwrap_or(&vec![]), team, is_royal);
+        let icon_source = wild_behavior_icon(
+            patterns.unwrap_or(&vec![]),
+            team,
+            board_orientation,
+            is_royal,
+        );
         let label = format!("{:?}-{}", identity, key.into());
         PieceIconSvg {
             // image,
@@ -70,17 +81,46 @@ enum PieceIcon {
     Character(PieceIconCharacter),
 }
 
-pub struct PieceIconPlugin;
+pub struct PieceIconPlugin<System, Params>
+where
+    System: IntoSystem<(), Orientation, Params>,
+{
+    get_orientation: System,
+    marker: PhantomData<Params>,
+}
 
-impl Plugin for PieceIconPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, Self::attach_icons_system);
+impl<System, Params> PieceIconPlugin<System, Params>
+where
+    System: IntoSystem<(), Orientation, Params>,
+{
+    pub fn new(get_orientation: System) -> Self {
+        Self {
+            get_orientation,
+            marker: PhantomData::<Params>,
+        }
     }
 }
 
-impl PieceIconPlugin {
+impl<System, Params> Plugin for PieceIconPlugin<System, Params>
+where
+    System: IntoSystem<(), Orientation, Params> + Clone + Send + Sync + 'static,
+    Params: Send + Sync + 'static,
+{
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            PreUpdate,
+            self.get_orientation.clone().pipe(Self::attach_icons_system),
+        );
+    }
+}
+
+impl<System, Params> PieceIconPlugin<System, Params>
+where
+    System: IntoSystem<(), Orientation, Params>,
+{
     #[allow(clippy::type_complexity)]
     fn attach_icons_system(
+        In(board_orientation): In<Orientation>,
         mut commands: Commands,
         piece_query: Query<
             (
@@ -113,6 +153,7 @@ impl PieceIconPlugin {
                     patterns,
                     relays,
                     *team,
+                    board_orientation,
                     maybe_royal.is_some(),
                 );
                 icons.insert(key.clone(), PieceIcon::Svg(icon.clone()));

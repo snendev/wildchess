@@ -4,7 +4,7 @@ use bevy_egui::egui::{
 use egui_extras::install_image_loaders;
 
 use games::chess::board::Square;
-use wild_icons::PieceIcon;
+use wild_icons::PieceIconSvg;
 
 use crate::query::PieceData;
 
@@ -39,7 +39,7 @@ impl SquareHighlight {
 
 pub struct SquareWidget<'a> {
     square: Square,
-    icon: Option<&'a PieceIcon>,
+    icon: Option<&'a PieceIconSvg>,
     highlight: Option<SquareHighlight>,
     // TODO: scale: f32,
 }
@@ -52,7 +52,7 @@ impl<'a> SquareWidget<'a> {
 
     pub fn new_from_context(
         square: Square,
-        icon: Option<&'a PieceIcon>,
+        icon: Option<&'a PieceIconSvg>,
         selected_piece: Option<&'a PieceData<'a>>,
     ) -> Self {
         SquareWidget {
@@ -90,8 +90,8 @@ impl<'a> Widget for SquareWidget<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
         install_image_loaders(ui.ctx());
         let background_color = self.background_color();
-        let mut button = match self.icon.unwrap_or(&PieceIcon::Character(' ')) {
-            PieceIcon::Svg { source, .. } => {
+        let mut button = match self.icon {
+            Some(PieceIconSvg { source, .. }) => {
                 let image = ImageSource::Bytes {
                     uri: source.clone().into(),
                     bytes: source.bytes().collect::<Vec<u8>>().into(),
@@ -104,13 +104,16 @@ impl<'a> Widget for SquareWidget<'a> {
                 )
                 .fill(background_color)
             }
-            PieceIcon::Character(character) => {
-                let text = RichText::new(*character)
-                    .size(86.)
-                    .strong()
-                    .color(Color32::BLACK);
+            None => {
+                let text = RichText::new("").size(86.).strong().color(Color32::BLACK);
                 Button::new(text).fill(background_color)
-            }
+            } // PieceIcon::Character(character) => {
+              //     let text = RichText::new(*character)
+              //         .size(86.)
+              //         .strong()
+              //         .color(Color32::BLACK);
+              //     Button::new(text).fill(background_color)
+              // }
         };
 
         if let Some(stroke_color) = self.stroke_color() {

@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 use bevy_utils::{HashMap, HashSet};
@@ -7,6 +9,7 @@ use crate::{actions::Action, board::Square, team::Team};
 use super::{scanner::ScanTarget, TargetKind};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum CaptureMode {
     #[default]
@@ -15,6 +18,7 @@ pub enum CaptureMode {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum CapturePattern {
     #[default]
@@ -33,6 +37,7 @@ pub enum CapturePattern {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct CaptureRules {
     pub mode: CaptureMode,

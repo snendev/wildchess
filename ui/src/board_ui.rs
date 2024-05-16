@@ -12,10 +12,10 @@ use bevy_egui::{
 
 use games::{
     chess::{board::Square, pieces::PieceDefinition, team::Team},
-    components::{ActionHistory, Clock, HasTurn, Player, Ply},
-    IssueMoveEvent, IssueMutationEvent,
+    components::{ActionHistory, Clock, HasTurn, Ply},
+    RequestTurnEvent,
 };
-use wild_icons::PieceIcon;
+use wild_icons::PieceIconSvg;
 
 use crate::{
     mutation::IntendedMutation,
@@ -122,8 +122,8 @@ pub(crate) fn egui_history_panel(
 pub(crate) fn egui_information_panel(
     mut contexts: EguiContexts,
     piece_query: Query<PieceQuery>,
-    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>), With<Player>>,
-    mut mutation_writer: EventWriter<IssueMutationEvent>,
+    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>)>,
+    mut mutation_writer: EventWriter<RequestTurnEvent>,
     mut intended_mutation: ResMut<IntendedMutation>,
     selected_square: Res<SelectedSquare>,
     selected_game: Res<SelectedGame>,
@@ -191,11 +191,11 @@ pub(crate) fn egui_information_panel(
 
                 if let Some(piece_definition) = selected_mutation {
                     let (event, _) = intended_mutation.0.take().unwrap();
-                    mutation_writer.send(IssueMutationEvent {
-                        piece: event.piece,
-                        action: event.action,
+                    mutation_writer.send(RequestTurnEvent::new_with_mutation(
+                        event.piece,
+                        event.action,
                         piece_definition,
-                    });
+                    ));
                 }
 
                 if let Some(piece) = selected_square.0.and_then(|square| pieces.get(&square)) {
@@ -212,8 +212,8 @@ pub(crate) fn egui_information_panel(
 pub(crate) fn egui_chessboard(
     mut contexts: EguiContexts,
     piece_query: Query<PieceQuery>,
-    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>), With<Player>>,
-    mut move_writer: EventWriter<IssueMoveEvent>,
+    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>)>,
+    mut move_writer: EventWriter<RequestTurnEvent>,
     mut intended_mutation: ResMut<IntendedMutation>,
     mut last_selected_square: ResMut<SelectedSquare>,
     selected_game: Res<SelectedGame>,
@@ -284,15 +284,12 @@ fn handle_clicked_square(
     last_selected_square: &mut Option<Square>,
     pieces: &HashMap<Square, PieceData>,
     team_with_turn: Option<&Team>,
-) -> Option<IssueMoveEvent> {
+) -> Option<RequestTurnEvent> {
     if let Some(piece) = (*last_selected_square).and_then(|square| pieces.get(&square)) {
         if let Some(action) = piece.actions.get(&selected_square) {
             if team_with_turn.is_some_and(|team| piece.team == team) {
                 *last_selected_square = None;
-                return Some(IssueMoveEvent {
-                    piece: piece.entity,
-                    action: action.clone(),
-                });
+                return Some(RequestTurnEvent::new(piece.entity, action.clone()));
             }
         }
     }
@@ -305,7 +302,7 @@ fn handle_clicked_square(
 fn render_mutation_options(
     ui: &mut Ui,
     selected_mutation: &mut Option<PieceDefinition>,
-    piece_icons: &[(PieceIcon, PieceDefinition)],
+    piece_icons: &[(PieceIconSvg, PieceDefinition)],
 ) {
     ui.label(RichText::new("Promoting! Choose a piece.").size(24.));
 

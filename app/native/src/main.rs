@@ -1,36 +1,30 @@
-#[macro_use]
-extern crate cfg_if;
+#[cfg(target_family = "wasm")]
+compile_error!("Native build is not intended for use with WASM. Please build the WASM app.");
 
-cfg_if! {
-    if #[cfg(not(target_arch = "wasm32"))] {
-        use bevy::prelude::{
-            any_with_component, not, App, DefaultPlugins, IntoSystemConfigs, IntoSystemSetConfigs,
-            PluginGroup, SystemSet, Update, Window, WindowPlugin,
-        };
+use bevy::prelude::{
+    any_with_component, not, App, DefaultPlugins, IntoSystemConfigs, IntoSystemSetConfigs,
+    PluginGroup, SystemSet, Update, Window, WindowPlugin,
+};
 
-        // use chess_ui::{ChessUISet, EguiBoardUIPlugin};
-        use games::{components::Game, GameplayPlugin};
+use chess_ui::{ChessUISystems, EguiBoardUIPlugin, HomeMenuUIPlugin, HomeMenuUISystems};
+use games::{components::Game, GameplayPlugin};
 
-        fn main() {
-            App::default().add_plugins(DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    resolution: (1600., 900.).into(),
-                    ..Default::default()
-                }),
+fn main() {
+    App::default()
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                resolution: (1600., 900.).into(),
                 ..Default::default()
-            }))
-            // .configure_sets(
-            //     Update,
-            //     (
-            //         // HomeUISet.run_if(not(any_with_component::<Game>)),
-            //         // ChessUISet.run_if(any_with_component::<Game>),
-            //     ),
-            // )
-            .add_plugins((
-                GameplayPlugin,
-                //  EguiBoardUIPlugin
-            ))
-            .run();
-        }
-    }
+            }),
+            ..Default::default()
+        }))
+        .configure_sets(
+            Update,
+            (
+                HomeMenuUISystems.run_if(not(any_with_component::<Game>)),
+                ChessUISystems.run_if(any_with_component::<Game>),
+            ),
+        )
+        .add_plugins((GameplayPlugin, HomeMenuUIPlugin, EguiBoardUIPlugin))
+        .run();
 }

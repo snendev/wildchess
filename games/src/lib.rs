@@ -1,6 +1,12 @@
 pub use chess;
 
-pub mod components;
+mod gameplay;
+pub use gameplay::*;
 
-mod plugin;
-pub use plugin::*;
+mod matchmaking;
+pub use matchmaking::*;
+
+pub mod components {
+    pub use super::gameplay::components::*;
+    pub use super::matchmaking::components::*;
+}

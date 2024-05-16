@@ -1,7 +1,8 @@
 use std::marker::PhantomData;
 
-use bevy_app::prelude::{App, Plugin, PostUpdate};
+use bevy_app::prelude::{App, Plugin, Update};
 use bevy_ecs::prelude::{apply_deferred, IntoSystem, IntoSystemConfigs, Query, SystemSet};
+use bevy_replicon::prelude::{AppReplicationExt, ParentSyncPlugin, RepliconCorePlugin};
 
 use crate::{
     actions::{Action, Actions},
@@ -14,7 +15,7 @@ use super::{
 
 // N.B. Use this to configure run conditions so that actions are not calculated every frame
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
-pub struct BehaviorsSet;
+pub struct BehaviorsSystems;
 
 pub struct BehaviorsPlugin<System, Params>
 where
@@ -48,8 +49,11 @@ where
     Params: Send + Sync + 'static,
 {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<RepliconCorePlugin>() {
+            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
+        }
         app.add_systems(
-            PostUpdate,
+            Update,
             (
                 (clear_actions, BoardPieceCache::track_pieces),
                 (
@@ -81,7 +85,16 @@ where
                 ),
             )
                 .chain()
-                .in_set(BehaviorsSet),
+                .in_set(BehaviorsSystems),
         );
+
+        app.replicate::<BoardPieceCache>()
+            .replicate::<BoardThreatsCache>()
+            .replicate::<PatternBehavior>()
+            .replicate::<CastlingBehavior>()
+            .replicate::<CastlingTarget>()
+            .replicate::<EnPassantBehavior>()
+            .replicate::<RelayBehavior>()
+            .replicate::<MimicBehavior>();
     }
 }

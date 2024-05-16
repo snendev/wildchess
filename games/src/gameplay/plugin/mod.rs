@@ -1,42 +1,70 @@
-use bevy_app::prelude::{App, Plugin, PostUpdate, Update};
+use bevy_app::prelude::{App, Plugin, Update};
 use bevy_ecs::prelude::{
     on_event, Added, Component, Condition, IntoSystemConfigs, IntoSystemSetConfigs, Query,
+    SystemSet,
 };
 
 use chess::{
     actions::Actions,
-    behavior::{BehaviorsPlugin, BehaviorsSet, MimicBehavior, PatternBehavior, RelayBehavior},
+    behavior::{BehaviorsPlugin, BehaviorsSystems, MimicBehavior, PatternBehavior, RelayBehavior},
     pieces::Position,
-    ChessTypesPlugin,
+    ChessPlugin,
 };
 
+use bevy_replicon::prelude::*;
+
 mod events;
-pub use events::{IssueMoveEvent, IssueMutationEvent, RequestMutationEvent, TurnEvent};
+pub use events::{GameoverEvent, RequestTurnEvent, RequireMutationEvent, TurnEvent};
 
-use crate::components::History;
-
-use self::events::GameoverEvent;
+use crate::components::{
+    ActionHistory, AntiGame, Atomic, Clock, ClockConfiguration, Crazyhouse, Game, GameBoard,
+    HasTurn, History, InGame, LastMove, Ply, WinCondition,
+};
 
 mod systems;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(SystemSet)]
+pub struct GameSystems;
 
 pub struct GameplayPlugin;
 
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<RepliconCorePlugin>() {
+            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
+        }
         app.add_plugins((
-            ChessTypesPlugin,
+            ChessPlugin,
             BehaviorsPlugin::from_input_system(systems::last_action),
         ))
         .configure_sets(
-            PostUpdate,
-            BehaviorsSet
+            Update,
+            BehaviorsSystems
                 .run_if(any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>())),
         )
+        .configure_sets(Update, GameSystems.before(BehaviorsSystems))
+        .add_mapped_client_event::<RequestTurnEvent>(ChannelKind::Ordered)
+        .add_mapped_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
+        .add_server_event::<GameoverEvent>(ChannelKind::Ordered)
         .add_event::<TurnEvent>()
-        .add_event::<IssueMoveEvent>()
-        .add_event::<IssueMutationEvent>()
-        .add_event::<RequestMutationEvent>()
-        .add_event::<GameoverEvent>()
+        .replicate::<Clock>()
+        .replicate::<Ply>()
+        .replicate::<HasTurn>()
+        .replicate_mapped::<InGame>()
+        .replicate::<Game>()
+        .replicate::<LastMove>()
+        .replicate::<GameBoard>()
+        .replicate::<Atomic>()
+        .replicate::<Crazyhouse>()
+        .replicate::<AntiGame>()
+        .replicate::<WinCondition>()
+        .replicate::<ClockConfiguration>()
+        .replicate_mapped::<ActionHistory>()
+        .replicate::<History<Position>>()
+        .replicate::<History<PatternBehavior>>()
+        .replicate::<History<MimicBehavior>>()
+        .replicate::<History<RelayBehavior>>()
         .add_systems(
             Update,
             (
@@ -51,13 +79,24 @@ impl Plugin for GameplayPlugin {
                 systems::detect_turn,
                 systems::execute_turn_movement.run_if(on_event::<TurnEvent>()),
                 systems::execute_turn_mutations.run_if(on_event::<TurnEvent>()),
+                systems::set_last_move.run_if(on_event::<TurnEvent>()),
                 systems::end_turn.run_if(on_event::<TurnEvent>()),
                 systems::track_turn_history.run_if(on_event::<TurnEvent>()),
                 systems::tick_clocks,
             )
-                .chain(),
-        )
-        .add_systems(Update, systems::spawn_game_entities);
+                .chain()
+                .in_set(GameSystems),
+        );
+
+        #[cfg(feature = "reflect")]
+        app.register_type::<InGame>()
+            .register_type::<GameBoard>()
+            .register_type::<WinCondition>()
+            .register_type::<Ply>()
+            .register_type::<LastMove>()
+            .register_type::<Clock>()
+            .register_type::<ClockConfiguration>()
+            .register_type::<ActionHistory>();
     }
 }
 
@@ -99,7 +138,7 @@ mod tests {
         world: &'a mut World,
         piece_square: Square,
         target_square: Square,
-    ) -> IssueMoveEvent {
+    ) -> RequestTurnEvent {
         let mut query = world.query::<(Entity, &Position, &Actions)>();
         let (piece, _, actions) = query
             .iter(&world)
@@ -112,10 +151,7 @@ mod tests {
             .unwrap();
         let action = action.clone();
 
-        IssueMoveEvent {
-            piece,
-            action: action.clone(),
-        }
+        RequestTurnEvent::new(piece, action.clone())
     }
 
     #[test]
@@ -126,6 +162,7 @@ mod tests {
         app.add_plugins(bevy_core::FrameCountPlugin);
         app.add_plugins(bevy_time::TimePlugin);
         app.add_plugins(bevy_app::ScheduleRunnerPlugin::default());
+        app.add_plugins(RepliconCorePlugin);
 
         app.add_plugins(GameplayPlugin);
 
@@ -153,7 +190,7 @@ mod tests {
             move_event.piece, move_event.action
         );
 
-        let mut move_events = app.world.resource_mut::<Events<IssueMoveEvent>>();
+        let mut move_events = app.world.resource_mut::<Events<RequestTurnEvent>>();
         move_events.send(move_event);
 
         app.update();

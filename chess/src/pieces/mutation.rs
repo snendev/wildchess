@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::Component;
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
@@ -12,6 +14,7 @@ use super::PieceDefinition;
 // TODO: split condition and required into separate component types and systems?
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Mutation {
@@ -27,6 +30,7 @@ pub struct Mutation {
 }
 
 #[derive(Clone, Debug)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum MutationCondition {
     // rank is local to team orientation
@@ -43,6 +47,7 @@ impl Default for MutationCondition {
 }
 
 #[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum MutationRequired {
     #[default]

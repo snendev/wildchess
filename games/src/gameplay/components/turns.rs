@@ -1,6 +1,12 @@
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use bevy_ecs::prelude::{Changed, Commands, Component, Entity, Query, RemovedComponents, With};
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+use bevy_ecs::{
+    entity::MapEntities,
+    prelude::{Changed, Commands, Component, Entity, EntityMapper, Query, RemovedComponents, With},
+};
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 
@@ -8,12 +14,23 @@ use chess::actions::Action;
 
 use super::{Game, InGame};
 
-#[derive(Clone, Copy, Component, Debug)]
+#[derive(Clone, Copy, Debug)]
+#[derive(Component)]
+#[derive(Deserialize, Serialize)]
 pub struct HasTurn;
+
+#[derive(Clone, Debug)]
+#[derive(Component)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
+pub struct LastMove(pub Action);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Ply(usize);
 
 impl Ply {
@@ -34,7 +51,9 @@ impl Ply {
 // It tracks the action made each ply.
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct ActionHistory(Vec<(Entity, Action)>);
 
 impl std::ops::Index<Ply> for ActionHistory {
@@ -63,11 +82,21 @@ impl ActionHistory {
     }
 }
 
+impl MapEntities for ActionHistory {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.0 = self
+            .0
+            .iter()
+            .map(|(entity, action)| (mapper.map_entity(*entity), action.clone()))
+            .collect()
+    }
+}
+
 // A sparse vector using Ply as an index.
 // It is kept sparse in order to minimize cloning.
 #[derive(Clone, Debug)]
 #[derive(Component)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[derive(Deserialize, Serialize)]
 pub struct History<T>(BTreeMap<Ply, Option<T>>);
 
 impl<T> History<T> {
@@ -148,5 +177,25 @@ impl<T> History<T> {
 impl<T> Default for History<T> {
     fn default() -> Self {
         History::new()
+    }
+}
+
+// In case we track History for anything that carries Entity data
+impl<T: Clone + MapEntities> MapEntities for History<T> {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.0 = self
+            .0
+            .iter()
+            .map(|(ply, option)| {
+                (
+                    *ply,
+                    option.as_ref().map(|value| {
+                        let mut new_value = value.clone();
+                        new_value.map_entities(mapper);
+                        new_value
+                    }),
+                )
+            })
+            .collect()
     }
 }

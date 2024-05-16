@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::Bundle;
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
@@ -41,6 +43,7 @@ impl PieceBundle {
 }
 
 #[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct PieceDefinition {
     pub behaviors: PieceBehaviors,

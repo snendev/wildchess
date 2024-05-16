@@ -29,11 +29,8 @@
     "tailwindcss": "npm:tailwindcss@3.4.1",
     "tailwindcss/": "npm:/tailwindcss@3.4.1/",
     "tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js",
-    "chess_web.js": "./static/wasm/chess_web.js",
-    "chess_web_bg.wasm": "./static/wasm/chess_web_bg.wasm",
     "$std/": "https://deno.land/std@0.216.0/",
-    "chessboardjs": "https://esm.sh/gh/snendev/chessboardjs@de3c427975/lib/chessboard.js",
-    "/wasm/chess_web.js": "/static/wasm/chess_web.js"
+    "chessboardjs": "https://esm.sh/gh/snendev/chessboardjs@de3c427975/lib/chessboard.js"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

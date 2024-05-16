@@ -4,6 +4,7 @@ use bevy_ecs::prelude::{Changed, Component, Entity, Query, With};
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 use bevy_utils::{HashMap, HashSet};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     actions::Actions,
@@ -14,6 +15,7 @@ use crate::{
 
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct BoardPieceCache {
@@ -48,6 +50,7 @@ impl BoardPieceCache {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct BoardThreat {
     square: Square,
@@ -56,6 +59,7 @@ pub struct BoardThreat {
 
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct BoardThreatsCache(HashSet<BoardThreat>);

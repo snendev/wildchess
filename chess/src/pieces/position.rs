@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::Component;
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
@@ -8,6 +10,7 @@ use crate::board::{File, Rank, Square};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Position(pub Square);

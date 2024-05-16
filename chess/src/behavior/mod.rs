@@ -1,10 +1,12 @@
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::{Bundle, Commands, Component, Entity, In, Query};
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 
 use crate::{
     actions::{Action, Actions},
-    board::Board,
+    board::{Board, OnBoard},
     pieces::{Orientation, Position},
     team::Team,
 };
@@ -19,7 +21,7 @@ pub use kinds::{
 };
 
 mod plugin;
-pub use plugin::{BehaviorsPlugin, BehaviorsSet};
+pub use plugin::{BehaviorsPlugin, BehaviorsSystems};
 
 pub trait Behavior {
     // Each behavior supplies is own sink for calculating actions.
@@ -35,7 +37,7 @@ pub trait Behavior {
     fn calculate_actions_system(
         last_action: In<Option<Action>>,
         commands: Commands,
-        board_query: Query<(&Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
         piece_query: Query<(
             Entity,
             Option<&Self>,
@@ -43,6 +45,7 @@ pub trait Behavior {
             &Position,
             &Orientation,
             &Team,
+            &OnBoard,
         )>,
     ) where
         Self: Component + Sized;
@@ -78,6 +81,7 @@ pub trait Behavior {
 // ) {}
 
 #[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct PieceBehaviors {
     pub pattern: Option<PatternBehavior>,

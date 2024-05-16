@@ -4,13 +4,17 @@ use bevy::prelude::{
 
 pub use bevy_egui;
 
-use games::components::{Game, History};
-use wild_icons::PieceIcon;
-
-pub mod home_ui;
+use games::{
+    chess::pieces::Orientation,
+    components::{Game, History},
+};
+use wild_icons::{PieceIconCharacter, PieceIconPlugin, PieceIconSvg};
 
 pub(crate) mod mutation;
 pub(crate) mod query;
+
+mod home_ui;
+pub use home_ui::{HomeMenuUIPlugin, HomeMenuUISystems};
 
 mod board_ui;
 use board_ui::{
@@ -21,7 +25,7 @@ use board_ui::{
 mod widgets;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
-pub struct ChessUISet;
+pub struct ChessUISystems;
 
 pub struct EguiBoardUIPlugin;
 
@@ -30,6 +34,9 @@ impl Plugin for EguiBoardUIPlugin {
         if !app.is_plugin_added::<bevy_egui::EguiPlugin>() {
             app.add_plugins(bevy_egui::EguiPlugin);
         }
+
+        app.add_plugins(PieceIconPlugin::new(get_orientation));
+
         app.init_resource::<mutation::IntendedMutation>()
             .init_resource::<SelectedSquare>()
             .init_resource::<SelectedHistoricalPly>()
@@ -37,13 +44,13 @@ impl Plugin for EguiBoardUIPlugin {
             .add_systems(
                 Update,
                 (
-                    mutation::read_mutation_options,
-                    PieceIcon::attach_icons_system,
-                    History::<PieceIcon>::track_component_system,
+                    // mutation::read_mutation_options,
+                    History::<PieceIconSvg>::track_component_system,
+                    History::<PieceIconCharacter>::track_component_system,
                     set_game,
                     (egui_chessboard, egui_history_panel, egui_information_panel).chain(),
                 )
-                    .in_set(ChessUISet),
+                    .in_set(ChessUISystems),
             );
     }
 }
@@ -52,4 +59,8 @@ fn set_game(mut game: ResMut<SelectedGame>, game_query: Query<Entity, Added<Game
     for added_game in game_query.iter() {
         game.0 = Some(added_game);
     }
+}
+
+fn get_orientation() -> Orientation {
+    Orientation::Up
 }

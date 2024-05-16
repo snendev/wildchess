@@ -3,20 +3,24 @@ name = "games"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+log = ["dep:bevy_log", "chess/log"]
+reflect = ["dep:bevy_reflect", "chess/reflect"]
+
 [dependencies]
 chess = { path = "../chess", default-features = false }
 layouts = { path = "../layouts" }
+replication = { path = "../replication" }
 bevy_app = { version = "0.13" }
 bevy_core = { version = "0.13" }
 bevy_ecs = { version = "0.13" }
 bevy_log = { version = "0.13", optional = true }
 bevy_reflect = { version = "0.13", optional = true }
-bevy_time = { version = "0.13" }
-
-[features]
-default = []
-reflect = ["dep:bevy_reflect", "chess/reflect"]
-log = ["dep:bevy_log", "chess/log"]
+bevy_time = { version = "0.13", features = ["serialize"] }
+bevy_replicon = { version = "0.24" }
+serde = { version = "1.0", features = ["derive"] }
+itertools = { version = "0.12" }
 
 [dev-dependencies]
 layouts = { path = "../layouts" }

@@ -1,11 +1,17 @@
 use games::chess::{
     pattern::{CaptureMode, Pattern},
+    pieces::Orientation,
     team::Team,
 };
 
 // svg generation utilities
 
-pub(crate) fn wild_behavior_icon(patterns: &[Pattern], team: Team, is_king: bool) -> String {
+pub(crate) fn wild_behavior_icon(
+    patterns: &[Pattern],
+    team: Team,
+    orientation: Orientation,
+    is_king: bool,
+) -> String {
     format!(
         r#"<svg
     width="100%"
@@ -21,7 +27,13 @@ pub(crate) fn wild_behavior_icon(patterns: &[Pattern], team: Team, is_king: bool
     </g>
 </svg>"#,
         piece_nodes(team, is_king),
-        behavior_nodes(patterns, team),
+        behavior_nodes(
+            patterns,
+            match team {
+                Team::White => orientation,
+                Team::Black => orientation.flip(),
+            }
+        ),
     )
 }
 
@@ -71,9 +83,9 @@ fn build_king_paths(team: Team) -> String {
 // }
 
 fn build_piece_paths(team: Team) -> String {
-    let (fill,) = match team {
-        Team::White => ("#ffffff",),
-        Team::Black => ("#000000",),
+    let fill = match team {
+        Team::White => "#ffffff",
+        Team::Black => "#000000",
     };
     format!(
         r#"<path
@@ -101,13 +113,14 @@ impl NodePosition {
         }
     }
 
-    pub fn calculate(step_x: i16, step_y: i16, radius: usize, team: Team) -> Self {
+    pub fn calculate(step_x: i16, step_y: i16, radius: usize, orientation: Orientation) -> Self {
         let x: i32 = step_x.into();
         let y: i32 = step_y.into();
         let radius: i32 = radius.try_into().unwrap();
-        let y = y * match team {
-            Team::White => -1,
-            Team::Black => 1,
+        let y: i32 = y * match orientation {
+            Orientation::Up => -1,
+            Orientation::Down => 1,
+            _ => unimplemented!("Pieces on left and right are currently unimplemented"),
         };
 
         let dy = -(y * radius + y.signum());
@@ -206,7 +219,7 @@ fn arrow(position: NodePosition, color_hex: &str) -> String {
     }
 }
 
-fn pattern_nodes(pattern: &Pattern, team: Team) -> String {
+fn pattern_nodes(pattern: &Pattern, orientation: Orientation) -> String {
     let color_hex = match pattern.capture.map(|capture| capture.mode) {
         None => "#0000ff",
         Some(CaptureMode::CanCapture) => "#000000",
@@ -217,14 +230,14 @@ fn pattern_nodes(pattern: &Pattern, team: Team) -> String {
     match pattern.scanner.range {
         None => movements
             .into_iter()
-            .map(|(x, y)| NodePosition::calculate(x, y, 1, team))
+            .map(|(x, y)| NodePosition::calculate(x, y, 1, orientation))
             .map(|node| arrow(node, color_hex))
             .collect::<Vec<_>>(),
         Some(range) => (1..=range.min(3))
             .flat_map(|radius| {
                 movements
                     .iter()
-                    .map(move |(x, y)| NodePosition::calculate(*x, *y, radius, team))
+                    .map(move |(x, y)| NodePosition::calculate(*x, *y, radius, orientation))
             })
             .map(|node| circle(node, color_hex))
             .collect::<Vec<_>>(),
@@ -233,10 +246,10 @@ fn pattern_nodes(pattern: &Pattern, team: Team) -> String {
 }
 
 // builds a set of symbols to decorate the piece tile with patterns that describe its behavior options
-fn behavior_nodes(patterns: &[Pattern], team: Team) -> String {
+fn behavior_nodes(patterns: &[Pattern], orientation: Orientation) -> String {
     patterns
         .iter()
-        .map(|pattern| pattern_nodes(pattern, team))
+        .map(|pattern| pattern_nodes(pattern, orientation))
         .collect::<Vec<_>>()
         .join("\n")
 }

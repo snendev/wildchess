@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::Component;
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
@@ -10,6 +12,7 @@ use bevy_reflect::Reflect;
 // particular icon.
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub enum PieceIdentity {

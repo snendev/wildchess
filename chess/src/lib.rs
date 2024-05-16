@@ -1,4 +1,5 @@
 use bevy_app::prelude::{App, Plugin};
+use bevy_replicon::prelude::{AppReplicationExt, ParentSyncPlugin, RepliconCorePlugin};
 
 pub mod actions;
 pub mod behavior;
@@ -7,17 +8,33 @@ pub mod pattern;
 pub mod pieces;
 pub mod team;
 
-pub struct ChessTypesPlugin;
+pub struct ChessPlugin;
 
-impl Plugin for ChessTypesPlugin {
+impl Plugin for ChessPlugin {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<RepliconCorePlugin>() {
+            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
+        }
+        // TODO: should be plugins for each submodule instead
+        app.replicate_mapped::<actions::Actions>()
+            .replicate::<board::Board>()
+            .replicate_mapped::<board::OnBoard>()
+            .replicate::<pieces::Mutation>()
+            .replicate::<pieces::Orientation>()
+            .replicate::<pieces::PieceIdentity>()
+            .replicate::<pieces::Position>()
+            .replicate::<pieces::Royal>()
+            .replicate::<team::Team>();
+
         #[cfg(feature = "reflect")]
-        app.register_type::<team::Team>()
+        app.register_type::<actions::Action>()
+            .register_type::<actions::Actions>()
             .register_type::<behavior::PatternBehavior>()
             .register_type::<board::Square>()
             .register_type::<board::Rank>()
             .register_type::<board::File>()
             .register_type::<board::Board>()
+            .register_type::<board::OnBoard>()
             .register_type::<pattern::Pattern>()
             .register_type::<pattern::Constraints>()
             .register_type::<pattern::FromRankConstraint>()
@@ -31,8 +48,11 @@ impl Plugin for ChessTypesPlugin {
             .register_type::<pattern::RSymmetry>()
             .register_type::<pattern::ABSymmetry>()
             .register_type::<pattern::TargetKind>()
+            .register_type::<pieces::Mutation>()
+            .register_type::<pieces::Orientation>()
+            .register_type::<pieces::PieceIdentity>()
             .register_type::<pieces::Position>()
-            .register_type::<actions::Action>()
-            .register_type::<actions::Actions>();
+            .register_type::<pieces::Royal>()
+            .register_type::<team::Team>();
     }
 }

@@ -1,0 +1,18 @@
+[package]
+name = "chess_app_server"
+version = "0.1.0"
+authors = ["Sean Sullivan <me@snen.dev>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+games = { path = "../../games" }
+replication = { path = "../../replication", features = ["log"] }
+transport = { path = "../../transport", features = [
+    # "server",
+    # "native_transport",
+    # "steam_transport",
+    "web_transport_server",
+] }
+bevy = { version = "0.13", default-features = false }

@@ -1,15 +1,28 @@
-use bevy_ecs::prelude::{Commands, Component};
+use serde::{Deserialize, Serialize};
+
+use bevy_core::Name;
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+use bevy_ecs::prelude::{Commands, Component, Entity};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
+
+use bevy_replicon::prelude::Replication;
 
 use chess::board::{Rank, Square};
 
 use super::Clock;
 
 #[derive(Clone, Copy, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[derive(Component)]
 pub struct Game;
 
 #[derive(Clone, Copy, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub enum GameBoard {
     Chess,
     #[default]
@@ -24,23 +37,29 @@ pub enum GameBoard {
 // additionally capturing on all squares in the region of the capture.
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 pub struct Atomic;
 
 // A game rule specifying that players can place captured pieces
 // on the board using a turn.
 #[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[derive(Component)]
 pub struct Crazyhouse;
 
 // A game rule specifying that the typical win condition results in a loss;
 // Pieces must capture if they are able to.
 #[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[derive(Component)]
 pub struct AntiGame;
 
 // The set of win conditions for the board
 #[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub enum WinCondition {
     // The game is won once all enemy Royal pieces are captured.
     #[default]
@@ -55,14 +74,19 @@ pub enum WinCondition {
 }
 
 #[derive(Clone, Debug, Default)]
+#[derive(Deserialize, Serialize)]
 #[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct ClockConfiguration {
     pub clock: Clock,
 }
 
 // TODO: revisit this API
 // perhaps use the blueprints lib
+#[derive(Clone)]
 #[derive(Default)]
+#[derive(Deserialize, Serialize)]
 pub struct GameSpawner {
     pub game: Game,
     pub board: GameBoard,
@@ -81,6 +105,10 @@ impl GameSpawner {
             win_condition,
             ..Default::default()
         }
+    }
+
+    pub fn name(&self) -> Name {
+        Name::new(format!("{:?} Game", self.board))
     }
 
     #[must_use]
@@ -107,9 +135,15 @@ impl GameSpawner {
         self
     }
 
-    pub fn spawn(self, commands: &mut Commands) {
+    pub fn spawn(self, commands: &mut Commands) -> Entity {
         let entity = commands
-            .spawn((self.game, self.board, self.win_condition))
+            .spawn((
+                self.name(),
+                self.game,
+                self.board,
+                self.win_condition,
+                Replication,
+            ))
             .id();
         let mut builder = commands.entity(entity);
         if let Some(clock) = self.clock {
@@ -124,5 +158,6 @@ impl GameSpawner {
         if self.anti.is_some() {
             builder.insert(AntiGame);
         }
+        entity
     }
 }

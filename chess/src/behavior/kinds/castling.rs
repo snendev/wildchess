@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 use bevy_ecs::prelude::{Commands, Component, DetectChanges, Entity, Query, Ref, With};
@@ -32,12 +33,14 @@ pub(crate) fn disable_on_move<T: Component>(
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct CastlingTarget;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Component)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct CastlingBehavior;
@@ -52,132 +55,122 @@ impl CastlingBehavior {
         >,
         target_query: Query<(Entity, &Position, &Team, &Orientation), With<CastlingTarget>>,
     ) {
-        let Ok((pieces, threats)) = board_query.get_single() else {
-            return;
-        };
-
-        for (Position(position), team, orientation, mut actions) in castler_query.iter_mut() {
-            for (target_entity, Position(target), target_team, target_orientation) in
-                target_query.iter()
-            {
-                if team != target_team {
-                    continue;
-                }
-                let (landing_square, is_horizontal, is_position_gt_target) = match (
-                    position.file.0.cmp(&target.file.0),
-                    position.rank.0.cmp(&target.rank.0),
-                ) {
-                    (Ordering::Less, Ordering::Equal) => {
-                        (Square::new(File::G, position.rank), true, false)
-                    }
-                    (Ordering::Greater, Ordering::Equal) => {
-                        (Square::new(File::C, position.rank), true, true)
-                    }
-                    (Ordering::Equal, Ordering::Less) => {
-                        (Square::new(position.file, Rank::SIX), false, false)
-                    }
-                    (Ordering::Equal, Ordering::Greater) => {
-                        (Square::new(position.file, Rank::TWO), false, true)
-                    }
-                    _ => {
-                        #[cfg(feature = "log")]
-                        warn!("Unexpected castling alignment detected. Castler square: {}, Target square: {}", position, target);
+        for (pieces, threats) in board_query.iter() {
+            for (Position(position), team, orientation, mut actions) in castler_query.iter_mut() {
+                for (target_entity, Position(target), target_team, target_orientation) in
+                    target_query.iter()
+                {
+                    if team != target_team {
                         continue;
                     }
-                };
-
-                // the piece could still be on either side of the target, so we have to check
-                let scanned_squares: Vec<_> = if is_horizontal {
-                    match position.file.cmp(&landing_square.file) {
-                        Ordering::Less => ((position.file.0 + 1)..=landing_square.file.0)
-                            .map(|file| Square::new(File(file), landing_square.rank))
-                            .collect(),
-                        Ordering::Greater => (landing_square.file.0
-                            ..=position.file.0.saturating_sub(1))
-                            .rev()
-                            .map(|file| Square::new(File(file), landing_square.rank))
-                            .collect(),
-                        Ordering::Equal => {
-                            vec![]
+                    let (landing_square, is_horizontal, is_position_gt_target) = match (
+                        position.file.0.cmp(&target.file.0),
+                        position.rank.0.cmp(&target.rank.0),
+                    ) {
+                        (Ordering::Less, Ordering::Equal) => {
+                            (Square::new(File::G, position.rank), true, false)
                         }
-                    }
-                } else {
-                    match position.rank.cmp(&landing_square.rank) {
-                        Ordering::Less => ((position.rank.0 + 1)..=landing_square.rank.0)
-                            .map(|rank: u16| Square::new(landing_square.file, Rank(rank)))
-                            .collect(),
-                        Ordering::Greater => (landing_square.rank.0
-                            ..=position.rank.0.saturating_sub(1))
-                            .rev()
-                            .map(|rank| Square::new(landing_square.file, Rank(rank)))
-                            .collect(),
-                        Ordering::Equal => {
-                            vec![]
+                        (Ordering::Greater, Ordering::Equal) => {
+                            (Square::new(File::C, position.rank), true, true)
                         }
-                    }
-                };
+                        (Ordering::Equal, Ordering::Less) => {
+                            (Square::new(position.file, Rank::SIX), false, false)
+                        }
+                        (Ordering::Equal, Ordering::Greater) => {
+                            (Square::new(position.file, Rank::TWO), false, true)
+                        }
+                        _ => {
+                            #[cfg(feature = "log")]
+                            warn!("Unexpected castling alignment detected. Castler square: {}, Target square: {}", position, target);
+                            continue;
+                        }
+                    };
 
-                // the castle target should appear on the "other" side of the castler
-                let target_landing_square = if is_horizontal {
-                    Square::new(
-                        if is_position_gt_target {
-                            File(landing_square.file.0 + 1)
-                        } else {
-                            File(landing_square.file.0 - 1)
-                        },
-                        landing_square.rank,
-                    )
-                } else {
-                    Square::new(
-                        landing_square.file,
-                        if is_position_gt_target {
-                            Rank(landing_square.rank.0 + 1)
-                        } else {
-                            Rank(landing_square.rank.0 - 1)
-                        },
-                    )
-                };
+                    // the piece could still be on either side of the target, so we have to check
+                    let scanned_squares: Vec<_> = if is_horizontal {
+                        match position.file.cmp(&landing_square.file) {
+                            Ordering::Less => ((position.file.0 + 1)..=landing_square.file.0)
+                                .map(|file| Square::new(File(file), landing_square.rank))
+                                .collect(),
+                            Ordering::Greater => (landing_square.file.0
+                                ..=position.file.0.saturating_sub(1))
+                                .rev()
+                                .map(|file| Square::new(File(file), landing_square.rank))
+                                .collect(),
+                            Ordering::Equal => {
+                                vec![]
+                            }
+                        }
+                    } else {
+                        match position.rank.cmp(&landing_square.rank) {
+                            Ordering::Less => ((position.rank.0 + 1)..=landing_square.rank.0)
+                                .map(|rank: u16| Square::new(landing_square.file, Rank(rank)))
+                                .collect(),
+                            Ordering::Greater => (landing_square.rank.0
+                                ..=position.rank.0.saturating_sub(1))
+                                .rev()
+                                .map(|rank| Square::new(landing_square.file, Rank(rank)))
+                                .collect(),
+                            Ordering::Equal => {
+                                vec![]
+                            }
+                        }
+                    };
 
-                let is_in_check = threats.is_threatened(*position, *team);
-                let is_forbidden_movement = scanned_squares.iter().any(|scan|
+                    // the castle target should appear on the "other" side of the castler
+                    let target_landing_square = if is_horizontal {
+                        Square::new(
+                            if is_position_gt_target {
+                                File(landing_square.file.0 + 1)
+                            } else {
+                                File(landing_square.file.0 - 1)
+                            },
+                            landing_square.rank,
+                        )
+                    } else {
+                        Square::new(
+                            landing_square.file,
+                            if is_position_gt_target {
+                                Rank(landing_square.rank.0 + 1)
+                            } else {
+                                Rank(landing_square.rank.0 - 1)
+                            },
+                        )
+                    };
+
+                    let is_in_check = threats.is_threatened(*position, *team);
+                    let is_forbidden_movement = scanned_squares.iter().any(|scan|
                         // scanned square is check
                         threats.is_threatened(*scan, *team)
                         ||
                         // movement collides with piece (except the rook)
                         *scan != *target && pieces.teams.contains_key(scan));
-                if let Some(square) = scanned_squares.iter().find(|scan|
-                            // scanned square is check
-                            threats.is_threatened(**scan, *team)
-                            ||
-                            // movement collides with piece (except the rook)
-                            **scan != *target && pieces.teams.contains_key(*scan))
-                {
-                    eprintln!("{} targeted", square,);
-                }
-                let collides_rook = target_landing_square != *target
-                    && pieces.teams.contains_key(&target_landing_square);
 
-                if !is_in_check && !is_forbidden_movement && !collides_rook {
-                    actions.0.insert(
-                        *target,
-                        Action {
-                            movement: Movement {
-                                from: *position,
-                                to: landing_square,
-                                orientation: *orientation,
-                            },
-                            side_effects: vec![(
-                                target_entity,
-                                Movement {
-                                    from: *target,
-                                    to: target_landing_square,
-                                    orientation: *target_orientation,
+                    let collides_rook = target_landing_square != *target
+                        && pieces.teams.contains_key(&target_landing_square);
+
+                    if !is_in_check && !is_forbidden_movement && !collides_rook {
+                        actions.0.insert(
+                            *target,
+                            Action {
+                                movement: Movement {
+                                    from: *position,
+                                    to: landing_square,
+                                    orientation: *orientation,
                                 },
-                            )],
-                            scanned_squares,
-                            ..Default::default()
-                        },
-                    );
+                                side_effects: vec![(
+                                    target_entity,
+                                    Movement {
+                                        from: *target,
+                                        to: target_landing_square,
+                                        orientation: *target_orientation,
+                                    },
+                                )],
+                                scanned_squares,
+                                ..Default::default()
+                            },
+                        );
+                    }
                 }
             }
         }

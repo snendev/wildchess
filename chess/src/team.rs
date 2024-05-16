@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use bevy_ecs::prelude::Component;
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
@@ -7,6 +9,7 @@ use bevy_reflect::prelude::Reflect;
 use crate::pieces::Orientation;
 
 #[derive(Clone, Copy, Component, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub enum Team {

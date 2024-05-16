@@ -8,5 +8,9 @@ publish = false
 
 [dependencies]
 games = { path = "../../games" }
-cfg-if = { version = "1.0" }
 bevy = { version = "0.13", default-features = false }
+transport = { path = "../../transport", features = [
+    "client",
+    "native_transport",
+] }
+chess_ui = { path = "../../ui" }
