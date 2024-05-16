@@ -1,13 +1,20 @@
-import { useSignal } from "@preact/signals";
+import { JSX } from "preact";
 
 import Page from "../components/Page.tsx";
+import GameManager from "../islands/GameManager.tsx";
 
-export default function Home() {
-    const count = useSignal(3);
-    return (
-        <Page>
-            <h1 class="text-4xl font-bold mb-12">Wild Chess</h1>
-            <a href="/chess">Chess</a>
-        </Page>
-    );
+interface ChessBoardProps {
+  size?: [number, number];
+  dimensions?: [number, number];
+}
+
+export default function ChessBoard({
+    size = [1200, 1200],
+    dimensions = [8, 8],
+}: ChessBoardProps) {
+  return (
+    <Page>
+      <GameManager />
+    </Page>
+  );
 }

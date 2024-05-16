@@ -4,7 +4,6 @@
 
 import * as $_404 from "./routes/_404.tsx";
 import * as $_app from "./routes/_app.tsx";
-import * as $chess from "./routes/chess.tsx";
 import * as $index from "./routes/index.tsx";
 import * as $Board from "./islands/Board.tsx";
 import * as $GameManager from "./islands/GameManager.tsx";
@@ -16,7 +15,6 @@ const manifest = {
   routes: {
     "./routes/_404.tsx": $_404,
     "./routes/_app.tsx": $_app,
-    "./routes/chess.tsx": $chess,
     "./routes/index.tsx": $index,
   },
   islands: {
