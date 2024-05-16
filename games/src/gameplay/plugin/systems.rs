@@ -161,6 +161,7 @@ pub(super) fn execute_turn_movement(
 pub(super) fn execute_turn_mutations(
     mut commands: Commands,
     mut turn_reader: EventReader<TurnEvent>,
+    query: Query<&Position>,
 ) {
     for event in turn_reader.read() {
         if let Some(mutated_piece) = &event.mutation {
@@ -171,6 +172,13 @@ pub(super) fn execute_turn_mutations(
             commands.entity(event.piece).remove::<Mutation>();
             commands.entity(event.piece).remove::<PieceIdentity>();
             commands.entity(event.piece).remove::<Royal>();
+
+            // TODO: Why is this hack necessary?
+            // Without this, the position update is not replicated to clients.
+            commands.entity(event.piece).remove::<Position>();
+            commands
+                .entity(event.piece)
+                .insert(Position(query.get(event.piece).unwrap().0));
 
             commands.entity(event.piece).insert(mutated_piece.identity);
 
