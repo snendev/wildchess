@@ -13,7 +13,7 @@ export default function AboutBlurb(): JSX.Element {
       <p>
         WildChess is about playing Chess in a new and unexplored way.
 
-        Every day we create a new set of variant positions intended to feel similar to chess
+        Every [<b>cough ahem</b>] we create a new set of variant positions intended to feel similar to chess
         in principle, while leading to vastly different positions and strategies.
       </p>
       <br />
