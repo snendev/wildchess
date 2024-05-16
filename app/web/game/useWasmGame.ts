@@ -1,46 +1,10 @@
-import { IS_BROWSER } from "$fresh/runtime.ts";
-import { useState, useMemo, useCallback, useRef, useEffect, VNode } from "preact/hooks";
+import { useState, useMemo, useCallback, } from "preact/hooks";
 
-import Board from "./Board.tsx";
+export type NetworkState = "not-connected" | "connected" | "awaiting-game" | "in-game"
+export type GameVariant = "featured-1" | "featured-2" | "featured-3" | "wild"
+export type GameClock = "classical" | "rapid" | "blitz" | "bullet"
 
-interface WasmGameProps {
-  name: string
-  description: VNode,
-}
-
-export default function WasmGame({ name, description }: WasmGameProps) {
-  if (!IS_BROWSER) {
-    return <Board />;
-  }
-
-  const {state, requestGame, ...gameState} = useWasmGame(name);
-
-  switch (state) {
-    case "not-connected": {
-      return <div>Connecting to server...</div>;
-    }
-    case  "connected" : {
-      return (
-        <div>
-          <button onClick={() => requestGame(null, null)}>Play game</button>
-        </div>
-      );
-    }
-    case "awaiting-game" : {
-      return <div>Finding game...</div>;
-    }
-    case "in-game": {
-      return <Board {...gameState} />;
-    }
-    default: throw new Error("Unexpected network state: " + state);
-  }
-}
-
-type NetworkState = "not-connected" | "connected" | "awaiting-game" | "in-game"
-type GameVariant = "featured-1" | "featured-2" | "featured-3" | "wild"
-type GameClock = "classical" | "rapid" | "blitz" | "bullet"
-
-type RecvMessage =
+export type RecvMessage =
   | { kind: 'network-state', state: NetworkState }
   | { kind: 'piece-icons', icons: Record<string, string> }
   | { kind: 'position', position: Record<string, string>, lastMove: [string, string] | null | undefined }
@@ -48,7 +12,7 @@ type RecvMessage =
   | { kind: 'player-count', count: number }
   | { kind: 'orientation', orientation: 'white' | 'black'}
 
-type SendMessage =
+export type SendMessage =
   | { kind: 'request-game', variant: GameVariant | null, clock: GameClock | null }
   | { kind: 'remove-board' }
   | { kind: 'play-move', source: string, target: string }
@@ -58,7 +22,7 @@ function sendMessage(worker: Worker, message: SendMessage) {
   worker.postMessage(message);
 }
 
-function useWasmGame(game_name: string) {
+export default function useWasmGame() {
   const [state, setState] = useState<NetworkState>("not-connected");
   const [position, setPosition] = useState<Record<string, string> | null>(null);
   const [orientation, setOrientation] = useState<string>('white');

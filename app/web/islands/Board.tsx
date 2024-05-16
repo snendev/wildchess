@@ -36,7 +36,6 @@ function useChessBoard({
     playMove(source, target);
   }, [playMove, resetTargets]);
 
-  // TODO:
   const config = useMemo(() => ({
     position: position ?? 'start',
     orientation,
@@ -45,7 +44,7 @@ function useChessBoard({
     onDragStart: handleDragStart,
     onDrop: handleDrop,
     onClickEmptySquare: handleClickEmptySquare,
-    pieceTheme: icons ? (piece: string) => icons[piece] : undefined,
+    pieceTheme: icons ? (piece: string) => icons[piece] : DEFAULT_PIECE_THEME,
   }), [
     position,
     handleDrop,
@@ -80,7 +79,7 @@ interface ChessBoardProps {
 }
 
 export default function Board({
-  size = 800,
+  size,
   dimensions = [8, 8],
   position,
   icons,
@@ -118,6 +117,8 @@ export default function Board({
   // TODO: dots for moves and circles for attacks, instead of backgrounds
   // could use more-transparent circles for unavailable attack squares
   useHighlighter(boardRef, board, 'targets', targetSquares);
+
+  const width = size ? `${size}px` : "100%";
 
   return <div ref={boardRef} style={`width: ${size}px`} />;
 }
@@ -209,3 +210,5 @@ function useHighlighter(
     }
   }, [highlight, squaresToHighlight, board]);
 }
+
+const DEFAULT_PIECE_THEME = `<img src="https://raw.githubusercontent.com/oakmac/chessboardjs/master/website/img/chesspieces/wikipedia/{piece}.png" />`
