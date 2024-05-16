@@ -1,7 +1,13 @@
-use bevy_replicon::core::replication_rules::Replication;
 use serde::{Deserialize, Serialize};
 
+use bevy_core::Name;
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
 use bevy_ecs::prelude::{Commands, Component, Entity};
+#[cfg(feature = "reflect")]
+use bevy_reflect::Reflect;
+
+use bevy_replicon::prelude::Replication;
 
 use chess::board::{Rank, Square};
 
@@ -15,6 +21,8 @@ pub struct Game;
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Deserialize, Serialize)]
 #[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub enum GameBoard {
     Chess,
     #[default]
@@ -50,6 +58,8 @@ pub struct AntiGame;
 #[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
 #[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub enum WinCondition {
     // The game is won once all enemy Royal pieces are captured.
     #[default]
@@ -66,6 +76,8 @@ pub enum WinCondition {
 #[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
 #[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct ClockConfiguration {
     pub clock: Clock,
 }
@@ -95,6 +107,10 @@ impl GameSpawner {
         }
     }
 
+    pub fn name(&self) -> Name {
+        Name::new(format!("{:?} Game", self.board))
+    }
+
     #[must_use]
     pub fn with_clock(mut self, clock: Clock) -> Self {
         self.clock = Some(ClockConfiguration { clock });
@@ -121,7 +137,13 @@ impl GameSpawner {
 
     pub fn spawn(self, commands: &mut Commands) -> Entity {
         let entity = commands
-            .spawn((self.game, self.board, self.win_condition, Replication))
+            .spawn((
+                self.name(),
+                self.game,
+                self.board,
+                self.win_condition,
+                Replication,
+            ))
             .id();
         let mut builder = commands.entity(entity);
         if let Some(clock) = self.clock {

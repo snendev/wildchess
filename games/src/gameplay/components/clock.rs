@@ -3,6 +3,8 @@ use std::time::Duration;
 
 use bevy_ecs::prelude::Component;
 #[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
+#[cfg(feature = "reflect")]
 use bevy_reflect::prelude::Reflect;
 use bevy_time::Stopwatch;
 
@@ -10,6 +12,7 @@ use bevy_time::Stopwatch;
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Clock {
     duration: Duration,
     increment: Duration,

@@ -87,6 +87,16 @@ impl Plugin for GameplayPlugin {
                 .chain()
                 .in_set(GameSystems),
         );
+
+        #[cfg(feature = "reflect")]
+        app.register_type::<InGame>()
+            .register_type::<GameBoard>()
+            .register_type::<WinCondition>()
+            .register_type::<Ply>()
+            .register_type::<LastMove>()
+            .register_type::<Clock>()
+            .register_type::<ClockConfiguration>()
+            .register_type::<ActionHistory>();
     }
 }
 

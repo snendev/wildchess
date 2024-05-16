@@ -14,6 +14,7 @@ log = ["dep:bevy_log"]
 transport = { path = "../transport" }
 serde = { version = "1.0" }
 bevy_app = { version = "0.13" }
+bevy_core = { version = "0.13" }
 bevy_ecs = { version = "0.13" }
 bevy_log = { version = "0.13", optional = true }
 bevy_replicon = { version = "0.24" }

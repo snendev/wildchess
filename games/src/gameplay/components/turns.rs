@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
 use bevy_ecs::{
     entity::MapEntities,
     prelude::{Changed, Commands, Component, Entity, EntityMapper, Query, RemovedComponents, With},
@@ -20,12 +22,15 @@ pub struct HasTurn;
 #[derive(Clone, Debug)]
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct LastMove(pub Action);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Ply(usize);
 
 impl Ply {
@@ -48,6 +53,7 @@ impl Ply {
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct ActionHistory(Vec<(Entity, Action)>);
 
 impl std::ops::Index<Ply> for ActionHistory {
@@ -91,7 +97,6 @@ impl MapEntities for ActionHistory {
 #[derive(Clone, Debug)]
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct History<T>(BTreeMap<Ply, Option<T>>);
 
 impl<T> History<T> {

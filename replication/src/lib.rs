@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use bevy_app::prelude::{Plugin, Startup, Update};
+use bevy_core::Name;
 use bevy_ecs::prelude::{Commands, Component, Entity, Event, EventReader, Query, Res, World};
 
 use bevy_replicon::{
@@ -103,7 +104,11 @@ fn handle_connections(
                 #[cfg(feature = "log")]
                 bevy_log::info!("Player {} connected.", client_id.get());
                 // Spawn new player entity
-                commands.spawn((Replication, Player { id: *client_id }));
+                commands.spawn((
+                    Replication,
+                    Name::new(format!("Player {}", client_id.get())),
+                    Player { id: *client_id },
+                ));
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 if let Some((player_entity, _)) =

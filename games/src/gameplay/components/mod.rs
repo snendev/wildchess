@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "reflect")]
+use bevy_ecs::prelude::ReflectComponent;
 use bevy_ecs::{
     entity::MapEntities,
     prelude::{Component, Entity, EntityMapper},
@@ -21,6 +23,7 @@ pub use turns::{ActionHistory, HasTurn, History, LastMove, Ply};
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct InGame(pub Entity);
 
 impl MapEntities for InGame {
