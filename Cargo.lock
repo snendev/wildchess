@@ -4021,6 +4021,7 @@ name = "replication"
 version = "0.1.0"
 dependencies = [
  "bevy_app",
+ "bevy_core",
  "bevy_ecs",
  "bevy_log",
  "bevy_replicon",
