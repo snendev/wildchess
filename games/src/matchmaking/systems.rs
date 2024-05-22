@@ -1,6 +1,6 @@
 use bevy_core::Name;
 use bevy_ecs::prelude::{
-    Added, Changed, Commands, Entity, EventReader, Query, ResMut, With, Without,
+    Added, Changed, Commands, Entity, EventReader, Query, RemovedComponents, ResMut, With, Without,
 };
 
 use bevy_replicon::{
@@ -296,6 +296,33 @@ pub(super) fn spawn_game_entities(
                     piece_builder.insert(behavior);
                 }
             }
+        }
+    }
+}
+
+pub(super) fn despawn_empty_games(
+    mut commands: Commands,
+    games: Query<Entity, With<Game>>,
+    players: Query<&InGame, With<Player>>,
+) {
+    for game in games.iter() {
+        if players.iter().find(|in_game| in_game.0 == game).is_none() {
+            commands.entity(game).despawn();
+        }
+    }
+}
+
+pub(super) fn cleanup_game_entities(
+    mut commands: Commands,
+    mut removed_games: RemovedComponents<Game>,
+    game_entities: Query<(Entity, &InGame)>,
+) {
+    for game in removed_games.read() {
+        for (entity, _) in game_entities
+            .iter()
+            .filter(|(_, in_game)| in_game.0 == game)
+        {
+            commands.entity(entity).despawn();
         }
     }
 }
