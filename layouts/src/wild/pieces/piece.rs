@@ -85,7 +85,8 @@ impl MinorBuilder {
             3 => Self::fencer(),
             4 => Self::ranger(),
             5 => Self::dancer(),
-            _ => Self::prince(),
+            6 => Self::prince(),
+            _ => Self::sentry(),
         }
     }
 
@@ -138,6 +139,15 @@ impl MinorBuilder {
     pub fn prince() -> PatternBehavior {
         PatternBehavior::default()
             .with_pattern(Pattern::radial().range(2).captures_by_displacement())
+    }
+
+    pub fn sentry() -> PatternBehavior {
+        PatternBehavior::default()
+            .with_pattern(Pattern::orthogonal().range(3).with_capture(CaptureRules {
+                pattern: CapturePattern::CaptureInPassing,
+                ..Default::default()
+            }))
+            .with_pattern(Pattern::orthogonal().leaper().captures_by_displacement())
     }
 }
 
@@ -197,8 +207,7 @@ impl MajorBuilder {
             2 => Self::butterfly(),
             3 => Self::lord(),
             4 => Self::ninja(),
-            5 => Self::falconer(),
-            _ => Self::sentry(),
+            _ => Self::falconer(),
         }
     }
 
@@ -239,15 +248,6 @@ impl MajorBuilder {
         PatternBehavior::default()
             .with_pattern(Pattern::diagonal().captures_by_displacement())
             .with_pattern(Pattern::camel().leaper().captures_by_displacement())
-    }
-
-    pub fn sentry() -> PatternBehavior {
-        PatternBehavior::default().with_pattern(Pattern::radial().range(3).with_capture(
-            CaptureRules {
-                pattern: CapturePattern::CaptureInPassing,
-                ..Default::default()
-            },
-        ))
     }
 }
 
