@@ -1,0 +1,3 @@
+{
+    "deno.config": "app/web/deno.json"
+}
