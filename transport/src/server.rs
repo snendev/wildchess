@@ -41,7 +41,13 @@ impl Plugin for NativeServerTransportPlugin {
 
         app.add_plugins(NetcodeServerPlugin);
 
-        let public_addr = "127.0.0.1:5000".parse().unwrap();
+        let public_addr = format!(
+            "{}:{}",
+            option_env!("HOST").unwrap_or("127.0.0.1"),
+            option_env!("PORT").unwrap_or("7636"),
+        )
+        .parse()
+        .unwrap();
 
         let current_time: std::time::Duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)

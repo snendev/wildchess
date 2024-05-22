@@ -39,7 +39,14 @@ impl Plugin for NativeClientTransportPlugin {
 
         app.add_plugins(bevy_renet2::transport::NetcodeClientPlugin);
 
-        let server_addr = "127.0.0.1:5000".parse().unwrap();
+        let server_addr = format!(
+            "{}:{}",
+            option_env!("HOST").unwrap_or("127.0.0.1"),
+            option_env!("PORT").unwrap_or("7636"),
+        )
+        .parse()
+        .unwrap();
+
         let current_time = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap();
