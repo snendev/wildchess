@@ -1,5 +1,5 @@
 use games::chess::{
-    pattern::{CaptureMode, Pattern},
+    pattern::{CaptureMode, CapturePattern, Pattern},
     pieces::Orientation,
     team::Team,
 };
@@ -63,25 +63,6 @@ fn build_king_paths(team: Team) -> String {
     )
 }
 
-// larger piece svg
-// fn build_piece_paths(team: Team) -> String {
-//     let fill = match team {
-//         Team::White => "#ffffff",
-//         Team::Black => "#000000",
-//     };
-//     format!(
-//         r#"<path
-//             style="fill:{};stroke:#000000;stroke-width:20px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-//             d="m 399,605 h 200 c 4,0 6,2 6,6 v 14 H 395 v -14 c 0,-4 0,-6 4,-6 z"
-//         />
-//         <path
-//             style="fill:{};stroke:#000000;stroke-width:20px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-//             d="m 395,590 h 210 c 0,-10 0,-16 -5,-20 -25,-10 -55,-18 -60,-39 0,-1 0,-1 1.0069,-1 H 555 c 5,0 5,-2 5,-5 0,-3 0,-5 -5,-5 h -12 c -3,0 -4,-1 -6,-3 -7,-7 -28.03327,-46 -17,-61 1,-1 1,-1 2,-1 h 8 c 5,0 5,-4 5,-7 0,-3 0.0185,-7 -5,-7 -20,0 -20,-11 -25,-26 25,-40 -40,-40 -15,0 -5,15 -5,26 -25,26 -5,0 -5,4 -5,7 0,3 -0.0185,7 5,7 h 7.98815 C 474,455 474,455 475,456 c 10.9375,15 -5,54 -12,61 -2,2 -3,3 -6,3 h -12 c -5,0 -5,2 -5,5 0,3 0,5 5,5 l 14.01886,-1.2e-4 C 460,529.99988 460,530.00809 460,531 c -5,20.99988 -35,29 -60,39 -5,4 -5,10 -5,20 z"
-//         />"#,
-//         fill, fill,
-//     )
-// }
-
 fn build_piece_paths(team: Team) -> String {
     let fill = match team {
         Team::White => "#ffffff",
@@ -131,92 +112,140 @@ impl NodePosition {
     }
 }
 
-fn circle(position: NodePosition, color_hex: &str) -> String {
+fn circle(position: &NodePosition, color_hex: &str) -> String {
     format!(
         r#"<circle
         style="fill:{}"
         cx="{}"
         cy="{}"
-        r="40"
+        r="30"
     />"#,
         color_hex, position.anchor_x, position.anchor_y,
     )
 }
 
-fn horizontal_arrow(position: NodePosition, color_hex: &str) -> String {
+fn circle_range_text(position: &NodePosition, range: usize) -> String {
+    let center_x = position.anchor_x - 40;
+    let center_y = position.anchor_y + 40;
     format!(
-        r#"<path
-            style="fill:none;stroke:{};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-            d="M {},{} h {}130"
-        />
-        <path
-            style="fill:none;stroke:{};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-            d="m {},465 l {}30,35 {}30,35"
-        />"#,
-        color_hex,
-        position.anchor_x,
-        position.anchor_y,
-        if position.dx.is_positive() { "" } else { "-" },
-        color_hex,
-        position.anchor_x + position.dx.signum() * 100,
-        if position.dx.is_positive() { "" } else { "-" },
-        if position.dx.is_positive() { "-" } else { "" },
+        r#"<text fill="black" x={center_x} y={center_y} font-size="128" font-weight="bold">{range}</text>"#
     )
 }
 
-fn vertical_arrow(position: NodePosition, color_hex: &str) -> String {
+fn horizontal_arrow(position: &NodePosition, color_hex: &str, dash: bool) -> String {
+    let arrow_length = if dash { 180 } else { 100 };
+    let anchor_x = position.anchor_x;
+    let anchor_y = position.anchor_y;
+    let arrow_offset_signum = if position.dx.is_positive() { "" } else { "-" };
+    let arrowhead_x = anchor_x + position.dx.signum() * arrow_length;
+    let arrowhead_signum_1 = if position.dx.is_positive() { "" } else { "-" };
+    let arrowhead_signum_2 = if position.dx.is_positive() { "-" } else { "" };
+    let dash_style = if dash {
+        r#"stroke-dasharray=40,40"#
+    } else {
+        ""
+    };
     format!(
         r#"<path
-            style="fill:none;stroke:{};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-            d="M {},{} v {}130"
+            style="fill:none;stroke:{color_hex};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+            d="M {anchor_x},{anchor_y} h {arrow_offset_signum}130"
+            {dash_style}
         />
         <path
-            style="fill:none;stroke:{};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-            d="m 465,{} l 35,{}30 35,{}30"
+            style="fill:none;stroke:{color_hex};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+            d="m {arrowhead_x},465 l {arrowhead_signum_1}30,35 {arrowhead_signum_2}30,35"
         />"#,
-        color_hex,
-        position.anchor_x,
-        position.anchor_y,
-        if position.dy.is_positive() { "" } else { "-" },
-        color_hex,
-        position.anchor_y + position.dy.signum() * 100,
-        if position.dy.is_positive() { "" } else { "-" },
-        if position.dy.is_positive() { "-" } else { "" },
     )
 }
 
-fn diagonal_arrow(position: NodePosition, color_hex: &str) -> String {
-    let target_x = position.anchor_x + position.dx.signum() * 100;
-    let target_y = position.anchor_y + position.dy.signum() * 100;
+fn vertical_arrow(position: &NodePosition, color_hex: &str, dash: bool) -> String {
+    let arrow_length = if dash { 180 } else { 100 };
+    let anchor_x = position.anchor_x;
+    let anchor_y = position.anchor_y;
+    let arrow_offset_signum = if position.dy.is_positive() { "" } else { "-" };
+    let arrowhead_y = position.anchor_y + position.dy.signum() * arrow_length;
+    let arrowhead_signum_1 = if position.dy.is_positive() { "" } else { "-" };
+    let arrowhead_signum_2 = if position.dy.is_positive() { "-" } else { "" };
+    let dash_style = if dash {
+        r#"stroke-dasharray=40,40"#
+    } else {
+        ""
+    };
     format!(
         r#"<path
-            style="fill:none;stroke:{};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-            d="m {},{} L {},{}"
+            style="fill:none;stroke:{color_hex};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+            d="M {anchor_x},{anchor_y} v {arrow_offset_signum}130"
+            {dash_style}
         />
         <path
-            style="fill:none;stroke:{};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-            d="m {},{} v {}40 h {}40"
+            style="fill:none;stroke:{color_hex};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+            d="m 465,{arrowhead_y} l 35,{arrowhead_signum_1}30 35,{arrowhead_signum_2}30"
         />"#,
-        color_hex,
-        position.anchor_x,
-        position.anchor_y,
-        target_x,
-        target_y,
-        color_hex,
-        target_x,
-        target_y + position.dy.signum() * -40,
-        if position.dy.is_positive() { "" } else { "-" },
-        if position.dx.is_positive() { "-" } else { "" },
     )
 }
 
-fn arrow(position: NodePosition, color_hex: &str) -> String {
+fn diagonal_arrow(position: &NodePosition, color_hex: &str, dash: bool) -> String {
+    let arrow_length = if dash { 180 } else { 100 };
+    let target_x = position.anchor_x + position.dx.signum() * arrow_length;
+    let target_y = position.anchor_y + position.dy.signum() * arrow_length;
+    let anchor_x = position.anchor_x;
+    let anchor_y = position.anchor_y;
+    let arrowhead_y = target_y + position.dy.signum() * -40;
+    let arrowhead_signum_x = if position.dy.is_positive() { "" } else { "-" };
+    let arrowhead_signum_y = if position.dx.is_positive() { "-" } else { "" };
+    let dash_style = if dash {
+        r#"stroke-dasharray=40,40"#
+    } else {
+        ""
+    };
+    format!(
+        r#"<path
+            style="ill:{color_hex};stroke:{color_hex};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+            d="m {anchor_x},{anchor_y} L {target_x},{target_y}"
+            {dash_style}
+        />
+        <path
+            style="ill:{color_hex};stroke:{color_hex};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+            d="m {target_x},{arrowhead_y} v {arrowhead_signum_x}40 h {arrowhead_signum_y}40"
+        />"#,
+    )
+}
+
+fn arrow(position: &NodePosition, color_hex: &str, dash: bool) -> String {
     match (position.dx, position.dy) {
         (0, 0) => panic!("Invalid step ({},{}) for arrow", position.dx, position.dy),
-        (_, 0) => horizontal_arrow(position, color_hex),
-        (0, _) => vertical_arrow(position, color_hex),
-        _ => diagonal_arrow(position, color_hex),
+        (_, 0) => horizontal_arrow(position, color_hex, dash),
+        (0, _) => vertical_arrow(position, color_hex, dash),
+        _ => diagonal_arrow(position, color_hex, dash),
     }
+}
+
+fn cross(position: &NodePosition, color_hex: &str) -> String {
+    let x11 = position.anchor_x as f32 + 35.;
+    let y11 = position.anchor_y as f32 + 35.;
+    let x12 = position.anchor_x as f32 + -35.;
+    let y12 = position.anchor_y as f32 + -35.;
+    let x21 = position.anchor_x as f32 + -35.;
+    let y21 = position.anchor_y as f32 + 35.;
+    let x22 = position.anchor_x as f32 + 35.;
+    let y22 = position.anchor_y as f32 + -35.;
+
+    format!(
+        r#"<line
+        style="stroke:{color_hex};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+        x1="{x11}"
+        y1="{y11}"
+        x2="{x12}"
+        y2="{y12}"
+    />
+    <line
+        style="stroke:{color_hex};stroke-width:30px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+        x1="{x21}"
+        y1="{y21}"
+        x2="{x22}"
+        y2="{y22}"
+    />"#,
+    )
 }
 
 fn pattern_nodes(pattern: &Pattern, orientation: Orientation) -> String {
@@ -227,22 +256,55 @@ fn pattern_nodes(pattern: &Pattern, orientation: Orientation) -> String {
     };
 
     let movements = pattern.scanner.step.movements();
+    let is_en_passant = pattern
+        .capture
+        .is_some_and(|capture| matches!(capture.pattern, CapturePattern::CaptureInPassing));
     match pattern.scanner.range {
         None => movements
             .into_iter()
             .map(|(x, y)| NodePosition::calculate(x, y, 1, orientation))
-            .map(|node| arrow(node, color_hex))
-            .collect::<Vec<_>>(),
-        Some(range) => (1..=range.min(3))
-            .flat_map(|radius| {
-                movements
-                    .iter()
-                    .map(move |(x, y)| NodePosition::calculate(*x, *y, radius, orientation))
+            .map(|node| {
+                let shape = arrow(&node, color_hex, is_en_passant);
+                if is_en_passant {
+                    format!("{}{}", shape, cross(&node, color_hex))
+                } else {
+                    shape
+                }
             })
-            .map(|node| circle(node, color_hex))
+            .collect::<Vec<_>>(),
+        Some(range) => movements
+            .iter()
+            .flat_map(move |(x, y)| {
+                let nodes = (1..=range.min(2))
+                    .map(|radius| NodePosition::calculate(*x, *y, radius, orientation))
+                    .collect::<Vec<_>>();
+                let mut elements = nodes
+                    .iter()
+                    .map(|node| {
+                        if is_en_passant {
+                            cross(node, color_hex)
+                        } else {
+                            circle(node, color_hex)
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                if range == 3 {
+                    let node: NodePosition = NodePosition::calculate(*x, *y, 3, orientation);
+                    if is_en_passant {
+                        elements.push(cross(&node, color_hex));
+                    } else {
+                        elements.push(circle(&node, color_hex));
+                    }
+                }
+                if range > 3 {
+                    let node: NodePosition = NodePosition::calculate(*x, *y, 3, orientation);
+                    elements.push(circle_range_text(&node, range));
+                }
+                elements
+            })
             .collect::<Vec<_>>(),
     }
-    .join("\n   ")
+    .join("\n    ")
 }
 
 // builds a set of symbols to decorate the piece tile with patterns that describe its behavior options

@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use bevy_core::Name;
 use bevy_ecs::prelude::{
     Added, Changed, Commands, Entity, EventReader, Query, ResMut, With, Without,
@@ -16,15 +14,12 @@ use chess::{
     pieces::{PieceBundle, Position, Royal},
     team::Team,
 };
-use layouts::{
-    ClassicalLayout, FeaturedWildLayout, KnightRelayLayout, PieceSpecification, RandomWildLayout,
-    SuperRelayLayout, WildPieceSet,
-};
+use layouts::{FeaturedWildLayout, PieceSpecification, RandomWildLayout};
 use replication::Player;
 
 use crate::{
     components::{ActionHistory, ClockConfiguration, GameBoard, HasTurn, History, InGame, Ply},
-    gameplay::components::{Clock, Game, GameSpawner, PieceSet, WinCondition},
+    gameplay::components::{Game, GameSpawner, PieceSet, WinCondition},
 };
 
 use super::{
