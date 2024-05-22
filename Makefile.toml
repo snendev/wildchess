@@ -3,6 +3,11 @@ LIB = "web"
 PROFILE = "release"
 APP_DIR = "app/${LIB}"
 
+[tasks.build-server]
+command = "cargo"
+args = ["build", "-p", "chess_app_server", "--profile", "${PROFILE}"]
+workspace = false
+
 [tasks.run-server]
 command = "cargo"
 args = ["run", "-p", "chess_app_server", "--profile", "${PROFILE}"]
