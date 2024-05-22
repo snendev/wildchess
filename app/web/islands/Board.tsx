@@ -1,8 +1,9 @@
 import { JSX } from "preact";
 import { useEffect, useMemo, useLayoutEffect, useCallback, useRef, useState } from "preact/hooks";
+import { GameActions, GameState } from "../game/useWasmGame.ts";
 
 interface ChessBoardControls {
-  boardRef: {current: Element},
+  boardRef: {current: Element | null},
   // map from algebraic square name to piece name (e.g. 'wK', 'bN', 'bP')
   position: Record<string, string> | null
   icons: Record<string, string> | null
@@ -67,15 +68,6 @@ function useChessBoard({
 interface ChessBoardProps {
   size?: number
   dimensions?: [number, number]
-  // map from algebraic square name to piece name (e.g. 'wK', 'bN', 'bP')
-  position: Record<string, string> | null
-  icons: Record<string, string> | null
-  orientation: "white" | "black",
-  targetSquares: string[] | null,
-  lastMoveSquares: [string, string] | null,
-  playMove: (source: string, target: string) => boolean,
-  requestTargets: (source: string) => void,
-  resetTargets: () => void,
 }
 
 export default function Board({
@@ -89,9 +81,9 @@ export default function Board({
   playMove,
   requestTargets,
   resetTargets,
-}: ChessBoardProps): JSX.Element {
-  const boardRef = useRef(null);
-  const [selectedSquare, setSelectedSquare] = useState(null);
+}: ChessBoardProps & GameState & GameActions): JSX.Element {
+  const boardRef = useRef<Element>(null);
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const selectPiece = useCallback((square: string) => {
     setSelectedSquare(square);
     requestTargets(square);
@@ -101,7 +93,7 @@ export default function Board({
     boardRef,
     position,
     icons,
-    orientation,
+    orientation: orientation as "white" | "black",
     playMove,
     requestTargets: selectPiece,
     resetTargets,

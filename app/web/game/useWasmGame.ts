@@ -20,12 +20,43 @@ export type SendMessage =
   | { kind: 'select-promotion', promotionIndex: number }
   | { kind: 'request-targets', source: string }
 
+export interface GameState {
+  position: Record<string, string> | null
+  icons:  Record<string, string> | null
+  targetSquares: string[] | null
+  lastMoveSquares: [string, string] | null
+  orientation: string
+}
+
+export interface GameActions {
+  requestTargets: (source: string) => void
+  resetTargets: () => void
+  playMove: (source: string, target: string) => void
+}
+
+export interface GameMenuState {
+  netState: NetworkState
+  promotionIcons: string[] | null
+}
+
+export interface GameMenuActions {
+  requestGame: (variant: GameVariant | null, clock: GameClock | null) => void
+  selectPromotion: (promotionIndex: number) => void
+}
+
+export interface WasmGameData {
+  boardState: GameState,
+  boardActions: GameActions,
+  menuState: GameMenuState,
+  menuActions: GameMenuActions,
+}
+
 function sendMessage(worker: Worker, message: SendMessage) {
   worker.postMessage(message);
 }
 
-export default function useWasmGame() {
-  const [state, setState] = useState<NetworkState>("not-connected");
+export default function useWasmGame(): WasmGameData {
+  const [netState, setNetState] = useState<NetworkState>("not-connected");
   const [position, setPosition] = useState<Record<string, string> | null>(null);
   const [orientation, setOrientation] = useState<string>('white');
   const [icons, setIcons] = useState<Record<string, string> | null>(null);
@@ -41,7 +72,7 @@ export default function useWasmGame() {
     worker.onmessage = (event: MessageEvent<RecvMessage>) => {
       switch (event.data.kind) {
         case "network-state": {
-          setState(event.data.state);
+          setNetState(event.data.state);
           return;
         }
         case "piece-icons": {
@@ -97,5 +128,17 @@ export default function useWasmGame() {
     sendMessage(worker, {kind: 'select-promotion', promotionIndex});
   }, [worker]);
 
-  return { state, position, icons, targetSquares, lastMoveSquares, orientation, promotionIcons, requestGame, requestTargets, resetTargets, playMove, selectPromotion };
+  return {
+    boardState: {
+      position, icons, targetSquares, lastMoveSquares, orientation,
+    },
+    boardActions: {
+      requestTargets, resetTargets, playMove,
+    },
+    menuState: {
+      promotionIcons,
+      netState,
+    },
+    menuActions: { requestGame, selectPromotion }
+  }
 }

@@ -13,13 +13,15 @@ interface ChessBoardProps {
 export default function Lobby({
   requestGame,
 }: ChessBoardProps): JSX.Element {
-  const [selectedVariant, setSelectedVariant] = useState(null);
-  const [selectedClock, setSelectedClock] = useState(null);
+  const [selectedVariant, setSelectedVariant] = useState<GameVariant | null>(null);
+  const [selectedClock, setSelectedClock] = useState<GameClock | null>(null);
 
+  // todo types for empty board
+  const EmptyBoard = Board as any;
   return (
     <div class="flex flex-row gap-x-[5%]">
       <div class="min-w-[40%]">
-        <Board />
+        <EmptyBoard />
         <p class="mt-2 text-sm italic">(For now, pretend there's some wacky position on the board here!)</p>
       </div>
       <div class="min-w-[200px] h-min p-2 flex flex-col gap-3 bg-[#FFFBD4] border-2 border-black">
@@ -36,25 +38,25 @@ export default function Lobby({
           <div class="flex flex-col gap-2 px-2 pb-2">
             <button
               class={`text-lg rounded-lg py-1 ${selectedClassName(selectedVariant, "featured-1") ?? DEFAULT_BUTTON_BG}`}
-              onClick={() => setSelectedVariant(setOrToggle("featured-1"))}
+              onClick={() => setSelectedVariant(setOrToggle<GameVariant>("featured-1"))}
             >
               Position 1
             </button>
             <button
               class={`text-lg rounded-lg py-1 ${selectedClassName(selectedVariant, "featured-2") ?? DEFAULT_BUTTON_BG}`}
-              onClick={() => setSelectedVariant(setOrToggle("featured-2"))}
+              onClick={() => setSelectedVariant(setOrToggle<GameVariant>("featured-2"))}
             >
               Position 2
             </button>
             <button
               class={`text-lg rounded-lg py-1 ${selectedClassName(selectedVariant, "featured-3") ?? DEFAULT_BUTTON_BG}`}
-              onClick={() => setSelectedVariant(setOrToggle("featured-3"))}
+              onClick={() => setSelectedVariant(setOrToggle<GameVariant>("featured-3"))}
             >
               Position 3
             </button>
             <button
               class={`text-lg rounded-lg py-1 ${selectedClassName(selectedVariant, "wild") ?? DEFAULT_BUTTON_BG}`}
-              onClick={() => setSelectedVariant(setOrToggle("wild"))}
+              onClick={() => setSelectedVariant(setOrToggle<GameVariant>("wild"))}
             >
               Wild Position
             </button>
@@ -67,13 +69,13 @@ export default function Lobby({
           <div class="flex flex-col gap-2 px-2 pb-2">
             <button
               class={`text-lg py-1 ${selectedClassName(selectedClock, "rapid") ?? DEFAULT_BUTTON_BG}`}
-              onClick={() => setSelectedClock(setOrToggle("rapid"))}
+              onClick={() => setSelectedClock(setOrToggle<GameClock>("rapid"))}
             >
               Rapid
             </button>
             <button
               class={`text-lg py-1 ${selectedClassName(selectedClock, "blitz") ?? DEFAULT_BUTTON_BG}`}
-              onClick={() => setSelectedClock(setOrToggle("blitz"))}
+              onClick={() => setSelectedClock(setOrToggle<GameClock>("blitz"))}
             >
               Blitz
             </button>
@@ -89,7 +91,7 @@ function selectedClassName<T>(value: T, expected: T): string | undefined {
   return value === expected ? "bg-emerald-500" : undefined;
 }
 
-function setOrToggle<T>(value: T): (prevState: T) => T | null {
+function setOrToggle<T>(value: T | null): (prevState: T | null) => T | null {
   return (prevState) => {
     if (prevState === value) {
       return null;

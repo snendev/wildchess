@@ -1,10 +1,11 @@
+import { VNode } from "preact";
 import { IS_BROWSER } from "$fresh/runtime.ts";
-import { VNode } from "preact/hooks";
 
 import useWasmGame from "../game/useWasmGame.ts";
 
 import Board from "./Board.tsx";
 import Lobby from "./Lobby.tsx";
+import GameSidebar from "./GameSidebar.tsx";
 import PromotionPieces from "./PromotionPieces.tsx";
 
 interface GameManagerProps {
@@ -16,9 +17,11 @@ export default function GameManager({ description }: GameManagerProps) {
     return <Lobby requestGame={() => {}} />;
   }
 
-  const {state, requestGame, promotionIcons, selectPromotion, ...gameState} = useWasmGame();
+  const { boardState, boardActions, menuState, menuActions } = useWasmGame();
+  const { netState, promotionIcons } = menuState;
+  const { requestGame, selectPromotion } =  menuActions;
 
-  switch (state) {
+  switch (netState) {
     case "not-connected":
     case "connected" : {
       return (
@@ -31,11 +34,12 @@ export default function GameManager({ description }: GameManagerProps) {
     case "in-game": {
       return (
         <div class="flex flex-row gap-2">
-          <Board {...gameState} size={600} />
+          <Board {...boardState} {...boardActions} size={600} />
           <PromotionPieces icons={promotionIcons} selectIcon={selectPromotion} />
+          <GameSidebar {...boardState} />
         </div>
       );
     }
-    default: throw new Error("Unexpected network state: " + state);
+    default: throw new Error("Unexpected network state: " + netState);
   }
 }
