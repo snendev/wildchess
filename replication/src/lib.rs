@@ -4,11 +4,9 @@ use bevy_app::prelude::{Plugin, Startup, Update};
 use bevy_core::Name;
 use bevy_ecs::prelude::{Commands, Component, Entity, Event, EventReader, Query, Res, World};
 
-use bevy_replicon::{
-    core::{replication_rules::AppReplicationExt, RepliconCorePlugin},
-    parent_sync::ParentSyncPlugin,
-    prelude::{ClientId, ClientPlugin, Replication, RepliconChannels, ServerEvent, ServerPlugin},
-    server::VisibilityPolicy,
+use bevy_replicon::prelude::{
+    AppReplicationExt, ClientId, ClientPlugin, ParentSyncPlugin, Replication, RepliconChannels,
+    RepliconCorePlugin, ServerEvent, ServerPlugin, VisibilityPolicy,
 };
 use bevy_replicon_renet2::{
     renet2::{ConnectionConfig, RenetClient, RenetServer},
