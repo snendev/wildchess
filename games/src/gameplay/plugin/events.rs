@@ -116,5 +116,6 @@ impl MapEntities for RequireMutationEvent {
 #[derive(Event)]
 #[derive(Deserialize, Serialize)]
 pub struct GameoverEvent {
+    pub game: Entity,
     pub winner: Team,
 }

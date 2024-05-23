@@ -317,6 +317,7 @@ pub(super) fn detect_gameover(
                     gameover_writer.send(ToClients {
                         mode: SendMode::Broadcast,
                         event: GameoverEvent {
+                            game: game_entity,
                             winner: Team::Black,
                         },
                     });
@@ -325,6 +326,7 @@ pub(super) fn detect_gameover(
                     gameover_writer.send(ToClients {
                         mode: SendMode::Broadcast,
                         event: GameoverEvent {
+                            game: game_entity,
                             winner: Team::White,
                         },
                     });
@@ -344,6 +346,7 @@ pub(super) fn detect_gameover(
                     gameover_writer.send(ToClients {
                         mode: SendMode::Broadcast,
                         event: GameoverEvent {
+                            game: game_entity,
                             winner: Team::Black,
                         },
                     });
@@ -352,6 +355,7 @@ pub(super) fn detect_gameover(
                     gameover_writer.send(ToClients {
                         mode: SendMode::Broadcast,
                         event: GameoverEvent {
+                            game: game_entity,
                             winner: Team::White,
                         },
                     });

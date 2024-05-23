@@ -32,8 +32,7 @@ pub(super) fn handle_game_requests(
     mut join_requests: EventReader<FromClient<RequestJoinGameEvent>>,
     players: Query<(Entity, &Player)>,
 ) {
-    let mut requests_iter = join_requests.read();
-    while let Some(event) = requests_iter.next() {
+    for event in join_requests.read() {
         match event.event.opponent {
             GameOpponent::Online => {
                 let Some((player, _)) = players
@@ -65,6 +64,21 @@ pub(super) fn handle_game_requests(
             GameOpponent::Local | GameOpponent::AgainstBot | GameOpponent::Analysis => {
                 unimplemented!("Can't play games against bots yet :(");
             }
+        }
+    }
+}
+
+pub(super) fn handle_leave_events(
+    mut commands: Commands,
+    mut leave_requests: EventReader<FromClient<RequestJoinGameEvent>>,
+    players: Query<(Entity, &Player)>,
+) {
+    for event in leave_requests.read() {
+        if let Some((entity, _)) = players
+            .iter()
+            .find(|(_, player)| player.id == event.client_id)
+        {
+            commands.entity(entity).remove::<InGame>();
         }
     }
 }

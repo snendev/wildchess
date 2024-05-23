@@ -1,8 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::prelude::{
-    resource_exists, Event, IntoSystemConfigs, IntoSystemSetConfigs, SystemSet,
+use bevy_ecs::{
+    entity::MapEntities,
+    prelude::{
+        resource_exists, Entity, EntityMapper, Event, IntoSystemConfigs, IntoSystemSetConfigs,
+        SystemSet,
+    },
 };
 
 use bevy_replicon::prelude::*;
@@ -23,6 +27,7 @@ impl Plugin for MatchmakingPlugin {
             app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
         }
         app.add_client_event::<RequestJoinGameEvent>(ChannelKind::Ordered)
+            .add_client_event::<LeaveGameEvent>(ChannelKind::Ordered)
             .replicate::<components::GameRequestVariant>()
             .replicate::<components::GameRequestClock>()
             .replicate::<components::GameRequest>()
@@ -31,6 +36,7 @@ impl Plugin for MatchmakingPlugin {
                 Update,
                 (
                     systems::handle_game_requests,
+                    systems::handle_leave_events,
                     systems::match_specified_game_requests,
                     systems::match_remaining_game_requests,
                     systems::assign_game_teams,
@@ -62,4 +68,17 @@ pub struct RequestJoinGameEvent {
     pub game: Option<components::GameRequestVariant>,
     pub clock: Option<components::GameRequestClock>,
     pub opponent: GameOpponent,
+}
+
+#[derive(Clone)]
+#[derive(Event)]
+#[derive(Deserialize, Serialize)]
+pub struct LeaveGameEvent {
+    pub game: Entity,
+}
+
+impl MapEntities for LeaveGameEvent {
+    fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
+        self.game = entity_mapper.map_entity(self.game);
+    }
 }

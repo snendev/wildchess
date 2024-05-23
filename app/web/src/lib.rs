@@ -16,9 +16,11 @@ use games::{
         pieces::{Mutation, Orientation, PieceIdentity, Position, Royal},
         team::Team,
     },
-    components::{Game, GameBoard, GameRequestClock, GameRequestVariant, HasTurn, LastMove},
-    GameOpponent, GameplayPlugin, MatchmakingPlugin, RequestJoinGameEvent, RequestTurnEvent,
-    RequireMutationEvent,
+    components::{
+        Game, GameBoard, GameRequestClock, GameRequestVariant, HasTurn, InGame, LastMove,
+    },
+    GameOpponent, GameoverEvent, GameplayPlugin, MatchmakingPlugin, RequestJoinGameEvent,
+    RequestTurnEvent, RequireMutationEvent,
 };
 use replication::{
     bevy_replicon::{core::common_conditions as network_conditions, prelude::RepliconClient},
@@ -349,6 +351,21 @@ impl WasmApp {
     }
 
     #[wasm_bindgen]
+    pub fn get_gameover_events(&mut self) -> Option<Team> {
+        let Some(gameover_events) = self.0.world.get_resource::<Events<GameoverEvent>>() else {
+            return None;
+        };
+
+        let mut reader = gameover_events.get_reader();
+        let events = reader.read(&gameover_events).collect::<Vec<_>>();
+        events
+            .into_iter()
+            .filter(|event| self.0.world.get_entity(event.game).is_some())
+            .map(|event| event.winner)
+            .first()
+    }
+
+    #[wasm_bindgen]
     pub fn update(&mut self) {
         self.0.update();
     }
@@ -511,6 +528,19 @@ impl WasmGameRequest {
     pub fn with_bullet_clock(mut self) -> Self {
         self.clock = Some(GameRequestClock::Bullet);
         self
+    }
+}
+
+#[wasm_bindgen]
+pub struct WasmGameover {
+    team: Team,
+}
+
+#[wasm_bindgen]
+impl WasmGameover {
+    #[wasm_bindgen]
+    pub fn get_team(&self) -> String {
+        format!("{}", self)
     }
 }
 
