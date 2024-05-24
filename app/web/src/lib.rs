@@ -17,9 +17,9 @@ use games::{
         team::Team,
     },
     components::{
-        Game, GameBoard, GameRequestClock, GameRequestVariant, HasTurn, InGame, LastMove,
+        Game, GameBoard, GameOver, GameRequestClock, GameRequestVariant, HasTurn, LastMove,
     },
-    GameOpponent, GameoverEvent, GameplayPlugin, MatchmakingPlugin, RequestJoinGameEvent,
+    GameOpponent, GameplayPlugin, LeaveGameEvent, MatchmakingPlugin, RequestJoinGameEvent,
     RequestTurnEvent, RequireMutationEvent,
 };
 use replication::{
@@ -84,6 +84,14 @@ impl WasmApp {
     }
 
     #[wasm_bindgen]
+    pub fn leave_game(&mut self) {
+        let mut query = self.0.world.query_filtered::<Entity, With<Game>>();
+        for game in query.iter(&self.0.world).collect::<Vec<_>>() {
+            self.0.world.send_event(LeaveGameEvent { game });
+        }
+    }
+
+    #[wasm_bindgen]
     pub fn is_connected(&mut self) -> bool {
         self.0
             .world
@@ -94,6 +102,17 @@ impl WasmApp {
     pub fn is_in_game(&mut self) -> bool {
         let mut query = self.0.world.query::<&Game>();
         query.iter(&self.0.world).count() > 0
+    }
+
+    #[wasm_bindgen]
+    pub fn is_game_over(&mut self) -> Option<WasmGameover> {
+        let mut query = self.0.world.query::<(&Game, &GameOver)>();
+        query
+            .iter(&self.0.world)
+            .map(|(_, gameover)| WasmGameover {
+                team: *gameover.winner(),
+            })
+            .next()
     }
 
     #[wasm_bindgen]
@@ -360,21 +379,6 @@ impl WasmApp {
     }
 
     #[wasm_bindgen]
-    pub fn get_gameover_events(&mut self) -> Option<Team> {
-        let Some(gameover_events) = self.0.world.get_resource::<Events<GameoverEvent>>() else {
-            return None;
-        };
-
-        let mut reader = gameover_events.get_reader();
-        let events = reader.read(&gameover_events).collect::<Vec<_>>();
-        events
-            .into_iter()
-            .filter(|event| self.0.world.get_entity(event.game).is_some())
-            .map(|event| event.winner)
-            .first()
-    }
-
-    #[wasm_bindgen]
     pub fn update(&mut self) {
         self.0.update();
     }
@@ -549,7 +553,11 @@ pub struct WasmGameover {
 impl WasmGameover {
     #[wasm_bindgen]
     pub fn get_team(&self) -> String {
-        format!("{}", self)
+        match self.team {
+            Team::White => "white",
+            Team::Black => "black",
+        }
+        .to_string()
     }
 }
 

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use bevy_ecs::prelude::ReflectComponent;
 use bevy_ecs::{
     entity::MapEntities,
-    prelude::{Component, Entity, EntityMapper},
+    prelude::{Component, Entity, EntityMapper, With, Without},
 };
 #[cfg(feature = "reflect")]
 use bevy_reflect::prelude::Reflect;
@@ -14,9 +14,6 @@ pub use game::{
     AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameSpawner, PieceSet,
     WinCondition,
 };
-mod clock;
-pub use clock::Clock;
-
 mod turns;
 pub use turns::{ActionHistory, HasTurn, History, LastMove, Ply};
 
@@ -32,3 +29,24 @@ impl MapEntities for InGame {
         self.0 = mapper.map_entity(self.0);
     }
 }
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Component)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
+pub struct GameOver {
+    winner: chess::team::Team,
+}
+
+impl GameOver {
+    pub fn new(winner: chess::team::Team) -> Self {
+        Self { winner }
+    }
+
+    pub fn winner(&self) -> &chess::team::Team {
+        &self.winner
+    }
+}
+
+pub type IsActiveGame = (With<Game>, Without<GameOver>);

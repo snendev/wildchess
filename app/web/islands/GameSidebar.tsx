@@ -1,6 +1,6 @@
 import { JSX } from "preact";
 
-import type { GameState } from "../game/useWasmGame.ts";
+import type { GameState,  GameMenuState, GameMenuActions } from "../game/useWasmGame.ts";
 
 function History() {
   return (
@@ -11,9 +11,49 @@ function History() {
   );
 }
 
-function ActionBar() {
+function ActionBar({ leaveGame }: Pick<GameMenuActions, 'leaveGame'>) {
   return (
-    <div>
+    <div class="flex flex-row pr-2 justify-between items-center">
+      {/* Board actions */}
+      <div class="flex flex-row gap-1">
+        {/* Resign */}
+        <button
+          type="button"
+          class="shadow rounded p-4 bg-[#fdfbe8] cursor-not-allowed"
+          disabled
+        />
+        {/* Draw offer*/}
+        <button
+          type="button"
+          class="shadow rounded p-4 bg-[#fdfbe8] cursor-not-allowed"
+          disabled
+        />
+      </div>
+
+      {/* Move history actions */}
+      <div class="flex flex-row gap-1">
+        {/* Resign */}
+        <button
+          type="button"
+          class="shadow rounded p-4 bg-[#fdfbe8] cursor-not-allowed"
+          disabled
+        />
+        {/* Draw offer*/}
+        <button
+          type="button"
+          class="shadow rounded p-4 bg-[#fdfbe8] cursor-not-allowed"
+          disabled
+        />
+      </div>
+
+      {/* TODO: only reveal when game is complete */}
+      <button
+        type="button"
+        class="shadow rounded p-2 bg-[#ffefef]"
+        onClick={() => leaveGame}
+      >
+        Leave
+      </button>
     </div>
   );
 }
@@ -40,13 +80,18 @@ function Legend() {
     </div>
   );
 }
-export default function GameSidebar({ }: GameState): JSX.Element {
+export default function GameSidebar({ winner, leaveGame }: GameState & GameMenuState & GameMenuActions ): JSX.Element {
+  if (winner) console.log(winner);
   return (
-    <div class="w-[350px] h-min p-2 flex flex-col gap-3 text-sm bg-[#FFFBD4] border-2 border-black">
+    <div class="w-[350px] h-min p-4 flex flex-col gap-3 text-sm bg-[#f3edd9] border-2 border-black">
       <History />
-      <hr />
-      <ActionBar />
-      <hr />
+      <hr class="border-black" />
+      {winner != null && (<div>
+        <h3 class="text-lg">WINNER: {winner}</h3>
+      </div>)}
+      {winner != null && (<hr class="border-black" />)}
+      <ActionBar leaveGame={leaveGame} />
+      <hr class="border-black" />
       <Legend />
     </div>
   )

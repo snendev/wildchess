@@ -36,7 +36,7 @@ export default function GameManager({ description }: GameManagerProps) {
         <div class="flex flex-row gap-2">
           <Board {...boardState} {...boardActions} size={600} />
           <PromotionPieces icons={promotionIcons} selectIcon={selectPromotion} />
-          <GameSidebar {...boardState} />
+          <GameSidebar {...boardState} {...menuState} {...menuActions} />
         </div>
       );
     }

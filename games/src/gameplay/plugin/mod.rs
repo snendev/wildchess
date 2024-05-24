@@ -14,10 +14,10 @@ use chess::{
 use bevy_replicon::prelude::*;
 
 mod events;
-pub use events::{GameoverEvent, RequestTurnEvent, RequireMutationEvent, TurnEvent};
+pub use events::{RequestTurnEvent, RequireMutationEvent, TurnEvent};
 
 use crate::components::{
-    ActionHistory, AntiGame, Atomic, Clock, ClockConfiguration, Crazyhouse, Game, GameBoard,
+    ActionHistory, AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameOver,
     HasTurn, History, InGame, LastMove, Ply, WinCondition,
 };
 
@@ -37,6 +37,7 @@ impl Plugin for GameplayPlugin {
         app.add_plugins((
             ChessPlugin,
             BehaviorsPlugin::from_input_system(systems::last_action),
+            crate::ClockPlugin,
         ))
         .configure_sets(
             Update,
@@ -46,13 +47,12 @@ impl Plugin for GameplayPlugin {
         .configure_sets(Update, GameSystems.before(BehaviorsSystems))
         .add_mapped_client_event::<RequestTurnEvent>(ChannelKind::Ordered)
         .add_mapped_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
-        .add_server_event::<GameoverEvent>(ChannelKind::Ordered)
         .add_event::<TurnEvent>()
-        .replicate::<Clock>()
         .replicate::<Ply>()
         .replicate::<HasTurn>()
         .replicate_mapped::<InGame>()
         .replicate::<Game>()
+        .replicate::<GameOver>()
         .replicate::<LastMove>()
         .replicate::<GameBoard>()
         .replicate::<Atomic>()
@@ -69,8 +69,7 @@ impl Plugin for GameplayPlugin {
             Update,
             (
                 systems::detect_gameover.run_if(on_event::<TurnEvent>()),
-                systems::log_gameover_events.run_if(on_event::<TurnEvent>()),
-                // TODO: should this only be in UI? probably!
+                // TODO: make an independent lib for this stuff & maybe UI/utils
                 History::<Position>::track_component_system,
                 History::<PatternBehavior>::track_component_system,
                 History::<MimicBehavior>::track_component_system,
@@ -82,7 +81,6 @@ impl Plugin for GameplayPlugin {
                 systems::set_last_move.run_if(on_event::<TurnEvent>()),
                 systems::end_turn.run_if(on_event::<TurnEvent>()),
                 systems::track_turn_history.run_if(on_event::<TurnEvent>()),
-                systems::tick_clocks,
             )
                 .chain()
                 .in_set(GameSystems),
@@ -94,7 +92,6 @@ impl Plugin for GameplayPlugin {
             .register_type::<WinCondition>()
             .register_type::<Ply>()
             .register_type::<LastMove>()
-            .register_type::<Clock>()
             .register_type::<ClockConfiguration>()
             .register_type::<ActionHistory>();
     }

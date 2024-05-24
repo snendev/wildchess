@@ -12,20 +12,22 @@ export type RecvMessage =
   | { kind: 'targets', source: string, targets?: string[] }
   | { kind: 'player-count', count: number }
   | { kind: 'orientation', orientation: 'white' | 'black'}
+  | { kind: 'gameover', winningTeam: 'white' | 'black' }
 
 export type SendMessage =
   | { kind: 'request-game', variant: GameVariant | null, clock: GameClock | null }
-  | { kind: 'remove-board' }
   | { kind: 'play-move', source: string, target: string }
   | { kind: 'select-promotion', promotionIndex: number }
   | { kind: 'request-targets', source: string }
+  | { kind: 'remove-board' }
+  | { kind: 'leave-game' }
 
 export interface GameState {
   position: Record<string, string> | null
   icons:  Record<string, string> | null
   targetSquares: string[] | null
   lastMoveSquares: [string, string] | null
-  orientation: string
+  orientation: "white" | "black"
 }
 
 export interface GameActions {
@@ -37,10 +39,12 @@ export interface GameActions {
 export interface GameMenuState {
   netState: NetworkState
   promotionIcons: string[] | null
+  winner: "white" | "black" | null
 }
 
 export interface GameMenuActions {
   requestGame: (variant: GameVariant | null, clock: GameClock | null) => void
+  leaveGame: () => void
   selectPromotion: (promotionIndex: number) => void
 }
 
@@ -58,11 +62,12 @@ function sendMessage(worker: Worker, message: SendMessage) {
 export default function useWasmGame(): WasmGameData {
   const [netState, setNetState] = useState<NetworkState>("not-connected");
   const [position, setPosition] = useState<Record<string, string> | null>(null);
-  const [orientation, setOrientation] = useState<string>('white');
+  const [orientation, setOrientation] = useState<"white" | "black">("white");
   const [icons, setIcons] = useState<Record<string, string> | null>(null);
   const [targetSquares, setTargetSquares] = useState<string[] | null>(null);
   const [lastMoveSquares, setLastMoveSquares] = useState<[string, string] | null>(null);
   const [promotionIcons, setPromotionIcons] = useState<string[] | null>(null);
+  const [winner, setWinner] = useState<"white" | "black" | null>(null);
 
   const worker = useMemo(() => {
     const worker = new Worker(
@@ -100,6 +105,10 @@ export default function useWasmGame(): WasmGameData {
           setPromotionIcons(event.data.icons);
           return;
         }
+        case "gameover": {
+          setWinner(event.data.winningTeam);
+          return;
+        }
         default: {
           throw new Error(`Unexpected message received from worker: ${JSON.stringify(event.data)}`);
         }
@@ -111,6 +120,10 @@ export default function useWasmGame(): WasmGameData {
   const requestGame = useCallback((variant: GameVariant | null, clock: GameClock | null) => {
     sendMessage(worker, {kind: 'request-game', variant, clock});
   }, [worker]);
+
+  const leaveGame = useCallback(() => {
+    sendMessage(worker, {kind: 'leave-game'});
+  }, []);
 
   const requestTargets = useCallback((source: string) => {
     sendMessage(worker, {kind: 'request-targets', source});
@@ -136,9 +149,10 @@ export default function useWasmGame(): WasmGameData {
       requestTargets, resetTargets, playMove,
     },
     menuState: {
-      promotionIcons,
       netState,
+      promotionIcons,
+      winner,
     },
-    menuActions: { requestGame, selectPromotion }
+    menuActions: { requestGame, leaveGame, selectPromotion }
   }
 }

@@ -5,7 +5,7 @@ use bevy_ecs::prelude::{Bundle, Component};
 #[cfg(feature = "reflect")]
 use bevy_reflect::prelude::Reflect;
 
-use crate::gameplay::components::Clock;
+use crate::components::Clock;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[derive(Component)]

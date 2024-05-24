@@ -341,6 +341,7 @@ pub(super) fn cleanup_game_entities(
     }
 }
 
+// TODO: there are probably some visibility bugs right now
 pub(super) fn handle_visibility(
     players_not_in_game: Query<(Entity, &Player), Without<InGame>>,
     players: Query<(Entity, &Player, &InGame), Changed<InGame>>,

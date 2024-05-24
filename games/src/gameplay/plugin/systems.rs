@@ -1,7 +1,6 @@
-use bevy_ecs::prelude::{Commands, Entity, EventReader, EventWriter, Query, Res, With};
+use bevy_ecs::prelude::{Commands, Entity, EventReader, EventWriter, Query, With};
 #[cfg(feature = "log")]
-use bevy_log::{debug, info};
-use bevy_time::Time;
+use bevy_log::debug;
 
 use bevy_replicon::{
     network_event::server_event::SendMode,
@@ -18,14 +17,14 @@ use chess::{
 use replication::Player;
 
 use crate::{
-    components::{ActionHistory, Clock, Game, HasTurn, InGame, Ply, WinCondition},
-    gameplay::components::LastMove,
+    components::{ActionHistory, Clock, Game, HasTurn, InGame, IsActiveGame, Ply, WinCondition},
+    gameplay::components::{GameOver, LastMove},
 };
 
-use super::{GameoverEvent, RequestTurnEvent, RequireMutationEvent, TurnEvent};
+use super::{RequestTurnEvent, RequireMutationEvent, TurnEvent};
 
 pub(super) fn detect_turn(
-    game_query: Query<&Ply, With<Game>>,
+    game_query: Query<&Ply, IsActiveGame>,
     board_query: Query<&Board>,
     player_query: Query<(&Team, &Player), With<HasTurn>>,
     piece_query: Query<(&Team, &OnBoard, &InGame, Option<&Mutation>)>,
@@ -294,9 +293,9 @@ pub(super) fn last_action(mut reader: EventReader<TurnEvent>) -> Option<Action> 
 }
 
 pub(super) fn detect_gameover(
-    game_query: Query<(Entity, &WinCondition)>,
+    mut commands: Commands,
+    game_query: Query<(Entity, &WinCondition), IsActiveGame>,
     royal_query: Query<(&InGame, &Team, Option<&Position>), With<Royal>>,
-    mut gameover_writer: EventWriter<ToClients<GameoverEvent>>,
 ) {
     for (game_entity, win_condition) in game_query.iter() {
         match win_condition {
@@ -311,25 +310,14 @@ pub(super) fn detect_gameover(
                         == 0
                 };
                 if all_captured(Team::White) {
-                    // TODO: try to upstream a "DirectGroup" feature if reasonable
-                    // otherwise send individual Direct messages
-                    // this is fine while there is low traffic on servers
-                    gameover_writer.send(ToClients {
-                        mode: SendMode::Broadcast,
-                        event: GameoverEvent {
-                            game: game_entity,
-                            winner: Team::Black,
-                        },
-                    });
+                    commands
+                        .entity(game_entity)
+                        .insert(GameOver::new(Team::Black));
                 }
                 if all_captured(Team::Black) {
-                    gameover_writer.send(ToClients {
-                        mode: SendMode::Broadcast,
-                        event: GameoverEvent {
-                            game: game_entity,
-                            winner: Team::White,
-                        },
-                    });
+                    commands
+                        .entity(game_entity)
+                        .insert(GameOver::new(Team::White));
                 }
             }
             WinCondition::RoyalCapture => {
@@ -343,22 +331,14 @@ pub(super) fn detect_gameover(
                         > 0
                 };
                 if any_captured(Team::White) {
-                    gameover_writer.send(ToClients {
-                        mode: SendMode::Broadcast,
-                        event: GameoverEvent {
-                            game: game_entity,
-                            winner: Team::Black,
-                        },
-                    });
+                    commands
+                        .entity(game_entity)
+                        .insert(GameOver::new(Team::Black));
                 }
                 if any_captured(Team::Black) {
-                    gameover_writer.send(ToClients {
-                        mode: SendMode::Broadcast,
-                        event: GameoverEvent {
-                            game: game_entity,
-                            winner: Team::White,
-                        },
-                    });
+                    commands
+                        .entity(game_entity)
+                        .insert(GameOver::new(Team::White));
                 }
             }
             WinCondition::RaceToRank(_rank) => {
@@ -368,19 +348,5 @@ pub(super) fn detect_gameover(
                 unimplemented!("TODO: Implement Racing Kings!")
             }
         }
-    }
-}
-
-pub fn log_gameover_events(mut gameovers: EventReader<GameoverEvent>) {
-    for gameover in gameovers.read() {
-        #[cfg(feature = "log")]
-        info!("Team {:?} won!", gameover.winner);
-        // TODO: display this somewhere
-    }
-}
-
-pub(super) fn tick_clocks(mut query: Query<&mut Clock>, time: Res<Time>) {
-    for mut clock in query.iter_mut() {
-        clock.tick(time.delta());
     }
 }

@@ -8,5 +8,6 @@ pub use matchmaking::*;
 
 pub mod components {
     pub use super::gameplay::components::*;
+    pub use super::gameplay::Clock;
     pub use super::matchmaking::components::*;
 }

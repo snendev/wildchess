@@ -111,11 +111,3 @@ impl MapEntities for RequireMutationEvent {
             .collect();
     }
 }
-
-#[derive(Clone)]
-#[derive(Event)]
-#[derive(Deserialize, Serialize)]
-pub struct GameoverEvent {
-    pub game: Entity,
-    pub winner: Team,
-}

@@ -12,7 +12,7 @@ use bevy_replicon::prelude::Replication;
 use chess::board::{Rank, Square};
 use layouts::PieceSpecification;
 
-use super::Clock;
+use crate::Clock;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Deserialize, Serialize)]

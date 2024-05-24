@@ -41,6 +41,23 @@ function onMessage(event) {
       currentIcons = null;
       return;
     }
+    case "leave-game": {
+      app.leave_game();
+      app.update();
+      postMessage({
+        kind: "position",
+        position: null,
+        lastMove: null,
+      });
+      // reset state
+      connected = false;
+      inGame = false;
+      myTeam = "white";
+      currentPosition = null;
+      lastMove = null;
+      currentIcons = null;
+      return;
+    }
     case "request-targets": {
       postMessage({
         kind: "targets",
@@ -136,6 +153,13 @@ async function runApp() {
       postMessage({ kind: "orientation", orientation: orientation ?? "white" });
     }
 
+    if (inGame && !app.is_in_game()) {
+      inGame = false;
+      console.log("exited game");
+      postMessage({ kind: "network-state", state: "connected" });
+      app.update();
+    }
+
     // track player counts
     const player_count = app.get_player_count();
     if (player_count !== last_player_count) {
@@ -181,12 +205,20 @@ async function runApp() {
     }
 
     const maybePromotions = app.get_promotion_request();
-    if (maybePromotions !== undefined) {
+    if (maybePromotions != null) {
       postMessage({
         kind: "require-promotion",
         icons: maybePromotions.icons().map((icon) => sanitizeIconSource(icon)),
       });
       promotionOptions = maybePromotions;
+    }
+
+    const winningTeam = app.is_game_over();
+    if (winningTeam != null) {
+      postMessage({
+        kind: "gameover",
+        winningTeam: winningTeam.get_team(),
+      });
     }
 
     // request next update
