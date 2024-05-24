@@ -57,7 +57,7 @@ impl NativeServerTransportPlugin {
 impl Default for NativeServerTransportPlugin {
     fn default() -> Self {
         Self::new(
-            "127.0.0.1".to_string(),
+            "0.0.0.0".to_string(),
             "7636".to_string(),
             "7637".to_string(),
         )
@@ -122,6 +122,7 @@ impl Plugin for NativeServerTransportPlugin {
                     .allow_origin("http://localhost:8000")
                     .allow_origin("http://127.0.0.1:8000")
                     .allow_origin("https://wildchess.dev")
+                    .allow_origin("https://wildchess.deno.dev")
                     .allow_origin("https://www.wildchess.dev");
                 let serve_certs = warp::path::end()
                     .map(move || cert_hash_b64.clone())

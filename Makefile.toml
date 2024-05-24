@@ -13,7 +13,7 @@ command = "cargo"
 args = ["run", "-p", "chess_app_server", "--profile", "${PROFILE}"]
 workspace = false
 
-[tasks.build-web]
+[tasks.build-wasm]
 cwd = "./${APP_DIR}"
 command = "wasm-pack"
 args = [
@@ -26,8 +26,14 @@ args = [
 ]
 workspace = false
 
-[tasks.run-web]
-command = "deno"
+[tasks.build-web]
 cwd = "./${APP_DIR}"
+command = "deno"
+args = ["task", "build"]
+workspace = false
+
+[tasks.run-web]
+cwd = "./${APP_DIR}"
+command = "deno"
 args = ["task", "start"]
 workspace = false

@@ -60,8 +60,8 @@ impl WasmApp {
             ClientTransportPlugin {
                 server_address: format!(
                     "{}:{}",
-                    option_env!("SERVER_HOST").unwrap_or("127.0.0.1"),
-                    option_env!("SERVER_PORT").unwrap_or("7636"),
+                    option_env!("SERVER_IP").unwrap_or("127.0.0.1"),
+                    option_env!("SERVER_PORT").unwrap_or("7636")
                 )
                 .parse()
                 .unwrap(),

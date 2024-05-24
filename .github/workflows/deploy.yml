@@ -1,0 +1,44 @@
+name: Deploy WildChess Webserver
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+    SERVER_IP: "2a09:8280:1::36:b0eb:0"
+    SERVER_ORIGIN: "wildchess.fly.dev"
+    SERVER_PORT: "7636"
+
+jobs:
+  deploy:
+    name: Deploy to Deno Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Needed for auth with Deno Deploy
+      contents: read # Needed to clone the repository
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Install Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+      - name: Install rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets:
+            wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install cargo-make
+        run: cargo install cargo-make
+      - name: Build game wasm
+        run: cargo make build-wasm
+      - name: Build fresh project
+        run: cargo make build-web
+      - name: Deno Deploy
+        uses: denoland/deployctl@v1
+        with:
+          project: wildchess
+          root: app/web
+          entrypoint: main.ts

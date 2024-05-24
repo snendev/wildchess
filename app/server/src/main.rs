@@ -30,8 +30,8 @@ fn main() {
             MatchmakingPlugin,
             ReplicationPlugin::Server,
             ServerTransportPlugin {
-                host: option_env!("SERVER_HOST")
-                    .unwrap_or("127.0.0.1")
+                host: option_env!("SERVER_ORIGIN")
+                    .unwrap_or("0.0.0.0")
                     .to_string(),
                 wt_port: option_env!("SERVER_PORT").unwrap_or("7636").to_string(),
                 wt_tokens_port: option_env!("SERVER_TOKENS_PORT")
