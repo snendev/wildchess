@@ -1,34 +1,35 @@
+use std::net::SocketAddr;
+
 use bevy_app::prelude::{App, Plugin};
 
 use crate::PROTOCOL_ID;
 
-pub struct ClientPlugin;
+pub struct ClientPlugin {
+    pub server_address: SocketAddr,
+    #[cfg(feature = "web_transport_client")]
+    pub wt_server_token: String,
+}
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(any(
-            feature = "native_transport",
-            feature = "memory_transport",
-            feature = "web_transport_client"
-        ))]
-        app.add_plugins(NativeClientTransportPlugin);
+        #[cfg(any(feature = "native_transport", feature = "web_transport_client"))]
+        app.add_plugins(NativeClientTransportPlugin {
+            server_address: self.server_address.clone(),
+            server_token: self.wt_server_token.clone(),
+        });
         #[cfg(feature = "steam_transport")]
         app.add_plugins(SteamClientTransportPlugin);
     }
 }
 
-#[cfg(any(
-    feature = "web_transport_client",
-    feature = "memory_transport",
-    feature = "native_transport"
-))]
-struct NativeClientTransportPlugin;
+#[cfg(any(feature = "web_transport_client", feature = "native_transport"))]
+struct NativeClientTransportPlugin {
+    server_address: SocketAddr,
+    #[cfg(feature = "web_transport_client")]
+    server_token: String,
+}
 
-#[cfg(any(
-    feature = "web_transport_client",
-    feature = "memory_transport",
-    feature = "native_transport"
-))]
+#[cfg(any(feature = "web_transport_client", feature = "native_transport"))]
 impl Plugin for NativeClientTransportPlugin {
     fn build(&self, app: &mut App) {
         use renet2::transport::{ClientAuthentication, NetcodeClientTransport};
@@ -39,13 +40,7 @@ impl Plugin for NativeClientTransportPlugin {
 
         app.add_plugins(bevy_renet2::transport::NetcodeClientPlugin);
 
-        let server_addr = format!(
-            "{}:{}",
-            option_env!("HOST").unwrap_or("127.0.0.1"),
-            option_env!("PORT").unwrap_or("7636"),
-        )
-        .parse()
-        .unwrap();
+        let server_addr = self.server_address.clone();
 
         let current_time = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -72,9 +67,8 @@ impl Plugin for NativeClientTransportPlugin {
             use base64::Engine;
             use renet2::transport::{ServerCertHash, WebTransportClientConfig};
 
-            const HASH: &'static str = env!("SERVER_HASH");
             let hash = base64::engine::general_purpose::STANDARD
-                .decode(HASH)
+                .decode(self.server_token.clone())
                 .unwrap();
             let config = WebTransportClientConfig::new_with_certs(
                 server_addr,

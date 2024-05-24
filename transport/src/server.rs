@@ -1,36 +1,70 @@
+use std::net::SocketAddr;
+
+#[cfg(feature = "web_transport_server")]
+use warp::Filter;
+
 use bevy_app::prelude::{App, Plugin};
 use bevy_ecs::prelude::Resource;
 
 use crate::PROTOCOL_ID;
 
-pub struct ServerPlugin;
+pub struct ServerPlugin {
+    #[cfg(feature = "web_transport_server")]
+    pub host: String,
+    #[cfg(feature = "web_transport_server")]
+    pub wt_port: String,
+    #[cfg(feature = "web_transport_server")]
+    pub wt_tokens_port: String,
+    #[cfg(feature = "native_transport")]
+    pub native_host: String,
+    #[cfg(feature = "native_transport")]
+    pub native_port: String,
+}
 
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(any(
-            feature = "web_transport_server",
-            feature = "memory_transport",
-            feature = "native_transport"
-        ))]
-        app.add_plugins(NativeServerTransportPlugin);
+        #[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
+        app.add_plugins(NativeServerTransportPlugin {
+            host: self.host.clone(),
+            port: self.wt_port.clone(),
+            tokens_port: self.wt_tokens_port.clone(),
+        });
 
         #[cfg(feature = "steam_transport")]
         app.add_plugins(SteamServerTransportPlugin);
     }
 }
 
-#[cfg(any(
-    feature = "web_transport_server",
-    feature = "memory_transport",
-    feature = "native_transport"
-))]
-struct NativeServerTransportPlugin;
+#[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
+struct NativeServerTransportPlugin {
+    host: String,
+    port: String,
+    tokens_port: String,
+}
 
-#[cfg(any(
-    feature = "web_transport_server",
-    feature = "memory_transport",
-    feature = "native_transport"
-))]
+#[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
+impl NativeServerTransportPlugin {
+    fn new(host: String, port: String, tokens_port: String) -> Self {
+        Self {
+            host,
+            port,
+            tokens_port,
+        }
+    }
+}
+
+#[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
+impl Default for NativeServerTransportPlugin {
+    fn default() -> Self {
+        Self::new(
+            "127.0.0.1".to_string(),
+            "7636".to_string(),
+            "7637".to_string(),
+        )
+    }
+}
+
+#[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
 impl Plugin for NativeServerTransportPlugin {
     fn build(&self, app: &mut App) {
         use bevy_renet2::renet2::transport::{
@@ -41,13 +75,7 @@ impl Plugin for NativeServerTransportPlugin {
 
         app.add_plugins(NetcodeServerPlugin);
 
-        let public_addr = format!(
-            "{}:{}",
-            option_env!("HOST").unwrap_or("127.0.0.1"),
-            option_env!("PORT").unwrap_or("7636"),
-        )
-        .parse()
-        .unwrap();
+        let public_addr = format!("{}:{}", self.host, self.port).parse().unwrap();
 
         let current_time: std::time::Duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -82,7 +110,25 @@ impl Plugin for NativeServerTransportPlugin {
                 "WT SERVER CERT HASH (PASTE ME TO CLIENTS): {:?}",
                 cert_hash_b64
             );
+
             let runtime = tokio::runtime::Runtime::new().unwrap();
+
+            let certs_socket: SocketAddr = format!("{}:{}", self.host, self.tokens_port)
+                .parse()
+                .unwrap();
+            runtime.spawn(async move {
+                let cors = warp::cors()
+                    .allow_method("GET")
+                    .allow_origin("http://localhost:8000")
+                    .allow_origin("http://127.0.0.1:8000")
+                    .allow_origin("https://wildchess.dev")
+                    .allow_origin("https://www.wildchess.dev");
+                let serve_certs = warp::path::end()
+                    .map(move || cert_hash_b64.clone())
+                    .with(cors);
+                warp::serve(serve_certs).run(certs_socket).await;
+            });
+
             let socket =
                 renet2::transport::WebTransportServer::new(config, runtime.handle().clone())
                     .unwrap();

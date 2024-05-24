@@ -42,7 +42,7 @@ pub struct WasmApp(App);
 #[wasm_bindgen]
 impl WasmApp {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> WasmApp {
+    pub fn new(server_token: String) -> WasmApp {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
         let mut app = bevy_app::App::default();
@@ -57,7 +57,16 @@ impl WasmApp {
             GameplayPlugin,
             MatchmakingPlugin,
             ReplicationPlugin::Client,
-            ClientTransportPlugin,
+            ClientTransportPlugin {
+                server_address: format!(
+                    "{}:{}",
+                    option_env!("SERVER_HOST").unwrap_or("127.0.0.1"),
+                    option_env!("SERVER_PORT").unwrap_or("7636"),
+                )
+                .parse()
+                .unwrap(),
+                wt_server_token: server_token,
+            },
         ));
         app.add_plugins(wild_icons::PieceIconPlugin::new(get_orientation));
         app.world.send_event(ConnectToServerEvent);

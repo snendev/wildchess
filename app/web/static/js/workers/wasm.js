@@ -104,11 +104,17 @@ let currentIcons = null;
 let promotionOptions = null;
 
 async function runApp() {
-  // initialize the wasm
-  await wasm_bindgen("/wasm/chess_app_web_bg.wasm");
+  const [response] = await Promise.all([
+    // send a network request to get the server token
+    fetch("/token"),
+    // and while waiting initialize the wasm
+    wasm_bindgen("/wasm/chess_app_web_bg.wasm"),
+  ]);
+
+  const token = await response.text();
 
   // build the bevy app
-  app = new wasm_bindgen.WasmApp();
+  app = new wasm_bindgen.WasmApp(token);
 
   // loop update calls
   while (true) {
