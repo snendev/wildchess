@@ -96,23 +96,17 @@ impl Plugin for NativeServerTransportPlugin {
 
         #[cfg(feature = "web_transport_server")]
         let socket = {
+            use base64::Engine;
+
             #[derive(Resource)]
             pub struct TokioRuntime(#[allow(dead_code)] tokio::runtime::Runtime);
-
-            use base64::Engine;
+            println!("Opening WT Socket on {}", public_addr);
 
             let (config, cert_hash) =
                 renet2::transport::WebTransportServerConfig::new_selfsigned(public_addr, 4);
-
             let cert_hash_b64 =
                 base64::engine::general_purpose::STANDARD.encode(cert_hash.hash.as_ref());
-            println!(
-                "WT SERVER CERT HASH (PASTE ME TO CLIENTS): {:?}",
-                cert_hash_b64
-            );
-
             let runtime = tokio::runtime::Runtime::new().unwrap();
-
             let certs_socket: SocketAddr = format!("{}:{}", self.host, self.tokens_port)
                 .parse()
                 .unwrap();

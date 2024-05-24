@@ -1,0 +1,21 @@
+# flyctl launch added from .gitignore
+**/target
+**/logs
+**/.env
+**/.cargo
+
+wasm
+
+# flyctl launch added from app/web/.gitignore
+app/web/**/.env
+
+# Fresh build directory
+app/web/**/_fresh
+# npm dependencies
+app/web/**/node_modules
+
+app/web/**/static/wasm
+
+# flyctl launch added from app/web/static/wasm/.gitignore
+app/web/static/wasm/**/*
+fly.toml
