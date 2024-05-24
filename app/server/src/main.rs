@@ -37,12 +37,12 @@ fn main() {
                 wt_tokens_port: option_env!("SERVER_TOKENS_PORT")
                     .unwrap_or("7637")
                     .to_string(),
-                native_host: option_env!("SERVER_HOST")
-                    .unwrap_or("127.0.0.1")
-                    .to_string(),
-                native_port: option_env!("SERVER_HOST")
-                    .unwrap_or("127.0.0.1")
-                    .to_string(),
+                // native_host: option_env!("SERVER_HOST")
+                //     .unwrap_or("127.0.0.1")
+                //     .to_string(),
+                // native_port: option_env!("SERVER_HOST")
+                //     .unwrap_or("127.0.0.1")
+                //     .to_string(),
             },
         ))
         .run();

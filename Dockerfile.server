@@ -1,9 +1,12 @@
-FROM rust:1.67
+FROM rust:1.77
 
 # name the cwd after our server app
 WORKDIR /usr/src/server
 COPY . .
 
-RUN cargo install --path ./app/server --profile release
+EXPOSE 7636
+EXPOSE 7637
 
-CMD ["server"]
+RUN cargo install --path ./app/server --profile release --locked
+
+CMD ["chess_app_server"]

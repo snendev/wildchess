@@ -5,7 +5,7 @@ use bevy_ecs::{
     prelude::{Entity, EntityMapper, Event},
 };
 
-use chess::{actions::Action, pieces::PieceDefinition, team::Team};
+use chess::{actions::Action, pieces::PieceDefinition};
 
 use crate::components::Ply;
 
