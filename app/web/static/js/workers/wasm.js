@@ -122,17 +122,20 @@ let currentClocks = null;
 let promotionOptions = null;
 
 async function runApp() {
-  const [response] = await Promise.all([
+  const [tokenResponse, dnsResponse] = await Promise.all([
     // send a network request to get the server token
     fetch("/token"),
+    // also dns resolve the server
+    fetch("https://dns.google/resolve?name=wildchess.fly.dev"),
     // and while waiting initialize the wasm
     wasm_bindgen("/wasm/chess_app_web_bg.wasm"),
   ]);
 
-  const token = await response.text();
+  const token = await tokenResponse.text();
+  const dns = await dnsResponse;
 
   // build the bevy app
-  app = new wasm_bindgen.WasmApp(token);
+  app = new wasm_bindgen.WasmApp(dns.Answer[0].data, token);
 
   // loop update calls
   while (true) {

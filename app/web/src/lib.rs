@@ -44,7 +44,7 @@ pub struct WasmApp(App);
 #[wasm_bindgen]
 impl WasmApp {
     #[wasm_bindgen(constructor)]
-    pub fn new(server_token: String) -> WasmApp {
+    pub fn new(server_ip: String, server_token: String) -> WasmApp {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
         let mut app = bevy_app::App::default();
@@ -62,7 +62,7 @@ impl WasmApp {
             ClientTransportPlugin {
                 server_address: format!(
                     "{}:{}",
-                    option_env!("SERVER_IP").unwrap_or("127.0.0.1"),
+                    server_ip,
                     option_env!("SERVER_PORT").unwrap_or("7636")
                 )
                 .parse()
