@@ -132,7 +132,7 @@ async function runApp() {
   ]);
 
   const token = await tokenResponse.text();
-  const dns = await dnsResponse;
+  const dns = await dnsResponse.json();
 
   // build the bevy app
   app = new wasm_bindgen.WasmApp(dns.Answer[0].data, token);
