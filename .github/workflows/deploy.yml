@@ -4,7 +4,7 @@ on:
     branches: [ "main" ]
 
 env:
-    SERVER_IP: "2a09:8280:1::36:b0eb:0"
+    SERVER_IP: "[2a09:8280:1::36:b0eb:0]"
     SERVER_ORIGIN: "wildchess.fly.dev"
     SERVER_PORT: "7636"
 
