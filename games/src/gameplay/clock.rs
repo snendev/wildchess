@@ -68,10 +68,8 @@ pub struct ClockPlugin;
 
 impl Plugin for ClockPlugin {
     fn build(&self, app: &mut App) {
-        app.replicate::<Clock>();
-
         app.add_systems(Update, Self::tick.in_set(ClockSystems));
-
+        app.replicate::<Clock>();
         #[cfg(feature = "reflect")]
         app.register_type::<Clock>();
     }

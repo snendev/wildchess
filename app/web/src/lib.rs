@@ -1,6 +1,8 @@
 // #[cfg(not(target_arch = "wasm32"))]
 // compile_error!("Compile this for wasm32 only!");
 
+use std::time::Duration;
+
 use wasm_bindgen::prelude::*;
 
 use bevy_app::App;
@@ -19,7 +21,7 @@ use games::{
     components::{
         Game, GameBoard, GameOver, GameRequestClock, GameRequestVariant, HasTurn, LastMove,
     },
-    GameOpponent, GameplayPlugin, LeaveGameEvent, MatchmakingPlugin, RequestJoinGameEvent,
+    Clock, GameOpponent, GameplayPlugin, LeaveGameEvent, MatchmakingPlugin, RequestJoinGameEvent,
     RequestTurnEvent, RequireMutationEvent,
 };
 use replication::{
@@ -257,6 +259,18 @@ impl WasmApp {
     }
 
     #[wasm_bindgen]
+    pub fn get_clocks(&mut self) -> Vec<WasmClock> {
+        let mut query = self.0.world.query::<(&Team, &Clock)>();
+        query
+            .iter(&self.0.world)
+            .map(|(team, clock)| WasmClock {
+                team: *team,
+                clock: clock.remaining_time(),
+            })
+            .collect::<Vec<_>>()
+    }
+
+    #[wasm_bindgen]
     pub fn get_target_squares(&mut self, square: String) -> Option<Vec<WasmSquare>> {
         // TODO: not working after a first move is made
         let mut query = self.0.world.query::<(&Position, &Actions)>();
@@ -449,6 +463,21 @@ pub struct WasmIcon {
 }
 
 #[wasm_bindgen]
+impl WasmIcon {
+    // Returns the piece name, like 'wP' for white pawn or 'bN' for black knight.
+    #[wasm_bindgen]
+    pub fn get_piece(&self) -> String {
+        self.piece.get_representation()
+    }
+
+    // Returns the icon's svg source string
+    #[wasm_bindgen]
+    pub fn to_source(self) -> String {
+        self.svg_source
+    }
+}
+
+#[wasm_bindgen]
 pub struct WasmPromotions {
     icons: Vec<String>,
     source: WasmSquare,
@@ -465,17 +494,28 @@ impl WasmPromotions {
 }
 
 #[wasm_bindgen]
-impl WasmIcon {
-    // Returns the piece name, like 'wP' for white pawn or 'bN' for black knight.
+pub struct WasmClock {
+    team: Team,
+    clock: Duration,
+}
+
+#[wasm_bindgen]
+impl WasmClock {
     #[wasm_bindgen]
-    pub fn get_piece(&self) -> String {
-        self.piece.get_representation()
+    pub fn get_team(&self) -> String {
+        match self.team {
+            Team::White => "white",
+            Team::Black => "black",
+        }
+        .to_string()
     }
 
-    // Returns the icon's svg source string
     #[wasm_bindgen]
-    pub fn to_source(self) -> String {
-        self.svg_source
+    pub fn remaining_time(&self) -> String {
+        let total_seconds = self.clock.as_secs();
+        let minutes = total_seconds / 60;
+        let seconds = total_seconds % 60;
+        format!("{}:{:02}", minutes, seconds)
     }
 }
 

@@ -112,7 +112,7 @@ export default function Board({
 
   const width = size ? `${size}px` : "100%";
 
-  return <div ref={boardRef} style={`width: ${size}px`} />;
+  return <div ref={boardRef} class="flex flex-row justify-end" style={`width: ${size}px`} />;
 }
 
 // probably should implement our own light or dark square checker

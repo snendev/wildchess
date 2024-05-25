@@ -13,6 +13,7 @@ export type RecvMessage =
   | { kind: 'player-count', count: number }
   | { kind: 'orientation', orientation: 'white' | 'black'}
   | { kind: 'gameover', winningTeam: 'white' | 'black' }
+  | { kind: 'clocks', clocks: { white: string, black: string }}
 
 export type SendMessage =
   | { kind: 'request-game', variant: GameVariant | null, clock: GameClock | null }
@@ -24,6 +25,7 @@ export type SendMessage =
 
 export interface GameState {
   position: Record<string, string> | null
+  clocks: {white: string, black: string} | null
   icons:  Record<string, string> | null
   targetSquares: string[] | null
   lastMoveSquares: [string, string] | null
@@ -62,6 +64,7 @@ function sendMessage(worker: Worker, message: SendMessage) {
 export default function useWasmGame(): WasmGameData {
   const [netState, setNetState] = useState<NetworkState>("not-connected");
   const [position, setPosition] = useState<Record<string, string> | null>(null);
+  const [clocks, setClocks] = useState<{white: string, black: string} | null>(null);
   const [orientation, setOrientation] = useState<"white" | "black">("white");
   const [icons, setIcons] = useState<Record<string, string> | null>(null);
   const [targetSquares, setTargetSquares] = useState<string[] | null>(null);
@@ -109,8 +112,12 @@ export default function useWasmGame(): WasmGameData {
           setWinner(event.data.winningTeam);
           return;
         }
+        case "clocks": {
+          setClocks(event.data.clocks);
+          return;
+        }
         default: {
-          throw new Error(`Unexpected message received from worker: ${JSON.stringify(event.data)}`);
+          assertNever(event.data);
         }
       }
     };
@@ -144,6 +151,7 @@ export default function useWasmGame(): WasmGameData {
   return {
     boardState: {
       position, icons, targetSquares, lastMoveSquares, orientation,
+      clocks,
     },
     boardActions: {
       requestTargets, resetTargets, playMove,
@@ -155,4 +163,8 @@ export default function useWasmGame(): WasmGameData {
     },
     menuActions: { requestGame, leaveGame, selectPromotion }
   }
+}
+
+function assertNever<T>(flag: never): never {
+  throw new Error(`Unexpected value found: ${JSON.stringify(flag)}`);
 }

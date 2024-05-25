@@ -113,7 +113,7 @@ pub(super) fn match_specified_game_requests(
                 GameRequestVariant::FeaturedGameThree => FeaturedWildLayout::Three.pieces(),
                 GameRequestVariant::Wild => RandomWildLayout::pieces(),
             });
-            // TODO: incorporate featured boards
+
             let game =
                 GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture)
                     .with_clock(clock1.to_clock())
@@ -175,7 +175,7 @@ pub(super) fn match_remaining_game_requests(
         let variant = variant1
             .or(variant2)
             .unwrap_or(&GameRequestVariant::FeaturedGameOne);
-        let clock = clock1.or(clock2).unwrap_or(&GameRequestClock::Rapid);
+        let clock = clock1.or(clock2);
 
         matched_entities.push(entity1);
         matched_entities.push(entity2);
@@ -187,10 +187,12 @@ pub(super) fn match_remaining_game_requests(
             GameRequestVariant::Wild => RandomWildLayout::pieces(),
         });
 
-        // TODO: incorporate featured boards
-        let game = GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture)
-            .with_clock(clock.to_clock())
-            .spawn(&mut commands);
+        let mut spawner =
+            GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture);
+        if let Some(clock) = clock {
+            spawner = spawner.with_clock(clock.to_clock());
+        }
+        let game = spawner.spawn(&mut commands);
 
         commands.entity(entity1).insert(InGame(game));
         commands.entity(entity2).insert(InGame(game));
@@ -207,14 +209,14 @@ pub(super) fn assign_game_teams(
     players: Query<(Entity, &InGame), (With<Player>, Without<Team>, Added<InGame>)>,
     games: Query<Option<&ClockConfiguration>, With<Game>>,
 ) {
-    'outer: for chunk in players
+    for chunk in players
         .iter()
         .collect::<Vec<_>>()
         .chunk_by(|(_, game1), (_, game2)| **game1 == **game2)
     {
         for ((entity, in_game), team) in chunk.iter().zip([Team::White, Team::Black]) {
             let Ok(clock) = games.get(in_game.0) else {
-                continue 'outer;
+                continue;
             };
             #[cfg(feature = "log")]
             bevy_log::info!(
@@ -229,7 +231,7 @@ pub(super) fn assign_game_teams(
                 builder.insert(HasTurn);
             }
             if let Some(clock) = clock {
-                builder.insert(clock.clone());
+                builder.insert(clock.clock.clone());
             }
         }
     }

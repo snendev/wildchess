@@ -1,6 +1,7 @@
 import { VNode } from "preact";
 import { IS_BROWSER } from "$fresh/runtime.ts";
 
+import Clock from "../components/Clock.tsx"
 import useWasmGame from "../game/useWasmGame.ts";
 
 import Board from "./Board.tsx";
@@ -18,6 +19,7 @@ export default function GameManager({ description }: GameManagerProps) {
   }
 
   const { boardState, boardActions, menuState, menuActions } = useWasmGame();
+  const { clocks, orientation } = boardState;
   const { netState, promotionIcons } = menuState;
   const { requestGame, selectPromotion } =  menuActions;
 
@@ -34,7 +36,15 @@ export default function GameManager({ description }: GameManagerProps) {
     case "in-game": {
       return (
         <div class="flex flex-row gap-2">
-          <Board {...boardState} {...boardActions} size={600} />
+          <div class="flex flex-col items-end gap-2">
+            {clocks && (
+              <Clock time={clocks[orientation === "white" ? "black" : "white"]} />
+            )}
+            <Board {...boardState} {...boardActions} size={600} />
+            {clocks && (
+              <Clock time={clocks[orientation]} />
+            )}
+          </div>
           <PromotionPieces icons={promotionIcons} selectIcon={selectPromotion} />
           <GameSidebar {...boardState} {...menuState} {...menuActions} />
         </div>

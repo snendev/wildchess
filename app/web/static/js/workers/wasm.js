@@ -118,6 +118,7 @@ let last_player_count = 0;
 let currentPosition = null;
 let lastMove = null;
 let currentIcons = null;
+let currentClocks = null;
 let promotionOptions = null;
 
 async function runApp() {
@@ -202,6 +203,17 @@ async function runApp() {
     if (!deepEqual(icons, currentIcons)) {
       currentIcons = icons;
       postMessage({ kind: "piece-icons", icons });
+    }
+
+    // track clocks
+    const clocks = Object.fromEntries(
+      app.get_clocks().map((
+        clock,
+      ) => [clock.get_team(), clock.remaining_time()]),
+    );
+    if (!deepEqual(clocks, currentClocks)) {
+      currentClocks = clocks;
+      postMessage({ kind: "clocks", clocks });
     }
 
     const maybePromotions = app.get_promotion_request();
