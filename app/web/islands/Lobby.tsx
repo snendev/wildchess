@@ -37,25 +37,25 @@ export default function Lobby({
           </div>
           <div class="flex flex-col gap-2 px-2 pb-2">
             <button
-              class={`text-lg rounded-lg py-1 ${selectedClassName(selectedVariant, "featured-1") ?? DEFAULT_BUTTON_BG}`}
+              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedVariant, "featured-1") ?? DEFAULT_BUTTON_BG}`}
               onClick={() => setSelectedVariant(setOrToggle<GameVariant>("featured-1"))}
             >
               Position 1
             </button>
             <button
-              class={`text-lg rounded-lg py-1 ${selectedClassName(selectedVariant, "featured-2") ?? DEFAULT_BUTTON_BG}`}
+              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedVariant, "featured-2") ?? DEFAULT_BUTTON_BG}`}
               onClick={() => setSelectedVariant(setOrToggle<GameVariant>("featured-2"))}
             >
               Position 2
             </button>
             <button
-              class={`text-lg rounded-lg py-1 ${selectedClassName(selectedVariant, "featured-3") ?? DEFAULT_BUTTON_BG}`}
+              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedVariant, "featured-3") ?? DEFAULT_BUTTON_BG}`}
               onClick={() => setSelectedVariant(setOrToggle<GameVariant>("featured-3"))}
             >
               Position 3
             </button>
             <button
-              class={`text-lg rounded-lg py-1 ${selectedClassName(selectedVariant, "wild") ?? DEFAULT_BUTTON_BG}`}
+              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedVariant, "wild") ?? DEFAULT_BUTTON_BG}`}
               onClick={() => setSelectedVariant(setOrToggle<GameVariant>("wild"))}
             >
               Wild Position
@@ -68,13 +68,13 @@ export default function Lobby({
           </div>
           <div class="flex flex-col gap-2 px-2 pb-2">
             <button
-              class={`text-lg py-1 ${selectedClassName(selectedClock, "rapid") ?? DEFAULT_BUTTON_BG}`}
+              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedVariant, "wild") ?? DEFAULT_BUTTON_BG}`}
               onClick={() => setSelectedClock(setOrToggle<GameClock>("rapid"))}
             >
               Rapid
             </button>
             <button
-              class={`text-lg py-1 ${selectedClassName(selectedClock, "blitz") ?? DEFAULT_BUTTON_BG}`}
+              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedVariant, "wild") ?? DEFAULT_BUTTON_BG}`}
               onClick={() => setSelectedClock(setOrToggle<GameClock>("blitz"))}
             >
               Blitz
