@@ -117,6 +117,7 @@ impl Plugin for NativeServerTransportPlugin {
                     .allow_origin("http://127.0.0.1:8000")
                     .allow_origin("https://wildchess.dev")
                     .allow_origin("https://wildchess.deno.dev")
+                    .allow_origin("https://wildchess-staging.deno.dev")
                     .allow_origin("https://www.wildchess.dev");
                 let serve_certs = warp::path::end()
                     .map(move || cert_hash_b64.clone())
