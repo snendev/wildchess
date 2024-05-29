@@ -4,8 +4,7 @@ on:
     branches: [ "main" ]
 
 env:
-    SERVER_IP: "168.220.84.92"
-    SERVER_ORIGIN: "wildchess.fly.dev"
+    SERVER_ORIGIN: "wildchess.saintnet.tech"
     SERVER_PORT: "7636"
     SERVER_TOKEN_PORT: "80"
 
