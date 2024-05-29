@@ -209,8 +209,9 @@ async function runApp() {
     }
 
     // track clocks
-    const clocks = Object.fromEntries(
-      app.get_clocks().map((
+    const clockData = app.get_clocks();
+    const clocks = clockData.length === 0 ? null : Object.fromEntries(
+      clockData.map((
         clock,
       ) => [clock.get_team(), clock.remaining_time()]),
     );
