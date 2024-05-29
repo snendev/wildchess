@@ -68,13 +68,13 @@ export default function Lobby({
           </div>
           <div class="flex flex-col gap-2 px-2 pb-2">
             <button
-              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedVariant, "wild") ?? DEFAULT_BUTTON_BG}`}
+              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedClock, "rapid") ?? DEFAULT_BUTTON_BG}`}
               onClick={() => setSelectedClock(setOrToggle<GameClock>("rapid"))}
             >
               Rapid
             </button>
             <button
-              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedVariant, "wild") ?? DEFAULT_BUTTON_BG}`}
+              class={`text-lg shadow rounded-lg py-1 ${selectedClassName(selectedClock, "blitz") ?? DEFAULT_BUTTON_BG}`}
               onClick={() => setSelectedClock(setOrToggle<GameClock>("blitz"))}
             >
               Blitz
