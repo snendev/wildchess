@@ -5,7 +5,7 @@ const SERVER_TOKEN_PORT = Deno.env.get("SERVER_TOKEN_PORT") ?? "7637";
 
 export const handler: Handlers<string> = {
     async GET(_req, _ctx) {
-        const response = await fetch(`http://${SERVER_ORIGIN}:${SERVER_TOKEN_PORT}`);
+        const response = await fetch(`https://${SERVER_ORIGIN}:${SERVER_TOKEN_PORT}`);
         return new Response(await response.text());
     }
 }
