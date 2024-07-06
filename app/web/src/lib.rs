@@ -273,10 +273,11 @@ impl WasmApp {
     #[wasm_bindgen]
     pub fn get_target_squares(&mut self, square: String) -> Option<Vec<WasmSquare>> {
         // TODO: not working after a first move is made
+        let square: Square = square.as_str().try_into().expect("Invalid square!");
         let mut query = self.0.world.query::<(&Position, &Actions)>();
         let (_, actions) = query
             .iter(&self.0.world)
-            .find(|(position, _)| position.0 == square.as_str().try_into().unwrap())?;
+            .find(|(position, _)| position.0 == square)?;
         Some(
             actions
                 .0
@@ -306,6 +307,14 @@ impl WasmApp {
         target_square: String,
         promotion_index: Option<usize>,
     ) -> bool {
+        let piece_square: Square = piece_square
+            .as_str()
+            .try_into()
+            .expect(format!("a valid piece square: {piece_square}").as_str());
+        let target_square: Square = target_square
+            .as_str()
+            .try_into()
+            .expect(format!("a valid target square: {target_square}").as_str());
         // selectedPiece
         let mut query = self
             .0
@@ -313,14 +322,14 @@ impl WasmApp {
             .query::<(Entity, &Position, &Actions, Option<&Mutation>)>();
         let Some((piece, _, actions, maybe_mutations)) = query
             .iter(&self.0.world)
-            .find(|(_, position, _, _)| position.0 == piece_square.as_str().try_into().unwrap())
+            .find(|(_, position, _, _)| position.0 == piece_square)
         else {
             return false;
         };
         let Some((_, action)) = actions
             .0
             .iter()
-            .find(|(square, _)| **square == target_square.as_str().try_into().unwrap())
+            .find(|(square, _)| **square == target_square)
         else {
             return false;
         };

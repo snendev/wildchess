@@ -97,7 +97,7 @@ impl NodePosition {
     pub fn calculate(step_x: i16, step_y: i16, radius: usize, orientation: Orientation) -> Self {
         let x: i32 = step_x.into();
         let y: i32 = step_y.into();
-        let radius: i32 = radius.try_into().unwrap();
+        let radius: i32 = radius as i32;
         let y: i32 = y * match orientation {
             Orientation::Up => -1,
             Orientation::Down => 1,

@@ -75,7 +75,9 @@ impl Plugin for NativeServerTransportPlugin {
 
         app.add_plugins(NetcodeServerPlugin);
 
-        let public_addr = format!("{}:{}", self.host, self.port).parse().unwrap();
+        let public_addr = format!("{}:{}", self.host, self.port)
+            .parse()
+            .expect("{host}:{port} to be a valid SocketAddr");
 
         let current_time: std::time::Duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
