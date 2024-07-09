@@ -25,7 +25,7 @@ use games::{
     RequestTurnEvent, RequireMutationEvent,
 };
 use replication::{
-    bevy_replicon::{core::common_conditions as network_conditions, prelude::RepliconClient},
+    replicon::{core::common_conditions as network_conditions, prelude::RepliconClient},
     ConnectToServerEvent, Player, ReplicationPlugin,
 };
 use transport::client::ClientPlugin as ClientTransportPlugin;
@@ -44,13 +44,9 @@ pub struct WasmApp(App);
 #[wasm_bindgen]
 impl WasmApp {
     #[wasm_bindgen(constructor)]
-    pub fn new(server_ip: String, server_token: String) -> WasmApp {
+    pub fn new(ip: String, server_token: String) -> WasmApp {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-        let server_addr = format!(
-            "{}:{}",
-            server_ip,
-            option_env!("SERVER_PORT").unwrap_or("7636")
-        );
+        let port = option_env!("SERVER_PORT").unwrap_or("7636").to_string();
 
         let mut app = bevy_app::App::default();
         app.add_plugins((
@@ -65,9 +61,8 @@ impl WasmApp {
             MatchmakingPlugin,
             ReplicationPlugin::Client,
             ClientTransportPlugin {
-                server_address: server_addr
-                    .parse()
-                    .expect(format!("{server_addr} to be an IPv4 parseable string").as_str()),
+                server_origin: ip,
+                server_port: option_env!("SERVER_PORT").unwrap_or("7636").to_string(),
                 wt_server_token: server_token,
             },
         ));

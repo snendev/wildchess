@@ -13,7 +13,8 @@ use bevy_replicon_renet2::{
     RenetChannelsExt, RepliconRenetClientPlugin, RepliconRenetServerPlugin,
 };
 
-pub use bevy_replicon;
+pub use bevy_replicon as replicon;
+pub use bevy_replicon_renet2 as replicon_renet2;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[derive(Component)]

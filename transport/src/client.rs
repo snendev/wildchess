@@ -1,11 +1,14 @@
 use std::net::SocketAddr;
+use url::Url;
 
 use bevy_app::prelude::{App, Plugin};
+use renet2::transport::WebServerDestination;
 
 use crate::PROTOCOL_ID;
 
 pub struct ClientPlugin {
-    pub server_address: SocketAddr,
+    pub server_origin: String,
+    pub server_port: String,
     #[cfg(feature = "web_transport_client")]
     pub wt_server_token: String,
 }
@@ -13,20 +16,47 @@ pub struct ClientPlugin {
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
         #[cfg(any(feature = "native_transport", feature = "web_transport_client"))]
-        app.add_plugins(NativeClientTransportPlugin {
-            server_address: self.server_address.clone(),
-            server_token: self.wt_server_token.clone(),
-        });
+        app.add_plugins(NativeClientTransportPlugin::new(
+            self.server_origin.as_str(),
+            self.server_port.as_str(),
+            &self.wt_server_token,
+        ));
         #[cfg(feature = "steam_transport")]
         app.add_plugins(SteamClientTransportPlugin);
     }
 }
 
-#[cfg(any(feature = "web_transport_client", feature = "native_transport"))]
 struct NativeClientTransportPlugin {
-    server_address: SocketAddr,
-    #[cfg(feature = "web_transport_client")]
+    server_address: WebServerDestination,
     server_token: String,
+}
+
+impl NativeClientTransportPlugin {
+    fn new(host: &str, port: &str, server_token: &str) -> Self {
+        Self::ip(host, port, server_token)
+            // .or_else(|| Self::url(host, port, server_token))
+            .unwrap()
+    }
+
+    fn url(host: &str, port: &str, server_token: &str) -> Option<Self> {
+        format!("{host}:{port}")
+            .parse::<Url>()
+            .map(|url| Self {
+                server_address: WebServerDestination::Url(url),
+                server_token: server_token.to_string(),
+            })
+            .ok()
+    }
+
+    fn ip(ip: &str, port: &str, server_token: &str) -> Option<Self> {
+        format!("{ip}:{port}")
+            .parse::<SocketAddr>()
+            .map(|addr| Self {
+                server_address: WebServerDestination::Addr(addr),
+                server_token: server_token.to_string(),
+            })
+            .ok()
+    }
 }
 
 #[cfg(any(feature = "web_transport_client", feature = "native_transport"))]
@@ -40,8 +70,7 @@ impl Plugin for NativeClientTransportPlugin {
 
         app.add_plugins(bevy_renet2::transport::NetcodeClientPlugin);
 
-        let server_addr = self.server_address.clone();
-
+        let server_addr: SocketAddr = self.server_address.clone().into();
         let current_time = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap();

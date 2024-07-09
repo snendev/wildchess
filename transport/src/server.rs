@@ -8,47 +8,52 @@ use bevy_ecs::prelude::Resource;
 
 use crate::PROTOCOL_ID;
 
+use renet2::transport::WebServerDestination;
+
 pub struct ServerPlugin {
-    #[cfg(feature = "web_transport_server")]
-    pub host: String,
-    #[cfg(feature = "web_transport_server")]
-    pub wt_port: String,
-    #[cfg(feature = "web_transport_server")]
+    pub port: String,
     pub wt_tokens_port: String,
-    #[cfg(feature = "native_transport")]
-    pub native_host: String,
-    #[cfg(feature = "native_transport")]
-    pub native_port: String,
 }
 
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
         #[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
-        app.add_plugins(NativeServerTransportPlugin {
-            host: self.host.clone(),
-            port: self.wt_port.clone(),
-            tokens_port: self.wt_tokens_port.clone(),
-        });
+        app.add_plugins(NativeServerTransportPlugin::ip(
+            "0.0.0.0",
+            self.port.as_str(),
+            self.wt_tokens_port.as_str(),
+        ));
 
-        #[cfg(feature = "steam_transport")]
-        app.add_plugins(SteamServerTransportPlugin);
+        // #[cfg(feature = "steam_transport")]
+        // app.add_plugins(SteamServerTransportPlugin);
     }
 }
 
 #[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
 struct NativeServerTransportPlugin {
-    host: String,
-    port: String,
-    tokens_port: String,
+    server_address: WebServerDestination,
+    tokens_address: WebServerDestination,
 }
 
 #[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
 impl NativeServerTransportPlugin {
-    fn new(host: String, port: String, tokens_port: String) -> Self {
+    fn url(host: &str, port: &str, tokens_port: &str) -> Self {
         Self {
-            host,
-            port,
-            tokens_port,
+            server_address: WebServerDestination::Url(format!("{host}:{port}").parse().unwrap()),
+            tokens_address: WebServerDestination::Url(
+                format!("{host}:{}", tokens_port.to_string())
+                    .parse()
+                    .unwrap(),
+            ),
+        }
+    }
+
+    fn ip(ip: &str, port: &str, tokens_port: &str) -> Self {
+        Self {
+            server_address: WebServerDestination::Addr(format!("{ip}:{port}").parse().unwrap()),
+            tokens_address: WebServerDestination::Addr(
+                format!("{ip}:{}", tokens_port.to_string()).parse().unwrap(),
+            ),
         }
     }
 }
@@ -56,11 +61,7 @@ impl NativeServerTransportPlugin {
 #[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
 impl Default for NativeServerTransportPlugin {
     fn default() -> Self {
-        Self::new(
-            "0.0.0.0".to_string(),
-            "7636".to_string(),
-            "7637".to_string(),
-        )
+        Self::ip("0.0.0.0", "7636", "7637")
     }
 }
 
@@ -75,9 +76,7 @@ impl Plugin for NativeServerTransportPlugin {
 
         app.add_plugins(NetcodeServerPlugin);
 
-        let public_addr = format!("{}:{}", self.host, self.port)
-            .parse()
-            .expect("{host}:{port} to be a valid SocketAddr");
+        let public_addr: SocketAddr = self.server_address.clone().into();
 
         let current_time: std::time::Duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -110,12 +109,9 @@ impl Plugin for NativeServerTransportPlugin {
 
             let cert_hash_b64 =
                 base64::engine::general_purpose::STANDARD.encode(cert_hash.hash.as_ref());
+            let certs_socket: SocketAddr = self.tokens_address.clone().into();
 
             let runtime = tokio::runtime::Runtime::new().unwrap();
-
-            let certs_socket: SocketAddr = format!("{}:{}", self.host, self.tokens_port)
-                .parse()
-                .unwrap();
             runtime.spawn(async move {
                 let cors = warp::cors()
                     .allow_method("GET")
@@ -143,38 +139,38 @@ impl Plugin for NativeServerTransportPlugin {
 }
 
 // TODO: untested
-#[cfg(feature = "steam_transport")]
-struct SteamServerTransportPlugin;
+// #[cfg(feature = "steam_transport")]
+// struct SteamServerTransportPlugin;
 
-#[cfg(feature = "steam_transport")]
-impl Plugin for SteamServerTransportPlugin {
-    fn build(&self, app: &mut App) {
-        use bevy_app::PreUpdate;
-        use renet2_steam::bevy::{SteamServerConfig, SteamServerPlugin, SteamServerTransport};
-        use renet2_steam::AccessPermission;
+// #[cfg(feature = "steam_transport")]
+// impl Plugin for SteamServerTransportPlugin {
+//     fn build(&self, app: &mut App) {
+//         use bevy_app::PreUpdate;
+//         use renet2_steam::bevy::{SteamServerConfig, SteamServerPlugin, SteamServerTransport};
+//         use renet2_steam::AccessPermission;
 
-        let (steam_client, single) = steamworks::Client::init_app(480).unwrap();
+//         let (steam_client, single) = steamworks::Client::init_app(480).unwrap();
 
-        let server: RenetServer = RenetServer::new(connection_config());
+//         let server: RenetServer = RenetServer::new(connection_config());
 
-        let steam_transport_config = SteamServerConfig {
-            max_clients: 10,
-            access_permission: AccessPermission::Public,
-        };
-        let transport = SteamServerTransport::new(&steam_client, steam_transport_config).unwrap();
+//         let steam_transport_config = SteamServerConfig {
+//             max_clients: 10,
+//             access_permission: AccessPermission::Public,
+//         };
+//         let transport = SteamServerTransport::new(&steam_client, steam_transport_config).unwrap();
 
-        app.add_plugins(SteamServerPlugin);
-        app.insert_resource(server);
-        app.insert_non_send_resource(transport);
-        app.insert_non_send_resource(single);
+//         app.add_plugins(SteamServerPlugin);
+//         app.insert_resource(server);
+//         app.insert_non_send_resource(transport);
+//         app.insert_non_send_resource(single);
 
-        app.add_systems(PreUpdate, Self::steam_callbacks);
-    }
-}
+//         app.add_systems(PreUpdate, Self::steam_callbacks);
+//     }
+// }
 
-#[cfg(feature = "steam_transport")]
-impl SteamServerTransportPlugin {
-    fn steam_callbacks(client: bevy_ecs::prelude::NonSend<steamworks::SingleClient>) {
-        client.run_callbacks();
-    }
-}
+// #[cfg(feature = "steam_transport")]
+// impl SteamServerTransportPlugin {
+//     fn steam_callbacks(client: bevy_ecs::prelude::NonSend<steamworks::SingleClient>) {
+//         client.run_callbacks();
+//     }
+// }
