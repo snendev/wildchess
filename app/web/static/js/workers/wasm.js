@@ -126,7 +126,7 @@ async function runApp() {
     // send a network request to get the server token
     fetch("/token"),
     // also dns resolve the server
-    fetch("https://dns.google/resolve?name=wildchess.fly.dev"),
+    fetch("https://dns.google/resolve?name=wildchess.saintnet.tech"),
     // and while waiting initialize the wasm
     wasm_bindgen("/wasm/chess_app_web_bg.wasm"),
   ]);
