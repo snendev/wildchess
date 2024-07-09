@@ -38,7 +38,7 @@ base64 = { version = "0.22" }
 ### optional deps
 ## wasm
 # this should only be enabled by `web_transport_client` which should only be run for wasm targets
-wasm-timer = { verison = "0.2", optional = true }
+wasm-timer = { version = "0.2", optional = true }
 ## server
 warp = { version = "0.3", default-features = false, optional = true }
 tokio = { version = "1.32", optional = true }
