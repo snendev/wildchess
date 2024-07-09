@@ -10,8 +10,8 @@ publish = false
 [dependencies]
 bevy_app = { version = "0.13" }
 bevy_ecs = { version = "0.13" }
-bevy_renet2 = { git = "https://github.com/UkoeHB/renet2" }
-renet2 = { git = "https://github.com/UkoeHB/renet2", default-features = false, features = [
+bevy_renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "77cd4f0cff5bb2f173ea4345433d96c3aef2f207" }
+renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "77cd4f0cff5bb2f173ea4345433d96c3aef2f207", default-features = false, features = [
     "bevy",
     "serde",
 ] }

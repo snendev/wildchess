@@ -917,12 +917,13 @@ dependencies = [
 
 [[package]]
 name = "bevy_renet2"
-version = "0.0.2"
-source = "git+https://github.com/UkoeHB/renet2#76f1cea7f0bad06e8170e04926339efd77f4f42f"
+version = "0.0.4"
+source = "git+https://github.com/UkoeHB/renet2?rev=77cd4f0cff5bb2f173ea4345433d96c3aef2f207#77cd4f0cff5bb2f173ea4345433d96c3aef2f207"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
  "bevy_time",
+ "bevy_window",
  "renet2",
 ]
 
@@ -2637,7 +2638,7 @@ dependencies = [
 [[package]]
 name = "h3"
 version = "0.0.4"
-source = "git+https://github.com/hyperium/h3#eb79204f170681f7334d25d1a6aa72718eee35db"
+source = "git+https://github.com/hyperium/h3?tag=h3-v0.0.4#651ff5ebb56f3e5319bd96595dbbf71c1ac761b1"
 dependencies = [
  "bytes",
  "fastrand",
@@ -2650,8 +2651,8 @@ dependencies = [
 
 [[package]]
 name = "h3-quinn"
-version = "0.0.5"
-source = "git+https://github.com/hyperium/h3#eb79204f170681f7334d25d1a6aa72718eee35db"
+version = "0.0.4"
+source = "git+https://github.com/hyperium/h3?tag=h3-v0.0.4#651ff5ebb56f3e5319bd96595dbbf71c1ac761b1"
 dependencies = [
  "bytes",
  "futures",
@@ -2665,7 +2666,7 @@ dependencies = [
 [[package]]
 name = "h3-webtransport"
 version = "0.1.0"
-source = "git+https://github.com/hyperium/h3#eb79204f170681f7334d25d1a6aa72718eee35db"
+source = "git+https://github.com/hyperium/h3?tag=h3-v0.0.4#651ff5ebb56f3e5319bd96595dbbf71c1ac761b1"
 dependencies = [
  "bytes",
  "futures-util",
@@ -4118,8 +4119,8 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "renet2"
-version = "0.0.2"
-source = "git+https://github.com/UkoeHB/renet2#76f1cea7f0bad06e8170e04926339efd77f4f42f"
+version = "0.0.4"
+source = "git+https://github.com/UkoeHB/renet2?rev=77cd4f0cff5bb2f173ea4345433d96c3aef2f207#77cd4f0cff5bb2f173ea4345433d96c3aef2f207"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -4156,8 +4157,8 @@ dependencies = [
 
 [[package]]
 name = "renet2_steam"
-version = "0.0.2"
-source = "git+https://github.com/UkoeHB/renet2#76f1cea7f0bad06e8170e04926339efd77f4f42f"
+version = "0.0.4"
+source = "git+https://github.com/UkoeHB/renet2?rev=77cd4f0cff5bb2f173ea4345433d96c3aef2f207#77cd4f0cff5bb2f173ea4345433d96c3aef2f207"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -4169,8 +4170,8 @@ dependencies = [
 
 [[package]]
 name = "renetcode2"
-version = "0.0.2"
-source = "git+https://github.com/UkoeHB/renet2#76f1cea7f0bad06e8170e04926339efd77f4f42f"
+version = "0.0.4"
+source = "git+https://github.com/UkoeHB/renet2?rev=77cd4f0cff5bb2f173ea4345433d96c3aef2f207#77cd4f0cff5bb2f173ea4345433d96c3aef2f207"
 dependencies = [
  "chacha20poly1305",
  "log",
@@ -5085,6 +5086,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]
