@@ -61,7 +61,7 @@ impl WasmApp {
             MatchmakingPlugin,
             ReplicationPlugin::Client,
             ClientTransportPlugin {
-                server_origin: ip,
+                server_origin: option_env!("SERVER_ORIGIN").unwrap_or(&ip).to_string(),
                 server_port: option_env!("SERVER_PORT").unwrap_or("7636").to_string(),
                 wt_server_token: server_token,
             },
