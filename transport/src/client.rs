@@ -34,7 +34,7 @@ struct NativeClientTransportPlugin {
 impl NativeClientTransportPlugin {
     fn new(host: &str, port: &str, server_token: &str) -> Self {
         Self::ip(host, port, server_token)
-            .or_else(|| Self::url(host, port, server_token))
+            // .or_else(|| Self::url(host, port, server_token))
             .unwrap()
     }
 
