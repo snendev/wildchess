@@ -46,7 +46,10 @@ impl WasmApp {
     #[wasm_bindgen(constructor)]
     pub fn new(ip: String, server_token: String) -> WasmApp {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-        let port = option_env!("SERVER_PORT").unwrap_or("7636").to_string();
+        let server_origin = ip;
+        // let server_origin = option_env!("SERVER_ORIGIN").unwrap_or(&ip).to_string();
+        let server_port = option_env!("SERVER_PORT").unwrap_or("7636").to_string();
+        log(format!("Connecting to {server_origin}:{server_port}").as_str());
 
         let mut app = bevy_app::App::default();
         app.add_plugins((
@@ -61,8 +64,8 @@ impl WasmApp {
             MatchmakingPlugin,
             ReplicationPlugin::Client,
             ClientTransportPlugin {
-                server_origin: option_env!("SERVER_ORIGIN").unwrap_or(&ip).to_string(),
-                server_port: option_env!("SERVER_PORT").unwrap_or("7636").to_string(),
+                server_origin,
+                server_port,
                 wt_server_token: server_token,
             },
         ));
