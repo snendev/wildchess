@@ -46,6 +46,11 @@ impl WasmApp {
     #[wasm_bindgen(constructor)]
     pub fn new(server_ip: String, server_token: String) -> WasmApp {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        let server_addr = format!(
+            "{}:{}",
+            server_ip,
+            option_env!("SERVER_PORT").unwrap_or("7636")
+        );
 
         let mut app = bevy_app::App::default();
         app.add_plugins((
@@ -60,13 +65,9 @@ impl WasmApp {
             MatchmakingPlugin,
             ReplicationPlugin::Client,
             ClientTransportPlugin {
-                server_address: format!(
-                    "{}:{}",
-                    server_ip,
-                    option_env!("SERVER_PORT").unwrap_or("7636")
-                )
-                .parse()
-                .unwrap(),
+                server_address: server_addr
+                    .parse()
+                    .expect(format!("{server_addr} to be an IPv4 parseable string").as_str()),
                 wt_server_token: server_token,
             },
         ));
