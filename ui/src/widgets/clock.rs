@@ -20,7 +20,7 @@ impl<'a> ClockWidget<'a> {
 
 impl<'a> Widget for ClockWidget<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let remaining_seconds = self.clock.remaining_seconds();
+        let remaining_seconds = self.clock.remaining_time().as_secs();
         let minutes = remaining_seconds / 60;
         let seconds = remaining_seconds % 60;
         let text = RichText::new(format!("{}:{:0>2}", minutes, seconds))
