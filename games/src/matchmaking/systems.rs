@@ -345,27 +345,17 @@ pub(super) fn cleanup_game_entities(
 
 // TODO: there are probably some visibility bugs right now
 pub(super) fn handle_visibility(
-    players_not_in_game: Query<(Entity, &Player), Without<InGame>>,
-    players: Query<(Entity, &Player, &InGame), Changed<InGame>>,
+    players: Query<(Entity, &Player, Option<&InGame>)>,
     game_entities: Query<(Entity, &InGame), Without<Player>>,
     mut connected_clients: ResMut<ConnectedClients>,
 ) {
-    // players not in game can see all other players in lobby
-    for [(entity1, player1), (entity2, player2)] in players_not_in_game.iter_combinations() {
-        let client1 = connected_clients.client_mut(player1.id);
-        let visibility1 = client1.visibility_mut();
-        visibility1.set_visibility(entity2, true);
-
-        let client2 = connected_clients.client_mut(player2.id);
-        let visibility2 = client2.visibility_mut();
-        visibility2.set_visibility(entity1, true);
-    }
-
     // let players have visibility over all entities present in the same game
-    for (entity, player, player_game) in players.iter() {
+    for (entity, player, player_game) in players
+        .iter()
+        .filter_map(|(entity, player, in_game)| in_game.map(|game| (entity, player, game)))
+    {
         let client = connected_clients.client_mut(player.id);
         let visibility = client.visibility_mut();
-
         // player can see themselves
         visibility.set_visibility(entity, true);
         // and the game instance
@@ -381,16 +371,27 @@ pub(super) fn handle_visibility(
             }
         }
     }
-    // let players have visibility of other players present in the same game
-    for [(entity1, player1, game1), (entity2, player2, game2)] in players.iter_combinations() {
-        let is_visible = game1 == game2;
 
+    // players also need to be able to see each other when either both in lobby, or both in the same game
+    for [(entity1, player1, in_game1), (entity2, player2, in_game2)] in players.iter_combinations()
+    {
+        let visible = match (in_game1, in_game2) {
+            (None, None) => true,
+            (None, Some(_)) | (Some(_), None) => false,
+            (Some(game1), Some(game2)) => {
+                if game1 == game2 {
+                    true
+                } else {
+                    false
+                }
+            }
+        };
         let client1 = connected_clients.client_mut(player1.id);
         let visibility1 = client1.visibility_mut();
-        visibility1.set_visibility(entity2, is_visible);
+        visibility1.set_visibility(entity2, visible);
 
         let client2 = connected_clients.client_mut(player2.id);
         let visibility2 = client2.visibility_mut();
-        visibility2.set_visibility(entity1, is_visible);
+        visibility2.set_visibility(entity1, visible);
     }
 }
