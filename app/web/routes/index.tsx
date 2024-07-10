@@ -14,7 +14,7 @@ export default function ChessBoard({
 }: ChessBoardProps) {
   return (
     <Page>
-      <GameManager />
+      <GameManager description={<></>} />
     </Page>
   );
 }
