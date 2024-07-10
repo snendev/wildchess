@@ -15,6 +15,7 @@ use bevy_replicon::prelude::*;
 
 mod events;
 pub use events::{RequestTurnEvent, RequireMutationEvent, TurnEvent};
+use systems::detect_turn;
 
 use crate::components::{
     ActionHistory, AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameOver,
@@ -25,7 +26,13 @@ mod systems;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[derive(SystemSet)]
-pub struct GameSystems;
+pub enum GameSystems {
+    All,
+    DetectGameover,
+    TrackHistory,
+    DetectTurn,
+    ExecuteTurn,
+}
 
 pub struct GameplayPlugin;
 
@@ -44,7 +51,7 @@ impl Plugin for GameplayPlugin {
             BehaviorsSystems
                 .run_if(any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>())),
         )
-        .configure_sets(Update, GameSystems.before(BehaviorsSystems))
+        .configure_sets(Update, GameSystems::All.before(BehaviorsSystems))
         .add_mapped_client_event::<RequestTurnEvent>(ChannelKind::Ordered)
         .add_mapped_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
         .add_event::<TurnEvent>()
@@ -65,25 +72,46 @@ impl Plugin for GameplayPlugin {
         .replicate::<History<PatternBehavior>>()
         .replicate::<History<MimicBehavior>>()
         .replicate::<History<RelayBehavior>>()
+        .configure_sets(
+            Update,
+            (
+                GameSystems::TrackHistory,
+                GameSystems::DetectTurn,
+                GameSystems::ExecuteTurn.run_if(on_event::<TurnEvent>()),
+                GameSystems::DetectGameover.run_if(on_event::<TurnEvent>()),
+            )
+                .chain()
+                .in_set(GameSystems::All),
+        )
         .add_systems(
             Update,
             (
-                systems::detect_gameover.run_if(on_event::<TurnEvent>()),
                 // TODO: make an independent lib for this stuff & maybe UI/utils
                 History::<Position>::track_component_system,
                 History::<PatternBehavior>::track_component_system,
                 History::<MimicBehavior>::track_component_system,
                 History::<RelayBehavior>::track_component_system,
-                // TODO: stop playing after gameover
-                systems::detect_turn,
-                systems::execute_turn_movement.run_if(on_event::<TurnEvent>()),
-                systems::execute_turn_mutations.run_if(on_event::<TurnEvent>()),
-                systems::set_last_move.run_if(on_event::<TurnEvent>()),
-                systems::end_turn.run_if(on_event::<TurnEvent>()),
-                systems::track_turn_history.run_if(on_event::<TurnEvent>()),
             )
                 .chain()
-                .in_set(GameSystems),
+                .in_set(GameSystems::TrackHistory),
+        )
+        .add_systems(Update, detect_turn.in_set(GameSystems::DetectTurn))
+        .add_systems(
+            Update,
+            (
+                systems::execute_turn_movement,
+                systems::execute_turn_mutations,
+                systems::set_last_move,
+                systems::end_turn,
+                // TODO: double check how history behaves wrt TurnEvent and system ordering
+                systems::track_turn_history,
+            )
+                .chain()
+                .in_set(GameSystems::ExecuteTurn),
+        )
+        .add_systems(
+            Update,
+            systems::detect_gameover.in_set(GameSystems::DetectGameover),
         );
 
         #[cfg(feature = "reflect")]
