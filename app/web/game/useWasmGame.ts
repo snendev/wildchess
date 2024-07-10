@@ -11,6 +11,7 @@ export type RecvMessage =
   | { kind: 'require-promotion', icons: string[] }
   | { kind: 'position', position: Record<string, string>, lastMove: [string, string] | null | undefined }
   | { kind: 'targets', source: string, targets?: string[] }
+  | { kind: 'turn', myTurn: boolean }
   | { kind: 'player-count', count: number }
   | { kind: 'orientation', orientation: 'white' | 'black'}
   | { kind: 'gameover', winningTeam: 'white' | 'black' }
@@ -26,6 +27,7 @@ export type SendMessage =
   | { kind: 'leave-game' }
 
 export interface GameState {
+  myTurn: boolean
   position: Record<string, string> | null
   clocks: {white: string, black: string} | null
   icons:  Record<string, string> | null
@@ -37,7 +39,7 @@ export interface GameState {
 export interface GameActions {
   requestTargets: (source: string) => void
   resetTargets: () => void
-  playMove: (source: string, target: string) => void
+  playMove: (source: string, target: string) => boolean
 }
 
 export interface GameMenuState {
@@ -67,6 +69,7 @@ export default function useWasmGame(useDev: boolean = false): WasmGameData {
   const [isInitialized, setIsInitialized] = useState(false);
   const [netState, setNetState] = useState<NetworkState>("not-connected");
   const [position, setPosition] = useState<Record<string, string> | null>(null);
+  const [myTurn, setMyTurn] = useState(false);
   const [clocks, setClocks] = useState<{white: string, black: string} | null>(null);
   const [orientation, setOrientation] = useState<"white" | "black">("white");
   const [icons, setIcons] = useState<Record<string, string> | null>(null);
@@ -97,6 +100,10 @@ export default function useWasmGame(useDev: boolean = false): WasmGameData {
         case "position": {
           setPosition(event.data.position);
           if (event.data.lastMove !== undefined) setLastMoveSquares(event.data.lastMove ?? null);
+          return;
+        }
+        case "turn": {
+          setMyTurn(event.data.myTurn);
           return;
         }
         case "targets": {
@@ -159,8 +166,9 @@ export default function useWasmGame(useDev: boolean = false): WasmGameData {
     setTargetSquares(null);
   }, [worker])
 
-  const playMove = useCallback((source: string, target: string) => {
+  const playMove = useCallback((source: string, target: string): boolean => {
     sendMessage(worker, {kind: 'play-move', source, target});
+    return targetSquares?.includes(target) ?? false;
   }, [worker]);
 
   const selectPromotion = useCallback((promotionIndex: number) => {
@@ -169,8 +177,7 @@ export default function useWasmGame(useDev: boolean = false): WasmGameData {
 
   return {
     boardState: {
-      position, icons, targetSquares, lastMoveSquares, orientation,
-      clocks,
+      myTurn, position, icons, targetSquares, lastMoveSquares, orientation, clocks,
     },
     boardActions: {
       requestTargets, resetTargets, playMove,

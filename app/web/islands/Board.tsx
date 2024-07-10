@@ -33,8 +33,9 @@ function useChessBoard({
   }, [requestTargets]);
 
   const handleDrop = useCallback((source: string, target: string) => {
-    resetTargets();
-    playMove(source, target);
+    if (playMove(source, target)) {
+      resetTargets();
+    }
   }, [playMove, resetTargets]);
 
   const config = useMemo(() => ({
@@ -112,7 +113,14 @@ export default function Board({
 
   const width = size ? `${size}px` : "100%";
 
-  return <div ref={boardRef} class="flex flex-row justify-end" style={`width: ${size}px`} />;
+  return (
+    <div
+      ref={boardRef}
+      class="flex flex-row justify-end"
+      style={`width: ${width}`}
+      {...(position == null ? ({}) : ({["data-testid"]: "chessboard"}))}
+    />
+  );
 }
 
 // probably should implement our own light or dark square checker
@@ -152,12 +160,18 @@ function addHighlight(element: Element, highlight: HighlightKind, square_color: 
     getHighlightClass(highlight, square_color),
     ...element.classList,
   ].join(" ");
+  if (highlight === 'targets') {
+    element.setAttribute('data-gamestate', 'target');
+  }
 }
 
 function removeHighlight(element: Element, highlight: HighlightKind, square_color: Color) {
   const classSet = new Set(element.classList);
   classSet.delete(getHighlightClass(highlight, square_color));
   element.className = Array.from(classSet).join(" ");
+  if (highlight === 'targets') {
+    element.removeAttribute('data-gamestate');
+  }
 }
 
 function getSquareNode(rootElement: Element, square: string): Element | null {

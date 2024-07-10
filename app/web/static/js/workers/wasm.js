@@ -126,6 +126,7 @@ function onMessage(event) {
 let last_player_count = 0;
 
 // [piece, square][]
+let isMyTurn = false;
 let currentPosition = null;
 let lastMove = null;
 let currentIcons = null;
@@ -187,6 +188,12 @@ async function runApp() {
         kind: "player-count",
         count: app.get_player_count(),
       });
+    }
+
+    const myTurn = app.is_my_turn();
+    if (isMyTurn !== myTurn) {
+      isMyTurn = myTurn;
+      postMessage({ kind: "turn", myTurn });
     }
 
     // track piece positions

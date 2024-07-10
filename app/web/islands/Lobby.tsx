@@ -26,6 +26,7 @@ export default function Lobby({
       </div>
       <div class="min-w-[200px] h-min p-2 flex flex-col gap-3 bg-[#FFFBD4] border-2 border-black">
         <button
+          role="button"
           class="w-full h-[100px] text-4xl shadow-lg bg-[#6fa6ff] rounded-2xl"
           onClick={() => requestGame(selectedVariant, selectedClock)}
         >

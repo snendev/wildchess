@@ -80,12 +80,15 @@ function Legend() {
     </div>
   );
 }
-export default function GameSidebar({ winner, leaveGame }: GameState & GameMenuState & GameMenuActions ): JSX.Element {
+export default function GameSidebar({ orientation, winner, leaveGame }: GameState & GameMenuState & GameMenuActions ): JSX.Element {
   if (winner) console.log(winner);
   return (
     <div class="w-[350px] h-min p-4 flex flex-col gap-3 text-sm bg-[#f3edd9] border-2 border-black">
       <History />
       <hr class="border-black" />
+      <div>
+        <h3 class="text-md">You are playing {orientation[0].toUpperCase()}{orientation.slice(1)}.</h3>
+      </div>
       {winner != null && (<div>
         <h3 class="text-lg">WINNER: {winner}</h3>
       </div>)}
