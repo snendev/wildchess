@@ -9,29 +9,75 @@ env:
     SERVER_TOKEN_PORT: "443"
 
 jobs:
-  deploy:
-    name: Deploy to Deno Deploy
+  install-rust:
+    name: Install rust and rust build tools
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # Needed for auth with Deno Deploy
       contents: read # Needed to clone the repository
 
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
-      - name: Install Deno
-        uses: denoland/setup-deno@v1
+      - name: Load Rust installation
+        uses: actions/cache/restore@v3
+        id: rust-env
         with:
-          deno-version: v1.x
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install rust
+        if: steps.rust-env.outputs.cache-hit != 'true'
         uses: dtolnay/rust-toolchain@stable
         with:
           targets:
             wasm32-unknown-unknown
       - name: Install wasm-pack
+        if: steps.rust-env.outputs.cache-hit != 'true'
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Install cargo-make
+        if: steps.rust-env.outputs.cache-hit != 'true'
         run: cargo install cargo-make
+      - name: Cache Rust installation
+        if: steps.rust-env.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+  deploy-web:
+    name: Deploy to Deno Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Needed for auth with Deno Deploy
+      contents: read # Needed to clone the repository
+    needs: install-rust
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Load Rust installation
+        uses: actions/cache/restore@v3
+        id: rust-env
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - name: Build game wasm
         run: cargo make build-wasm
       - name: Build fresh project
