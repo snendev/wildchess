@@ -30,7 +30,7 @@
     "tailwindcss/": "npm:/tailwindcss@3.4.1/",
     "tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js",
     "$std/": "https://deno.land/std@0.216.0/",
-    "chessboardjs": "https://esm.sh/gh/snendev/chessboardjs@de3c427975/lib/chessboard.js"
+    "chessboardjs": "https://esm.sh/gh/snendev/chessboardjs@81a2188464/lib/chessboard.js"
   },
   "compilerOptions": {
     "jsx": "react-jsx",
