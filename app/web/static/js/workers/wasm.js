@@ -5,19 +5,30 @@ importScripts(
 // define worker event handlers
 self.onmessage = onMessage;
 
-let app;
-runApp();
-
+let initialized = false;
+let useDev = false;
 let connected = false;
 let inGame = false;
 let myTeam = "white";
 
+let app;
+runApp();
+
 function onMessage(event) {
+  if (event.data.kind === "init") {
+    useDev = event.data.useDev ?? false;
+    initialized = true;
+    return;
+  }
   if (app === undefined) {
     console.warn("message received before app is instantiated; ignoring");
     return;
   }
   switch (event.data.kind) {
+    case "init": {
+      useDev = event.data.useDev ?? false;
+      return;
+    }
     case "request-game": {
       const gameRequest = makeGameRequest(event.data.variant, event.data.clock);
       app.request_game(gameRequest);
@@ -122,22 +133,24 @@ let currentClocks = null;
 let promotionOptions = null;
 
 async function runApp() {
-  const [tokenResponse, dnsResponse] = await Promise.all([
+  postMessage({ kind: "init" });
+
+  while (!initialized) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+
+  const [tokenResponse, serverIp] = await Promise.all([
     // send a network request to get the server token
     fetch("/token"),
     // also dns resolve the server
-    fetch("https://dns.google/resolve?name=wildchess.saintnet.tech"),
+    resolveServerIp(useDev),
     // and while waiting initialize the wasm
     wasm_bindgen("/wasm/chess_app_web_bg.wasm"),
   ]);
 
   const token = await tokenResponse.text();
-  const dns = await dnsResponse.json();
-  const dnsIp = dns.Answer[dns.Answer.length - 1].data;
-  const ip = dnsIp.endsWith(".") ? dnsIp.slice(0, -1) : dnsIp;
-
   // build the bevy app
-  app = new wasm_bindgen.WasmApp(ip, token);
+  app = new wasm_bindgen.WasmApp(serverIp, token);
 
   // loop update calls
   while (true) {
@@ -322,4 +335,16 @@ function deepEqual(obj1, obj2) {
 
 function isPrimitive(obj) {
   return obj !== Object(obj);
+}
+
+async function resolveServerIp(useDev) {
+  if (useDev) {
+    return "127.0.0.1";
+  }
+  const dnsResponse = await fetch(
+    "https://dns.google/resolve?name=wildchess.saintnet.tech",
+  );
+  const dns = await dnsResponse.json();
+  const ip = dns.Answer[dns.Answer.length - 1].data;
+  return ip.endsWith(".") ? ip.slice(0, -1) : ip;
 }

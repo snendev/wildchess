@@ -11,14 +11,15 @@ import PromotionPieces from "./PromotionPieces.tsx";
 
 interface GameManagerProps {
   description: VNode,
+  useDev?: boolean
 }
 
-export default function GameManager({ description }: GameManagerProps) {
+export default function GameManager({ description, useDev }: GameManagerProps) {
   if (!IS_BROWSER) {
     return <Lobby requestGame={() => {}} />;
   }
 
-  const { boardState, boardActions, menuState, menuActions } = useWasmGame();
+  const { boardState, boardActions, menuState, menuActions } = useWasmGame(useDev);
   const { clocks, orientation } = boardState;
   const { netState, promotionIcons } = menuState;
   const { requestGame, selectPromotion } =  menuActions;
