@@ -36,7 +36,7 @@ export default function GameManager({ description, useDev }: GameManagerProps) {
     }
     case "in-game": {
       return (
-        <div class="flex flex-row gap-2">
+        <div class="flex flex-col gap-2 lg:flex-row">
           <div class="flex flex-col items-end gap-2">
             {clocks && (
               <Clock time={clocks[orientation === "white" ? "black" : "white"]} />
