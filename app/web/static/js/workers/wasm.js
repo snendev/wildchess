@@ -206,6 +206,7 @@ async function runApp() {
       ]),
     );
     if (!deepEqual(position, currentPosition)) {
+      console.log({ position, currentPosition });
       currentPosition = position;
       const newLastMove = app.get_last_move()?.map((square) =>
         square.get_representation()

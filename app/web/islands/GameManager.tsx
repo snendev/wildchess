@@ -38,6 +38,7 @@ export default function GameManager({ description, useDev }: GameManagerProps) {
       return (
         <div class="flex flex-col gap-2 lg:flex-row">
           <div class="flex flex-col items-end gap-2">
+            {boardState.myTurn && <h2 class="text-lg text-bold">MY TURN</h2>}
             {clocks && (
               <Clock time={clocks[orientation === "white" ? "black" : "white"]} />
             )}
