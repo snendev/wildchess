@@ -26,10 +26,10 @@ test('emulate player', async ({ page }: any) => {
           const startSquare = await pieceLocator.getAttribute('data-square');
           await pieceLocator.click();
           const targetLocator = board.locator(`[data-gamestate="target"]`).first();
-          const targetSquare = await targetLocator.getAttribute('data-square');
           const targetExists = await targetLocator.isVisible();
-          console.log(targetExists + ": " + startSquare + " " + targetSquare);
           if (targetExists) {
+            const targetSquare = await targetLocator.getAttribute('data-square');
+            console.log(targetExists + ": " + startSquare + " " + targetSquare);
             await pieceLocator.dragTo(targetLocator);
             await board.locator(`[data-piece="${myTeam}${piece}"][data-square="${targetSquare}"]`).waitFor();
             break findMove;
