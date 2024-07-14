@@ -342,7 +342,6 @@ impl WasmApp {
             .and_then(|(mutation, index)| mutation.to_piece.get(index).cloned());
 
         let mut move_events = self.0.world.resource_mut::<Events<RequestTurnEvent>>();
-        log(format!("Taking turn: {action:?}").as_str());
         move_events.send(RequestTurnEvent {
             piece,
             action,

@@ -91,7 +91,6 @@ export default function useWasmGame(useDev: boolean = false): WasmGameData {
           return;
         }
         case "network-state": {
-          console.log('netstate: ' + event.data.state);
           setNetState(event.data.state);
           return;
         }
