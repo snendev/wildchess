@@ -61,9 +61,9 @@ impl WasmApp {
             bevy_app::ScheduleRunnerPlugin::default(),
         ));
         app.add_plugins((
+            ReplicationPlugin::Client,
             GameplayPlugin,
             MatchmakingPlugin,
-            ReplicationPlugin::Client,
             ClientTransportPlugin {
                 server_origin,
                 server_port,
