@@ -8,8 +8,9 @@ use bevy_ecs::{
 };
 
 use bevy_replicon::prelude::{
-    AppRuleExt, ClientId, ClientPlugin, ParentSyncPlugin, Replicated, RepliconChannels,
-    RepliconCorePlugin, ServerEvent, ServerPlugin, VisibilityPolicy,
+    AppRuleExt, ClientEventsPlugin, ClientId, ClientPlugin, ParentSyncPlugin, Replicated,
+    RepliconChannels, RepliconCorePlugin, ServerEvent, ServerEventsPlugin, ServerPlugin,
+    VisibilityPolicy,
 };
 use bevy_replicon_renet2::{
     renet2::{ConnectionConfig, RenetClient, RenetServer},
@@ -34,7 +35,12 @@ pub enum ReplicationPlugin {
 impl Plugin for ReplicationPlugin {
     fn build(&self, app: &mut bevy_app::App) {
         if !app.is_plugin_added::<RepliconCorePlugin>() {
-            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
+            app.add_plugins((
+                RepliconCorePlugin,
+                ParentSyncPlugin,
+                ClientEventsPlugin,
+                ServerEventsPlugin,
+            ));
         }
 
         app.replicate::<Client>();
