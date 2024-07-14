@@ -2,10 +2,7 @@ use bevy_ecs::prelude::{Commands, Entity, EventReader, EventWriter, Query, With}
 #[cfg(feature = "log")]
 use bevy_log::debug;
 
-use bevy_replicon::{
-    network_event::server_event::SendMode,
-    prelude::{FromClient, ToClients},
-};
+use bevy_replicon::prelude::{FromClient, SendMode, ToClients};
 
 use chess::{
     actions::Action,

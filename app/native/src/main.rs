@@ -2,8 +2,8 @@
 compile_error!("Native build is not intended for use with WASM. Please build the WASM app.");
 
 use bevy::prelude::{
-    any_with_component, not, App, DefaultPlugins, IntoSystemConfigs, IntoSystemSetConfigs,
-    PluginGroup, SystemSet, Update, Window, WindowPlugin,
+    any_with_component, not, App, DefaultPlugins, IntoSystemSetConfigs, PluginGroup, Update,
+    Window, WindowPlugin,
 };
 
 use chess_ui::{ChessUISystems, EguiBoardUIPlugin, HomeMenuUIPlugin, HomeMenuUISystems};

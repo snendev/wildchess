@@ -10,7 +10,7 @@ use bevy_ecs::prelude::{Commands, Component, Entity, IntoSystemConfigs, Query, R
 use bevy_reflect::prelude::Reflect;
 use bevy_time::{Stopwatch, Time};
 
-use bevy_replicon::prelude::AppReplicationExt;
+use bevy_replicon::prelude::AppRuleExt;
 
 use crate::components::{GameOver, InGame, IsActiveGame};
 

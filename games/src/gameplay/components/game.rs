@@ -7,7 +7,7 @@ use bevy_ecs::prelude::{Commands, Component, Entity};
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 
-use bevy_replicon::prelude::Replication;
+use bevy_replicon::prelude::Replicated;
 
 use chess::board::{Rank, Square};
 use layouts::PieceSpecification;
@@ -154,7 +154,7 @@ impl GameSpawner {
                 self.board,
                 self.piece_set,
                 self.win_condition,
-                Replication,
+                Replicated,
             ))
             .id();
         let mut builder = commands.entity(entity);

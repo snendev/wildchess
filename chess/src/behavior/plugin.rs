@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use bevy_app::prelude::{App, Plugin, Update};
 use bevy_ecs::prelude::{IntoSystem, IntoSystemConfigs, Query, SystemSet};
-use bevy_replicon::prelude::{AppReplicationExt, ParentSyncPlugin, RepliconCorePlugin};
+use bevy_replicon::prelude::{AppRuleExt, ParentSyncPlugin, RepliconCorePlugin};
 
 use crate::{
     actions::{Action, Actions},

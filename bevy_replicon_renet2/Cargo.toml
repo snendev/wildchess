@@ -15,4 +15,4 @@ renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "77cd4f0cff5bb2f173ea
     "bevy",
     "serde",
 ] }
-bevy_replicon = { version = "0.24" }
+bevy_replicon = { version = "0.26" }

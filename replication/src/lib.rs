@@ -8,7 +8,7 @@ use bevy_ecs::{
 };
 
 use bevy_replicon::prelude::{
-    AppReplicationExt, ClientId, ClientPlugin, ParentSyncPlugin, Replication, RepliconChannels,
+    AppRuleExt, ClientId, ClientPlugin, ParentSyncPlugin, Replicated, RepliconChannels,
     RepliconCorePlugin, ServerEvent, ServerPlugin, VisibilityPolicy,
 };
 use bevy_replicon_renet2::{
@@ -117,7 +117,7 @@ fn handle_connections(
                 bevy_log::info!("Player {} connected.", client_id.get());
                 // Spawn new player entity
                 commands.spawn((
-                    Replication,
+                    Replicated,
                     Name::new(format!("Player {}", client_id.get())),
                     Client { id: *client_id },
                 ));

@@ -1,5 +1,5 @@
 use bevy_app::prelude::{App, Plugin};
-use bevy_replicon::prelude::{AppReplicationExt, ParentSyncPlugin, RepliconCorePlugin};
+use bevy_replicon::prelude::{AppRuleExt, ParentSyncPlugin, RepliconCorePlugin};
 
 pub mod actions;
 pub mod behavior;

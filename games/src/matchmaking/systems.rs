@@ -3,10 +3,7 @@ use bevy_ecs::prelude::{
     Added, Commands, Entity, EventReader, Query, RemovedComponents, ResMut, With, Without,
 };
 
-use bevy_replicon::{
-    core::replication_rules::Replication, prelude::FromClient,
-    server::connected_clients::ConnectedClients,
-};
+use bevy_replicon::prelude::{ConnectedClients, FromClient, Replicated};
 
 use chess::{
     behavior::{BoardPieceCache, BoardThreatsCache},
@@ -268,7 +265,7 @@ pub(super) fn spawn_game_entities(
                 Name::new(format!("Board (Game {:?})", game_entity)),
                 BoardPieceCache::default(),
                 BoardThreatsCache::default(),
-                Replication,
+                Replicated,
             ))
             .id();
 
@@ -289,7 +286,7 @@ pub(super) fn spawn_game_entities(
                     InGame(game_entity),
                     OnBoard(board_entity),
                     History::<Position>::default(),
-                    Replication,
+                    Replicated,
                 ));
 
                 if piece.royal.is_some() {
