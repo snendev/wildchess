@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::prelude::{apply_deferred, IntoSystem, IntoSystemConfigs, Query, SystemSet};
+use bevy_ecs::prelude::{IntoSystem, IntoSystemConfigs, Query, SystemSet};
 use bevy_replicon::prelude::{AppReplicationExt, ParentSyncPlugin, RepliconCorePlugin};
 
 use crate::{
@@ -70,7 +70,6 @@ where
                         .clone()
                         .pipe(RelayBehavior::calculate_actions_system),
                 ),
-                apply_deferred,
                 (
                     PatternBehavior::take_actions_system,
                     EnPassantBehavior::take_actions_system,
