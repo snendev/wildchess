@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 use bevy_app::App;
 use bevy_ecs::{
     prelude::{Entity, Events, Query, Res, With},
-    system::RunSystemOnce,
+    system::{Command, RunSystemOnce},
 };
 
 use games::{
@@ -26,7 +26,8 @@ use games::{
 };
 use replication::{
     replicon::{core::common_conditions as network_conditions, prelude::RepliconClient},
-    ConnectToServerEvent, Player, ReplicationPlugin,
+    replicon_renet2::renet2::RenetClient,
+    Client, ClientCommand, ReplicationPlugin,
 };
 use transport::client::ClientPlugin as ClientTransportPlugin;
 use wild_icons::PieceIconSvg;
@@ -70,15 +71,24 @@ impl WasmApp {
             },
         ));
         app.add_plugins(wild_icons::PieceIconPlugin::new(get_orientation));
-        app.world.send_event(ConnectToServerEvent);
 
         WasmApp(app)
     }
 
     #[wasm_bindgen]
-    pub fn request_game(&mut self, game_request: WasmGameRequest) {
+    pub fn request_online_game(&mut self, game_request: WasmGameRequest) {
+        self.request_game(game_request, GameOpponent::Online);
+    }
+
+    #[wasm_bindgen]
+    pub fn start_local_game(&mut self, game_request: WasmGameRequest) {
+        ClientCommand::Disconnect.apply(&mut self.0.world);
+        self.request_game(game_request, GameOpponent::Local);
+    }
+
+    fn request_game(&mut self, game_request: WasmGameRequest, opponent: GameOpponent) {
         self.0.world.send_event(RequestJoinGameEvent {
-            opponent: GameOpponent::Online,
+            opponent,
             game: game_request.variant,
             clock: game_request.clock,
         });
@@ -124,19 +134,8 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn get_player_count(&mut self) -> usize {
-        let mut query = self.0.world.query::<&Player>();
+        let mut query = self.0.world.query::<&Client>();
         query.iter(&self.0.world).count()
-    }
-
-    #[wasm_bindgen]
-    pub fn setup_board(&mut self) {
-        // let game_spawner = GameSpawner::new_game(GameBoard::WildChess, WinCondition::RoyalCapture);
-        self.0.world.send_event(ConnectToServerEvent);
-        // self.0.world.spawn((
-        //     game_spawner.game,
-        //     game_spawner.board,
-        //     game_spawner.win_condition,
-        // ));
     }
 
     #[wasm_bindgen]
@@ -161,6 +160,9 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn is_my_turn(&mut self) -> bool {
+        if self.0.world.get_resource::<RenetClient>().is_none() {
+            return true;
+        }
         let Some(client_id) = self
             .0
             .world
@@ -169,7 +171,7 @@ impl WasmApp {
         else {
             return false;
         };
-        let mut query = self.0.world.query_filtered::<&Player, With<HasTurn>>();
+        let mut query = self.0.world.query_filtered::<&Client, With<HasTurn>>();
         query
             .iter(&self.0.world)
             .find(|player| player.id == client_id)
@@ -189,7 +191,7 @@ impl WasmApp {
             return None;
         };
 
-        let mut query = self.0.world.query::<(&Player, &Team)>();
+        let mut query = self.0.world.query::<(&Client, &Team)>();
         let Some((_, team)) = query
             .iter(&self.0.world)
             .find(|(player, _)| player.id == client_id)
@@ -528,6 +530,7 @@ impl WasmClock {
 }
 
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct WasmGameRequest {
     pub(crate) variant: Option<GameRequestVariant>,
     pub(crate) clock: Option<GameRequestClock>,
@@ -611,7 +614,7 @@ impl WasmGameover {
 
 fn get_orientation(
     client: Option<Res<RepliconClient>>,
-    players: Query<(&Player, &Team)>,
+    players: Query<(&Client, &Team)>,
 ) -> Orientation {
     if let Some((_, team)) = client
         .and_then(|client| client.id())

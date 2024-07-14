@@ -29,9 +29,14 @@ function onMessage(event) {
       useDev = event.data.useDev ?? false;
       return;
     }
-    case "request-game": {
+    case "local-game": {
       const gameRequest = makeGameRequest(event.data.variant, event.data.clock);
-      app.request_game(gameRequest);
+      app.start_local_game(gameRequest);
+      return;
+    }
+    case "online-game": {
+      const gameRequest = makeGameRequest(event.data.variant, event.data.clock);
+      app.request_online_game(gameRequest);
       postMessage({ kind: "network-state", state: "awaiting-game" });
       return;
     }

@@ -19,7 +19,8 @@ export type RecvMessage =
 
 export type SendMessage =
   | { kind: 'init', useDev?: boolean }
-  | { kind: 'request-game', variant: GameVariant | null, clock: GameClock | null }
+  | { kind: 'online-game', variant: GameVariant | null, clock: GameClock | null }
+  | { kind: 'local-game', variant: GameVariant | null, clock: GameClock | null }
   | { kind: 'play-move', source: string, target: string }
   | { kind: 'select-promotion', promotionIndex: number }
   | { kind: 'request-targets', source: string }
@@ -49,7 +50,7 @@ export interface GameMenuState {
 }
 
 export interface GameMenuActions {
-  requestGame: (variant: GameVariant | null, clock: GameClock | null) => void
+  requestGame: (game: 'online' | 'local', variant: GameVariant | null, clock: GameClock | null) => void
   leaveGame: () => void
   selectPromotion: (promotionIndex: number) => void
 }
@@ -150,8 +151,8 @@ export default function useWasmGame(useDev: boolean = false): WasmGameData {
     }
   }, [worker, useDev, isInitialized, prevIsInitialized]);
 
-  const requestGame = useCallback((variant: GameVariant | null, clock: GameClock | null) => {
-    sendMessage(worker, {kind: 'request-game', variant, clock});
+  const requestGame = useCallback((game: 'online' | 'local', variant: GameVariant | null, clock: GameClock | null) => {
+    sendMessage(worker, {kind: `${game}-game`, variant, clock});
   }, [worker]);
 
   const leaveGame = useCallback(() => {

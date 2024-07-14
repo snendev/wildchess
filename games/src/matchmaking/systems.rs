@@ -1,6 +1,6 @@
 use bevy_core::Name;
 use bevy_ecs::prelude::{
-    Added, Changed, Commands, Entity, EventReader, Query, RemovedComponents, ResMut, With, Without,
+    Added, Commands, Entity, EventReader, Query, RemovedComponents, ResMut, With, Without,
 };
 
 use bevy_replicon::{
@@ -14,12 +14,13 @@ use chess::{
     pieces::{PieceBundle, Position, Royal},
     team::Team,
 };
+use itertools::Itertools;
 use layouts::{FeaturedWildLayout, PieceSpecification, RandomWildLayout};
-use replication::Player;
+use replication::Client;
 
 use crate::{
     components::{ActionHistory, ClockConfiguration, GameBoard, HasTurn, History, InGame, Ply},
-    gameplay::components::{Game, GameSpawner, PieceSet, WinCondition},
+    gameplay::components::{Game, GameSpawner, PieceSet, Player, WinCondition},
 };
 
 use super::{
@@ -30,7 +31,7 @@ use super::{
 pub(super) fn handle_game_requests(
     mut commands: Commands,
     mut join_requests: EventReader<FromClient<RequestJoinGameEvent>>,
-    players: Query<(Entity, &Player)>,
+    players: Query<(Entity, &Client)>,
 ) {
     for event in join_requests.read() {
         match event.event.opponent {
@@ -61,7 +62,18 @@ pub(super) fn handle_game_requests(
                     player_builder.insert(clock);
                 }
             }
-            GameOpponent::Local | GameOpponent::AgainstBot | GameOpponent::Analysis => {
+            GameOpponent::Local => {
+                let player1 = commands.spawn(Player).id();
+                let player2 = commands.spawn(Player).id();
+                spawn_game(
+                    &mut commands,
+                    player1,
+                    player2,
+                    &event.event.game.unwrap_or_default(),
+                    event.event.clock.as_ref(),
+                );
+            }
+            GameOpponent::AgainstBot | GameOpponent::Analysis => {
                 unimplemented!("Can't play games against bots yet :(");
             }
         }
@@ -71,7 +83,7 @@ pub(super) fn handle_game_requests(
 pub(super) fn handle_leave_events(
     mut commands: Commands,
     mut leave_requests: EventReader<FromClient<RequestJoinGameEvent>>,
-    players: Query<(Entity, &Player)>,
+    players: Query<(Entity, &Client)>,
 ) {
     for event in leave_requests.read() {
         if let Some((entity, _)) = players
@@ -83,57 +95,75 @@ pub(super) fn handle_leave_events(
     }
 }
 
-// match the most specified game requests first since they will be less easy to match
-pub(super) fn match_specified_game_requests(
-    mut commands: Commands,
-    specified_game_request: Query<
-        (Entity, &GameRequestVariant, &GameRequestClock),
-        With<GameRequest>,
-    >,
+fn spawn_game(
+    commands: &mut Commands,
+    player1: Entity,
+    player2: Entity,
+    variant: &GameRequestVariant,
+    clock: Option<&GameRequestClock>,
 ) {
-    let mut matched_entities: Vec<Entity> = vec![];
+    let piece_set = PieceSet(match variant {
+        GameRequestVariant::FeaturedGameOne => FeaturedWildLayout::One.pieces(),
+        GameRequestVariant::FeaturedGameTwo => FeaturedWildLayout::Two.pieces(),
+        GameRequestVariant::FeaturedGameThree => FeaturedWildLayout::Three.pieces(),
+        GameRequestVariant::Wild => RandomWildLayout::pieces(),
+    });
 
-    // first match players with the most specific requests
-    for [(entity1, variant1, clock1), (entity2, variant2, clock2)] in
-        specified_game_request.iter_combinations()
-    {
-        if matched_entities.contains(&entity1) || matched_entities.contains(&entity2) {
-            continue;
-        }
-        if variant1 == variant2 && clock1 == clock2 {
-            #[cfg(feature = "log")]
-            bevy_log::info!("Spawning game for players {:?} and {:?}", entity1, entity2);
+    let game = GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture);
+    let game = if let Some(clock) = clock {
+        game.with_clock(clock.to_clock())
+    } else {
+        game
+    }
+    .spawn(commands);
 
-            matched_entities.push(entity1);
-            matched_entities.push(entity2);
+    commands.entity(player1).insert(InGame(game));
+    commands.entity(player2).insert(InGame(game));
+}
 
-            let piece_set = PieceSet(match variant1 {
-                GameRequestVariant::FeaturedGameOne => FeaturedWildLayout::One.pieces(),
-                GameRequestVariant::FeaturedGameTwo => FeaturedWildLayout::Two.pieces(),
-                GameRequestVariant::FeaturedGameThree => FeaturedWildLayout::Three.pieces(),
-                GameRequestVariant::Wild => RandomWildLayout::pieces(),
-            });
-
-            let game =
-                GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture)
-                    .with_clock(clock1.to_clock())
-                    .spawn(&mut commands);
-
-            commands.entity(entity1).insert(InGame(game));
-            commands.entity(entity2).insert(InGame(game));
-        }
+/// Compares combinations of tuples so that combinations with more "Some"s are handled first
+fn cmp_combinations<T, U, V>(
+    pair1: &[(T, Option<U>, Option<V>)],
+    pair2: &[(T, Option<U>, Option<V>)],
+) -> std::cmp::Ordering {
+    /// a count for the number of `Some`s in this Option (either 1 or 0)
+    fn count_some<O>(option: &Option<O>) -> usize {
+        option.as_ref().map(|_| 1).unwrap_or(0)
     }
 
-    for entity in matched_entities {
-        commands.entity(entity).remove::<GameRequestBundle>();
+    // for each combination, count how many of options are `Some` per type
+    let pair1_u_somes = count_some(&pair1[0].1) + count_some(&pair1[1].1);
+    let pair1_v_somes = count_some(&pair1[0].2) + count_some(&pair1[1].2);
+    let pair2_u_somes = count_some(&pair2[0].1) + count_some(&pair2[1].1);
+    let pair2_v_somes = count_some(&pair2[0].2) + count_some(&pair2[1].2);
+
+    // cmp how many `Some`s for U, then cmp how many `Some`s for V
+    pair1_u_somes
+        .cmp(&pair2_u_somes)
+        .then(pair1_v_somes.cmp(&pair2_v_somes))
+}
+
+fn combine_equal<O: Copy + PartialEq>(
+    option1: Option<&O>,
+    option2: Option<&O>,
+) -> Option<Option<O>> {
+    match (option1, option2) {
+        (Some(value1), Some(value2)) => {
+            if value1 == value2 {
+                Some(Some(*value1))
+            } else {
+                None
+            }
+        }
+        (Some(value), None) | (None, Some(value)) => Some(Some(*value)),
+        (None, None) => Some(None),
     }
 }
 
-// runs after and identical to `match_specified_game_requests`, but checking requests that do not
-// specify both variant and clock settings.
-pub(super) fn match_remaining_game_requests(
+// match the most specified game requests first since they will be less easy to match
+pub(super) fn match_game_requests(
     mut commands: Commands,
-    game_requests: Query<
+    specified_game_request: Query<
         (
             Entity,
             Option<&GameRequestVariant>,
@@ -145,57 +175,32 @@ pub(super) fn match_remaining_game_requests(
     let mut matched_entities: Vec<Entity> = vec![];
 
     // first match players with the most specific requests
-    for [(entity1, variant1, clock1), (entity2, variant2, clock2)] in
-        game_requests.iter_combinations()
+    for [(entity1, variant1, clock1), (entity2, variant2, clock2)] in specified_game_request
+        .iter_combinations()
+        .sorted_by(|pair1, pair2| cmp_combinations(pair1, pair2))
     {
         if matched_entities.contains(&entity1) || matched_entities.contains(&entity2) {
             continue;
         }
 
-        // properties do not match iff they are both specified and they differ
-        // otherwise they are a match
-        let variants_are_matching = variant1
-            .zip(variant2)
-            .map(|(v1, v2)| *v1 == *v2)
-            .unwrap_or(true);
-        if !variants_are_matching {
-            continue;
+        // because of the way the combinations are sorted, we know that this is still greedy even though we check xor first
+        let variant = combine_equal(variant1, variant2);
+        let clock = combine_equal(clock1, clock2);
+        if let (Some(variant), Some(clock)) = (variant, clock) {
+            #[cfg(feature = "log")]
+            bevy_log::info!("Spawning game for players {:?} and {:?}", entity1, entity2);
+
+            matched_entities.push(entity1);
+            matched_entities.push(entity2);
+
+            spawn_game(
+                &mut commands,
+                entity1,
+                entity2,
+                &variant.unwrap_or(GameRequestVariant::FeaturedGameOne),
+                clock.as_ref(),
+            );
         }
-        let clocks_are_matching = clock1
-            .zip(clock2)
-            .map(|(c1, c2)| *c1 == *c2)
-            .unwrap_or(true);
-        if !clocks_are_matching {
-            continue;
-        }
-
-        #[cfg(feature = "log")]
-        bevy_log::info!("Spawning game for players {:?} and {:?}", entity1, entity2);
-
-        let variant = variant1
-            .or(variant2)
-            .unwrap_or(&GameRequestVariant::FeaturedGameOne);
-        let clock = clock1.or(clock2);
-
-        matched_entities.push(entity1);
-        matched_entities.push(entity2);
-
-        let piece_set = PieceSet(match variant {
-            GameRequestVariant::FeaturedGameOne => FeaturedWildLayout::One.pieces(),
-            GameRequestVariant::FeaturedGameTwo => FeaturedWildLayout::Two.pieces(),
-            GameRequestVariant::FeaturedGameThree => FeaturedWildLayout::Three.pieces(),
-            GameRequestVariant::Wild => RandomWildLayout::pieces(),
-        });
-
-        let mut spawner =
-            GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture);
-        if let Some(clock) = clock {
-            spawner = spawner.with_clock(clock.to_clock());
-        }
-        let game = spawner.spawn(&mut commands);
-
-        commands.entity(entity1).insert(InGame(game));
-        commands.entity(entity2).insert(InGame(game));
     }
 
     for entity in matched_entities {
@@ -206,7 +211,7 @@ pub(super) fn match_remaining_game_requests(
 // TODO: Give Players an `OnBoard` as well
 pub(super) fn assign_game_teams(
     mut commands: Commands,
-    players: Query<(Entity, &InGame), (With<Player>, Without<Team>, Added<InGame>)>,
+    players: Query<(Entity, &InGame), (With<Client>, Without<Team>, Added<InGame>)>,
     games: Query<Option<&ClockConfiguration>, With<Game>>,
 ) {
     for chunk in players
@@ -319,7 +324,7 @@ pub(super) fn spawn_game_entities(
 pub(super) fn despawn_empty_games(
     mut commands: Commands,
     games: Query<Entity, With<Game>>,
-    players: Query<&InGame, With<Player>>,
+    players: Query<&InGame, With<Client>>,
 ) {
     for game in games.iter() {
         if players.iter().find(|in_game| in_game.0 == game).is_none() {
@@ -345,8 +350,8 @@ pub(super) fn cleanup_game_entities(
 
 // TODO: there are probably some visibility bugs right now
 pub(super) fn handle_visibility(
-    players: Query<(Entity, &Player, Option<&InGame>)>,
-    game_entities: Query<(Entity, &InGame), Without<Player>>,
+    players: Query<(Entity, &Client, Option<&InGame>)>,
+    game_entities: Query<(Entity, &InGame), Without<Client>>,
     mut connected_clients: ResMut<ConnectedClients>,
 ) {
     // let players have visibility over all entities present in the same game

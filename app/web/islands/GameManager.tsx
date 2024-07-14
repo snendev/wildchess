@@ -28,7 +28,7 @@ export default function GameManager({ description, useDev }: GameManagerProps) {
     case "not-connected":
     case "connected" : {
       return (
-        <Lobby requestGame={requestGame} />
+        <Lobby {...menuState} {...menuActions} />
       );
     }
     case "awaiting-game" : {

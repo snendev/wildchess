@@ -37,8 +37,7 @@ impl Plugin for MatchmakingPlugin {
                 (
                     systems::handle_game_requests,
                     systems::handle_leave_events,
-                    systems::match_specified_game_requests,
-                    systems::match_remaining_game_requests,
+                    systems::match_game_requests,
                     systems::assign_game_teams,
                     systems::spawn_game_entities,
                     systems::handle_visibility.run_if(resource_exists::<ConnectedClients>),

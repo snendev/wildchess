@@ -2,20 +2,18 @@ import { JSX } from "preact";
 import { useState } from "preact/hooks";
 
 import AboutBlurb from "../components/AboutBlurb.tsx";
-import { GameClock, GameVariant } from "../game/useWasmGame.ts";
+import { GameClock, GameMenuActions, GameMenuState, GameVariant } from "../game/useWasmGame.ts";
 
 import Board from "./Board.tsx";
 
-interface ChessBoardProps {
-  requestGame: (variant: GameVariant | null, clock: GameClock | null) => void
-}
-
 export default function Lobby({
+  netState,
   requestGame,
-}: ChessBoardProps): JSX.Element {
+}: GameMenuState & GameMenuActions): JSX.Element {
   const [selectedVariant, setSelectedVariant] = useState<GameVariant | null>(null);
   const [selectedClock, setSelectedClock] = useState<GameClock | null>(null);
 
+  const isNetDisabled = netState !== 'connected';
   // todo types for empty board
   const EmptyBoard = Board as any;
   return (
@@ -25,12 +23,27 @@ export default function Lobby({
         <p class="mt-2 text-sm italic">(For now, pretend there's some wacky position on the board here!)</p>
       </div>
       <div class="min-w-[200px] h-min p-2 flex flex-col gap-3 bg-[#FFFBD4] border-2 border-black">
+        <div class="w-full">
+          <button
+            role="button"
+            class="w-full h-[80px] text-3xl shadow-lg bg-[#6fa6ff] rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isNetDisabled}
+            onClick={() => requestGame('online', selectedVariant, selectedClock)}
+          >
+            Play Online
+          </button>
+          {isNetDisabled && (
+            <p class="w-full pt-1 pr-1 text-red-500 text-xs text-right">
+              Failed to connect to server.
+            </p>
+          )}
+        </div>
         <button
           role="button"
-          class="w-full h-[100px] text-4xl shadow-lg bg-[#6fa6ff] rounded-2xl"
-          onClick={() => requestGame(selectedVariant, selectedClock)}
+          class="w-full h-[80px] text-3xl shadow-lg bg-[#6fa6ff] rounded-2xl"
+          onClick={() => requestGame('local', selectedVariant, selectedClock)}
         >
-          Play
+          Play Local
         </button>
         <div class="border-2 border-black">
           <div class="text-sm italic m-2 border-b-[1px] border-black">

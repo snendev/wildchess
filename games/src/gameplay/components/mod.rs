@@ -17,6 +17,13 @@ pub use game::{
 mod turns;
 pub use turns::{ActionHistory, HasTurn, History, LastMove, Ply};
 
+#[derive(Clone, Debug)]
+#[derive(Component)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
+pub struct Player;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]

@@ -17,9 +17,12 @@ mod events;
 pub use events::{RequestTurnEvent, RequireMutationEvent, TurnEvent};
 use systems::detect_turn;
 
-use crate::components::{
-    ActionHistory, AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameOver,
-    HasTurn, History, InGame, LastMove, Ply, WinCondition,
+use crate::{
+    components::{
+        ActionHistory, AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameOver,
+        HasTurn, History, InGame, LastMove, Ply, WinCondition,
+    },
+    MatchmakingSystems,
 };
 
 mod systems;
@@ -52,6 +55,8 @@ impl Plugin for GameplayPlugin {
                 .run_if(any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>())),
         )
         .configure_sets(Update, GameSystems::All.before(BehaviorsSystems))
+        // todo doesn't really belong here, but useful for now
+        .configure_sets(Update, GameSystems::All.after(MatchmakingSystems))
         .add_mapped_client_event::<RequestTurnEvent>(ChannelKind::Ordered)
         .add_mapped_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
         .add_event::<TurnEvent>()
@@ -83,6 +88,7 @@ impl Plugin for GameplayPlugin {
                 .chain()
                 .in_set(GameSystems::All),
         )
+        .configure_sets(Update, GameSystems::All.run_if(has_authority))
         .add_systems(
             Update,
             (

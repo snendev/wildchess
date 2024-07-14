@@ -14,7 +14,7 @@ use chess::{
     pieces::{Mutation, MutationCondition, PieceIdentity, Position, Royal},
     team::Team,
 };
-use replication::Player;
+use replication::Client;
 
 use crate::{
     components::{ActionHistory, Clock, Game, HasTurn, InGame, IsActiveGame, Ply, WinCondition},
@@ -26,7 +26,7 @@ use super::{RequestTurnEvent, RequireMutationEvent, TurnEvent};
 pub(super) fn detect_turn(
     game_query: Query<&Ply, IsActiveGame>,
     board_query: Query<&Board>,
-    player_query: Query<(&Team, &Player), With<HasTurn>>,
+    player_query: Query<(&Team, &Client), With<HasTurn>>,
     piece_query: Query<(&Team, &OnBoard, &InGame, Option<&Mutation>)>,
     mut requested_turns: EventReader<FromClient<RequestTurnEvent>>,
     mut require_mutation_writer: EventWriter<ToClients<RequireMutationEvent>>,
@@ -235,7 +235,7 @@ pub(super) fn set_last_move(
 
 #[allow(clippy::type_complexity)]
 pub(super) fn end_turn(
-    mut players_query: Query<(Entity, &InGame, Option<&mut Clock>, Option<&HasTurn>), With<Player>>,
+    mut players_query: Query<(Entity, &InGame, Option<&mut Clock>, Option<&HasTurn>), With<Client>>,
     mut commands: Commands,
     mut turn_reader: EventReader<TurnEvent>,
 ) {

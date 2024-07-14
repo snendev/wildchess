@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use bevy_app::prelude::{Plugin, Startup, Update};
 use bevy_core::Name;
-use bevy_ecs::prelude::{Commands, Component, Entity, Event, EventReader, Query, Res, World};
+use bevy_ecs::{
+    prelude::{Commands, Component, Entity, EventReader, Query, Res, World},
+    system::Command,
+};
 
 use bevy_replicon::prelude::{
     AppReplicationExt, ClientId, ClientPlugin, ParentSyncPlugin, Replication, RepliconChannels,
@@ -19,7 +22,7 @@ pub use bevy_replicon_renet2 as replicon_renet2;
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]
-pub struct Player {
+pub struct Client {
     pub id: ClientId,
 }
 
@@ -34,7 +37,7 @@ impl Plugin for ReplicationPlugin {
             app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
         }
 
-        app.replicate::<Player>();
+        app.replicate::<Client>();
 
         match self {
             ReplicationPlugin::Server => {
@@ -50,12 +53,25 @@ impl Plugin for ReplicationPlugin {
             }
             ReplicationPlugin::Client => {
                 app.add_plugins((ClientPlugin, RepliconRenetClientPlugin));
-                connect_to_server(&mut app.world);
-                // app.add_event::<ConnectToServerEvent>()
-                //     .add_systems(
-                //         Update,
-                //         connect_to_server.run_if(on_event::<ConnectToServerEvent>()),
-                //     );
+                ClientCommand::Connect.apply(&mut app.world);
+            }
+        }
+    }
+}
+
+pub enum ClientCommand {
+    Connect,
+    Disconnect,
+}
+
+impl Command for ClientCommand {
+    fn apply(self, world: &mut World) {
+        match self {
+            ClientCommand::Connect => {
+                connect_to_server(world);
+            }
+            ClientCommand::Disconnect => {
+                world.remove_resource::<RenetClient>();
             }
         }
     }
@@ -72,9 +88,6 @@ fn start_server(mut commands: Commands, replicon_channels: Res<RepliconChannels>
     });
     commands.insert_resource(server);
 }
-
-#[derive(Event)]
-pub struct ConnectToServerEvent;
 
 // TODO: turn this into a system once bevy_renet2 uses the run condition here
 // https://github.com/UkoeHB/renet2/blob/main/bevy_renet2/src/lib.rs#L62
@@ -95,7 +108,7 @@ fn connect_to_server(world: &mut World) {
 fn handle_connections(
     mut commands: Commands,
     mut server_events: EventReader<ServerEvent>,
-    players: Query<(Entity, &Player)>,
+    clients: Query<(Entity, &Client)>,
 ) {
     for event in server_events.read() {
         match event {
@@ -106,12 +119,12 @@ fn handle_connections(
                 commands.spawn((
                     Replication,
                     Name::new(format!("Player {}", client_id.get())),
-                    Player { id: *client_id },
+                    Client { id: *client_id },
                 ));
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 if let Some((player_entity, _)) =
-                    players.iter().find(|(_, Player { id })| *id == *client_id)
+                    clients.iter().find(|(_, Client { id })| *id == *client_id)
                 {
                     #[cfg(feature = "log")]
                     bevy_log::debug!("Player disconnected: {}", reason);
