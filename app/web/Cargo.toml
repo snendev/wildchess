@@ -10,8 +10,14 @@ publish = false
 name = "chess_app_web"
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# wasm-pack not passing features?
+# log = ["games/log"]
+
 [dependencies]
-games = { path = "../../games", default-features = false }
+games = { path = "../../games", default-features = false, features = [
+    "log", # todo: remove
+] }
 replication = { path = "../../replication" }
 transport = { path = "../../transport", features = ["web_transport_client"] }
 wild_icons = { path = "../../icons" }

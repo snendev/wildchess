@@ -83,6 +83,7 @@ impl WasmApp {
     #[wasm_bindgen]
     pub fn start_local_game(&mut self, game_request: WasmGameRequest) {
         ClientCommand::Disconnect.apply(&mut self.0.world);
+        log("Client disconnected!");
         self.request_game(game_request, GameOpponent::Local);
     }
 
@@ -341,6 +342,7 @@ impl WasmApp {
             .and_then(|(mutation, index)| mutation.to_piece.get(index).cloned());
 
         let mut move_events = self.0.world.resource_mut::<Events<RequestTurnEvent>>();
+        log(format!("Taking turn: {action:?}").as_str());
         move_events.send(RequestTurnEvent {
             piece,
             action,

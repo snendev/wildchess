@@ -23,6 +23,8 @@ pub struct MatchmakingPlugin;
 
 impl Plugin for MatchmakingPlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(feature = "log")]
+        bevy_log::info!("HELLO???",);
         if !app.is_plugin_added::<RepliconCorePlugin>() {
             app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
         }

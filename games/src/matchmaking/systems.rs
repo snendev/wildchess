@@ -19,14 +19,14 @@ use layouts::{FeaturedWildLayout, PieceSpecification, RandomWildLayout};
 use replication::Client;
 
 use crate::{
-    components::{ActionHistory, ClockConfiguration, GameBoard, HasTurn, History, InGame, Ply},
+    components::{
+        ActionHistory, ClockConfiguration, GameBoard, GameRequest, GameRequestBundle,
+        GameRequestClock, GameRequestVariant, HasTurn, History, InGame, Ply,
+    },
     gameplay::components::{Game, GameSpawner, PieceSet, Player, WinCondition},
 };
 
-use super::{
-    components::{GameRequest, GameRequestBundle, GameRequestClock, GameRequestVariant},
-    GameOpponent, RequestJoinGameEvent,
-};
+use super::{GameOpponent, LeaveGameEvent, RequestJoinGameEvent};
 
 pub(super) fn handle_game_requests(
     mut commands: Commands,
@@ -82,7 +82,7 @@ pub(super) fn handle_game_requests(
 
 pub(super) fn handle_leave_events(
     mut commands: Commands,
-    mut leave_requests: EventReader<FromClient<RequestJoinGameEvent>>,
+    mut leave_requests: EventReader<FromClient<LeaveGameEvent>>,
     players: Query<(Entity, &Client)>,
 ) {
     for event in leave_requests.read() {
@@ -211,7 +211,7 @@ pub(super) fn match_game_requests(
 // TODO: Give Players an `OnBoard` as well
 pub(super) fn assign_game_teams(
     mut commands: Commands,
-    players: Query<(Entity, &InGame), (With<Client>, Without<Team>, Added<InGame>)>,
+    players: Query<(Entity, &InGame), (With<Client>, Without<Team>)>,
     games: Query<Option<&ClockConfiguration>, With<Game>>,
 ) {
     for chunk in players
