@@ -8,7 +8,8 @@ use wasm_bindgen::prelude::*;
 use bevy_app::App;
 use bevy_ecs::{
     prelude::{Entity, Events, Query, Res, With},
-    system::{Command, RunSystemOnce},
+    system::RunSystemOnce,
+    world::Command,
 };
 
 use games::{
@@ -82,13 +83,13 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn start_local_game(&mut self, game_request: WasmGameRequest) {
-        ClientCommand::Disconnect.apply(&mut self.0.world);
+        ClientCommand::Disconnect.apply(self.0.world_mut());
         log("Client disconnected!");
         self.request_game(game_request, GameOpponent::Local);
     }
 
     fn request_game(&mut self, game_request: WasmGameRequest, opponent: GameOpponent) {
-        self.0.world.send_event(RequestJoinGameEvent {
+        self.0.world_mut().send_event(RequestJoinGameEvent {
             opponent,
             game: game_request.variant,
             clock: game_request.clock,
@@ -97,30 +98,30 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn leave_game(&mut self) {
-        let mut query = self.0.world.query_filtered::<Entity, With<Game>>();
-        for game in query.iter(&self.0.world).collect::<Vec<_>>() {
-            self.0.world.send_event(LeaveGameEvent { game });
+        let mut query = self.0.world_mut().query_filtered::<Entity, With<Game>>();
+        for game in query.iter(self.0.world()).collect::<Vec<_>>() {
+            self.0.world_mut().send_event(LeaveGameEvent { game });
         }
     }
 
     #[wasm_bindgen]
     pub fn is_connected(&mut self) -> bool {
         self.0
-            .world
+            .world_mut()
             .run_system_once(network_conditions::client_connected)
     }
 
     #[wasm_bindgen]
     pub fn is_in_game(&mut self) -> bool {
-        let mut query = self.0.world.query::<&Game>();
-        query.iter(&self.0.world).count() > 0
+        let mut query = self.0.world_mut().query::<&Game>();
+        query.iter(self.0.world()).count() > 0
     }
 
     #[wasm_bindgen]
     pub fn is_game_over(&mut self) -> Option<WasmGameover> {
-        let mut query = self.0.world.query::<(&Game, &GameOver)>();
+        let mut query = self.0.world_mut().query::<(&Game, &GameOver)>();
         query
-            .iter(&self.0.world)
+            .iter(self.0.world())
             .map(|(_, gameover)| WasmGameover {
                 team: *gameover.winner(),
             })
@@ -129,31 +130,37 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn get_entity_count(&mut self) -> usize {
-        let mut query = self.0.world.query::<Entity>();
-        query.iter(&self.0.world).count()
+        let mut query = self.0.world_mut().query::<Entity>();
+        query.iter(self.0.world()).count()
     }
 
     #[wasm_bindgen]
     pub fn get_player_count(&mut self) -> usize {
-        let mut query = self.0.world.query::<&Client>();
-        query.iter(&self.0.world).count()
+        let mut query = self.0.world_mut().query::<&Client>();
+        query.iter(self.0.world()).count()
     }
 
     #[wasm_bindgen]
     pub fn remove_board(&mut self) {
         // TODO: this queries for both game instance and board instance
         // what is the intended lifecycle of these components?
-        let mut game_query = self.0.world.query_filtered::<Entity, With<GameBoard>>();
-        for entity in game_query.iter(&self.0.world).collect::<Vec<_>>() {
-            self.0.world.entity_mut(entity).despawn();
+        let mut game_query = self
+            .0
+            .world_mut()
+            .query_filtered::<Entity, With<GameBoard>>();
+        for entity in game_query.iter(self.0.world()).collect::<Vec<_>>() {
+            self.0.world_mut().entity_mut(entity).despawn();
         }
     }
 
     #[wasm_bindgen]
     pub fn check_game_state(&mut self) -> String {
-        let mut query = self.0.world.query::<(&Position, &Team, &PieceIdentity)>();
+        let mut query = self
+            .0
+            .world_mut()
+            .query::<(&Position, &Team, &PieceIdentity)>();
         let mut buffer = String::from("");
-        for (position, team, identity) in query.iter(&self.0.world) {
+        for (position, team, identity) in query.iter(self.0.world()) {
             buffer.push_str(format!("{:?} {:?}: {:?}\n", team, identity, position).as_str());
         }
         buffer
@@ -161,20 +168,23 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn is_my_turn(&mut self) -> bool {
-        if self.0.world.get_resource::<RenetClient>().is_none() {
+        if self.0.world().get_resource::<RenetClient>().is_none() {
             return true;
         }
         let Some(client_id) = self
             .0
-            .world
+            .world()
             .get_resource::<RepliconClient>()
             .and_then(|client| client.id())
         else {
             return false;
         };
-        let mut query = self.0.world.query_filtered::<&Client, With<HasTurn>>();
+        let mut query = self
+            .0
+            .world_mut()
+            .query_filtered::<&Client, With<HasTurn>>();
         query
-            .iter(&self.0.world)
+            .iter(self.0.world())
             .find(|player| player.id == client_id)
             .is_some()
     }
@@ -185,16 +195,16 @@ impl WasmApp {
     pub fn get_my_team(&mut self) -> Option<String> {
         let Some(client_id) = self
             .0
-            .world
+            .world()
             .get_resource::<RepliconClient>()
             .and_then(|client| client.id())
         else {
             return None;
         };
 
-        let mut query = self.0.world.query::<(&Client, &Team)>();
+        let mut query = self.0.world_mut().query::<(&Client, &Team)>();
         let Some((_, team)) = query
-            .iter(&self.0.world)
+            .iter(self.0.world())
             .find(|(player, _)| player.id == client_id)
         else {
             return None;
@@ -217,9 +227,9 @@ impl WasmApp {
             return None;
         };
 
-        let mut query = self.0.world.query::<(&Position, &Team)>();
+        let mut query = self.0.world_mut().query::<(&Position, &Team)>();
         let Some((_, team)) = query
-            .iter(&self.0.world)
+            .iter(self.0.world())
             .find(|(position, _)| position.0 == square)
         else {
             return None;
@@ -236,9 +246,12 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn get_piece_positions(&mut self) -> Vec<WasmPiecePosition> {
-        let mut query = self.0.world.query::<(&Position, &Team, &PieceIdentity)>();
+        let mut query = self
+            .0
+            .world_mut()
+            .query::<(&Position, &Team, &PieceIdentity)>();
         query
-            .iter(&self.0.world)
+            .iter(self.0.world())
             .map(|(position, team, identity)| {
                 WasmPiecePosition(WasmPiece(*team, *identity), WasmSquare(position.0))
             })
@@ -249,10 +262,10 @@ impl WasmApp {
     pub fn get_icons(&mut self) -> Vec<WasmIcon> {
         let mut query = self
             .0
-            .world
+            .world_mut()
             .query::<(&PieceIconSvg, &Team, &PieceIdentity)>();
         query
-            .iter(&self.0.world)
+            .iter(self.0.world())
             .map(|(PieceIconSvg { source, .. }, team, identity)| WasmIcon {
                 piece: WasmPiece(*team, *identity),
                 svg_source: source.clone(),
@@ -262,9 +275,9 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn get_clocks(&mut self) -> Vec<WasmClock> {
-        let mut query = self.0.world.query::<(&Team, &Clock)>();
+        let mut query = self.0.world_mut().query::<(&Team, &Clock)>();
         query
-            .iter(&self.0.world)
+            .iter(self.0.world())
             .map(|(team, clock)| WasmClock {
                 team: *team,
                 clock: clock.remaining_time(),
@@ -276,9 +289,9 @@ impl WasmApp {
     pub fn get_target_squares(&mut self, square: String) -> Option<Vec<WasmSquare>> {
         // TODO: not working after a first move is made
         let square: Square = square.as_str().try_into().expect("Invalid square!");
-        let mut query = self.0.world.query::<(&Position, &Actions)>();
+        let mut query = self.0.world_mut().query::<(&Position, &Actions)>();
         let (_, actions) = query
-            .iter(&self.0.world)
+            .iter(self.0.world())
             .find(|(position, _)| position.0 == square)?;
         Some(
             actions
@@ -292,8 +305,8 @@ impl WasmApp {
     // Vec should be size 2
     #[wasm_bindgen]
     pub fn get_last_move(&mut self) -> Option<Vec<WasmSquare>> {
-        let mut query = self.0.world.query::<&LastMove>();
-        let Ok(last_move) = query.get_single(&self.0.world) else {
+        let mut query = self.0.world_mut().query::<&LastMove>();
+        let Ok(last_move) = query.get_single(self.0.world()) else {
             return None;
         };
         Some(vec![
@@ -320,10 +333,10 @@ impl WasmApp {
         // selectedPiece
         let mut query = self
             .0
-            .world
+            .world_mut()
             .query::<(Entity, &Position, &Actions, Option<&Mutation>)>();
         let Some((piece, _, actions, maybe_mutations)) = query
-            .iter(&self.0.world)
+            .iter(self.0.world())
             .find(|(_, position, _, _)| position.0 == piece_square)
         else {
             return false;
@@ -341,7 +354,10 @@ impl WasmApp {
             .zip(promotion_index)
             .and_then(|(mutation, index)| mutation.to_piece.get(index).cloned());
 
-        let mut move_events = self.0.world.resource_mut::<Events<RequestTurnEvent>>();
+        let mut move_events = self
+            .0
+            .world_mut()
+            .resource_mut::<Events<RequestTurnEvent>>();
         move_events.send(RequestTurnEvent {
             piece,
             action,
@@ -361,8 +377,10 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn get_promotion_request(&mut self) -> Option<WasmPromotions> {
-        let Some(mutation_request_events) =
-            self.0.world.get_resource::<Events<RequireMutationEvent>>()
+        let Some(mutation_request_events) = self
+            .0
+            .world()
+            .get_resource::<Events<RequireMutationEvent>>()
         else {
             return None;
         };
@@ -371,13 +389,13 @@ impl WasmApp {
         // should only be one...
         let event = reader.read(&mutation_request_events).last();
         event.and_then(|event| {
-            let Some(mutation) = self.0.world.get::<Mutation>(event.piece) else {
+            let Some(mutation) = self.0.world().get::<Mutation>(event.piece) else {
                 return None;
             };
-            let Some(team) = self.0.world.get::<Team>(event.piece) else {
+            let Some(team) = self.0.world().get::<Team>(event.piece) else {
                 return None;
             };
-            let maybe_royal = self.0.world.get::<Royal>(event.piece);
+            let maybe_royal = self.0.world().get::<Royal>(event.piece);
             let icons = mutation
                 .to_piece
                 .iter()

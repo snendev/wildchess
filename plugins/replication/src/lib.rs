@@ -4,7 +4,7 @@ use bevy_app::prelude::{Plugin, Startup, Update};
 use bevy_core::Name;
 use bevy_ecs::{
     prelude::{Commands, Component, Entity, EventReader, Query, Res, World},
-    system::Command,
+    world::Command,
 };
 
 use bevy_replicon::prelude::{
@@ -53,7 +53,7 @@ impl Plugin for ReplicationPlugin {
             }
             ReplicationPlugin::Client => {
                 app.add_plugins((ClientPlugin, RepliconRenetClientPlugin));
-                ClientCommand::Connect.apply(&mut app.world);
+                ClientCommand::Connect.apply(app.world_mut());
             }
         }
     }

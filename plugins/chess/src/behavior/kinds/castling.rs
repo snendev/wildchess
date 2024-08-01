@@ -222,24 +222,24 @@ mod tests {
     #[test]
     fn test_castling() -> Result<()> {
         let mut app = setup_app();
-        spawn_board(&mut app.world);
+        spawn_board(app.world_mut());
 
         // prep a king, rook, and board
         let king = app
-            .world
+            .world_mut()
             .spawn((
                 PieceBundle::new(Square::try_from("e1")?.into(), Team::White),
                 CastlingBehavior,
             ))
             .id();
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("h1")?.into(), Team::White),
             CastlingTarget,
         ));
         app.update();
 
         // check that the king and rook end up on h1 and g1, respectively
-        let actions = app.world.entity(king).get::<Actions>().unwrap();
+        let actions = app.world().entity(king).get::<Actions>().unwrap();
         let castle_action = actions.0.get(&Square::try_from("h1")?).unwrap().clone();
         assert_eq!(castle_action.movement.to, Square::try_from("g1")?);
         assert_eq!(
@@ -253,24 +253,24 @@ mod tests {
     #[test]
     fn test_long_castle() -> Result<()> {
         let mut app = setup_app();
-        spawn_board(&mut app.world);
+        spawn_board(app.world_mut());
 
         // prep a king, rook, and board
         let king = app
-            .world
+            .world_mut()
             .spawn((
                 PieceBundle::new(Square::try_from("e8")?.into(), Team::White),
                 CastlingBehavior,
             ))
             .id();
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("a8")?.into(), Team::White),
             CastlingTarget,
         ));
         app.update();
 
         // check that the king and rook end up on c8 and d8, respectively
-        let actions = app.world.entity(king).get::<Actions>().unwrap();
+        let actions = app.world().entity(king).get::<Actions>().unwrap();
         let castle_action = actions.0.get(&Square::try_from("a8")?).unwrap().clone();
         assert_eq!(castle_action.movement.to, Square::try_from("c8")?);
         assert_eq!(
@@ -284,24 +284,24 @@ mod tests {
     #[test]
     fn test_960_castle() -> Result<()> {
         let mut app = setup_app();
-        spawn_board(&mut app.world);
+        spawn_board(app.world_mut());
 
         // prep a king, rook, and board
         let king = app
-            .world
+            .world_mut()
             .spawn((
                 PieceBundle::new(Square::try_from("b1")?.into(), Team::White),
                 CastlingBehavior,
             ))
             .id();
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("a1")?.into(), Team::White),
             CastlingTarget,
         ));
         app.update();
 
         // check that the king and rook end up on c8 and d8, respectively
-        let actions = app.world.entity(king).get::<Actions>().unwrap();
+        let actions = app.world().entity(king).get::<Actions>().unwrap();
         let castle_action = actions.0.get(&Square::try_from("a1")?).unwrap().clone();
         assert_eq!(castle_action.movement.to, Square::try_from("c1")?);
         assert_eq!(
@@ -315,24 +315,24 @@ mod tests {
     #[test]
     fn test_piece_in_middle() -> Result<()> {
         let mut app = setup_app();
-        let board = spawn_board(&mut app.world);
+        let board = spawn_board(app.world_mut());
 
         // prep a king, rook
         let king = app
-            .world
+            .world_mut()
             .spawn((
                 PieceBundle::new(Square::try_from("e8")?.into(), Team::White),
                 OnBoard(board),
                 CastlingBehavior,
             ))
             .id();
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("h8")?.into(), Team::White),
             OnBoard(board),
             CastlingTarget,
         ));
         // and another piece on the king's path
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("f8")?.into(), Team::Black),
             OnBoard(board),
         ));
@@ -341,7 +341,7 @@ mod tests {
         app.update();
 
         // check that the king and rook end up on c8 and d8, respectively
-        let actions = app.world.entity(king).get::<Actions>().unwrap();
+        let actions = app.world().entity(king).get::<Actions>().unwrap();
         let castle_action = actions.0.get(&Square::try_from("h8")?);
         assert_eq!(castle_action, None);
 
@@ -351,18 +351,18 @@ mod tests {
     #[test]
     fn test_king_in_check() -> Result<()> {
         let mut app = setup_app();
-        let board = spawn_board(&mut app.world);
+        let board = spawn_board(app.world_mut());
 
         // prep a king, rook
         let king = app
-            .world
+            .world_mut()
             .spawn((
                 PieceBundle::new(Square::try_from("e1")?.into(), Team::White),
                 OnBoard(board),
                 CastlingBehavior,
             ))
             .id();
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("h1")?.into(), Team::White),
             OnBoard(board),
             CastlingTarget,
@@ -380,13 +380,13 @@ mod tests {
                 ..Default::default()
             },
         );
-        app.world.spawn((threat_bundle, OnBoard(board)));
+        app.world_mut().spawn((threat_bundle, OnBoard(board)));
 
         // run a tick
         app.update();
 
         // check that the king and rook end up on c8 and d8, respectively
-        let actions = app.world.entity(king).get::<Actions>().unwrap();
+        let actions = app.world().entity(king).get::<Actions>().unwrap();
         let castle_action = actions.0.get(&Square::try_from("h8")?);
         assert_eq!(castle_action, None);
 
@@ -396,18 +396,18 @@ mod tests {
     #[test]
     fn test_threatened_movement() -> Result<()> {
         let mut app = setup_app();
-        let board = spawn_board(&mut app.world);
+        let board = spawn_board(app.world_mut());
 
         // prep a king, rook
         let king = app
-            .world
+            .world_mut()
             .spawn((
                 PieceBundle::new(Square::try_from("e8")?.into(), Team::White),
                 OnBoard(board),
                 CastlingBehavior,
             ))
             .id();
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("h8")?.into(), Team::White),
             OnBoard(board),
             CastlingTarget,
@@ -425,13 +425,13 @@ mod tests {
                 ..Default::default()
             },
         );
-        app.world.spawn((threat_bundle, OnBoard(board)));
+        app.world_mut().spawn((threat_bundle, OnBoard(board)));
 
         // run a tick
         app.update();
 
         // check that the king and rook end up on c8 and d8, respectively
-        let actions = app.world.entity(king).get::<Actions>().unwrap();
+        let actions = app.world().entity(king).get::<Actions>().unwrap();
         let castle_action = actions.0.get(&Square::try_from("h8")?);
         assert_eq!(castle_action, None);
 
@@ -441,18 +441,18 @@ mod tests {
     #[test]
     fn test_threatened_target_square() -> Result<()> {
         let mut app = setup_app();
-        let board = spawn_board(&mut app.world);
+        let board = spawn_board(app.world_mut());
 
         // prep a king, rook
         let king = app
-            .world
+            .world_mut()
             .spawn((
                 PieceBundle::new(Square::try_from("e1")?.into(), Team::White),
                 OnBoard(board),
                 CastlingBehavior,
             ))
             .id();
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("h1")?.into(), Team::White),
             OnBoard(board),
             CastlingTarget,
@@ -471,13 +471,13 @@ mod tests {
                 ..Default::default()
             },
         );
-        app.world.spawn((threat_bundle, OnBoard(board)));
+        app.world_mut().spawn((threat_bundle, OnBoard(board)));
 
         // run a tick
         app.update();
 
         // check that the king and rook end up on c8 and d8, respectively
-        let actions = app.world.entity(king).get::<Actions>().unwrap();
+        let actions = app.world().entity(king).get::<Actions>().unwrap();
         let castle_action = actions.0.get(&Square::try_from("h8")?);
         assert_eq!(castle_action, None);
 
@@ -487,24 +487,24 @@ mod tests {
     #[test]
     fn test_rook_collides() -> Result<()> {
         let mut app = setup_app();
-        let board = spawn_board(&mut app.world);
+        let board = spawn_board(app.world_mut());
 
         // prep a king, rook
         let king = app
-            .world
+            .world_mut()
             .spawn((
                 PieceBundle::new(Square::try_from("b1")?.into(), Team::White),
                 OnBoard(board),
                 CastlingBehavior,
             ))
             .id();
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("a1")?.into(), Team::White),
             OnBoard(board),
             CastlingTarget,
         ));
         // and a piece on the square the rook would travel to
-        app.world.spawn((
+        app.world_mut().spawn((
             PieceBundle::new(Square::try_from("d1")?.into(), Team::White),
             OnBoard(board),
         ));
@@ -513,7 +513,7 @@ mod tests {
         app.update();
 
         // check that the king and rook end up on c8 and d8, respectively
-        let actions = app.world.entity(king).get::<Actions>().unwrap();
+        let actions = app.world().entity(king).get::<Actions>().unwrap();
         let castle_action = actions.0.get(&Square::try_from("a1")?);
         assert_eq!(castle_action, None);
 

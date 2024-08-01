@@ -22,7 +22,7 @@ fn main() {
             LogPlugin {
                 filter: "wgpu=error,naga=warn,h3=error".to_string(),
                 level: Level::INFO,
-                update_subscriber: None,
+                ..Default::default()
             },
         ))
         .add_plugins((

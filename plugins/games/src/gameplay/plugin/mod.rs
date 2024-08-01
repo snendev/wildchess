@@ -204,7 +204,7 @@ mod tests {
             PieceSet(RandomWildLayout::pieces()),
             WinCondition::RoyalCapture,
         );
-        app.world.spawn((
+        app.world_mut().spawn((
             game_spawner.game,
             game_spawner.board,
             game_spawner.win_condition,
@@ -213,11 +213,11 @@ mod tests {
         app.update();
 
         let (piece, _, actions) =
-            get_piece_actions(&mut app.world, "a2".try_into().unwrap()).unwrap();
+            get_piece_actions(app.world_mut(), "a2".try_into().unwrap()).unwrap();
         eprintln!("Actions on spawn for {:?}: {:?}", piece, actions.0);
 
         let move_event = create_move_event(
-            &mut app.world,
+            app.world_mut(),
             "a2".try_into().unwrap(),
             "a3".try_into().unwrap(),
         );
@@ -226,11 +226,11 @@ mod tests {
             move_event.piece, move_event.action
         );
 
-        let mut move_events = app.world.resource_mut::<Events<RequestTurnEvent>>();
+        let mut move_events = app.world_mut().resource_mut::<Events<RequestTurnEvent>>();
         move_events.send(move_event);
 
         app.update();
-        let (_, _, actions) = get_piece_actions(&mut app.world, "a3".try_into().unwrap()).unwrap();
+        let (_, _, actions) = get_piece_actions(app.world_mut(), "a3".try_into().unwrap()).unwrap();
         eprintln!("Actions after move: {:?}", actions.0);
     }
 }

@@ -7,6 +7,7 @@ lto = true
 opt-level = "z"
 
 [workspace.dependencies]
+# plugins
 chess = { path = "plugins/chess" }
 games = { path = "plugins/games" }
 wild_icons = { path = "plugins/wild-icons" }
@@ -15,26 +16,28 @@ replication = { path = "plugins/replication" }
 transport = { path = "plugins/transport" }
 egui_chessboard = { path = "plugins/egui-chessboard" }
 
-bevy = { version = "0.13", default-features = false }
-bevy_app = { version = "0.13" }
-bevy_core = { version = "0.13" }
-bevy_ecs = { version = "0.13" }
-bevy_log = { version = "0.13" }
-bevy_math = { version = "0.13" }
-bevy_reflect = { version = "0.13" }
-bevy_time = { version = "0.13" }
-bevy_utils = { version = "0.13" }
-bevy_renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "77cd4f0cff5bb2f173ea4345433d96c3aef2f207" }
-rand = { version = "0.8.5" }
-renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "77cd4f0cff5bb2f173ea4345433d96c3aef2f207", default-features = false, features = [
+# bevy
+bevy = { version = "0.14", default-features = false }
+bevy_app = { version = "0.14" }
+bevy_core = { version = "0.14" }
+bevy_ecs = { version = "0.14" }
+bevy_log = { version = "0.14" }
+bevy_math = { version = "0.14" }
+bevy_reflect = { version = "0.14" }
+bevy_time = { version = "0.14" }
+bevy_utils = { version = "0.14" }
+bevy_renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "0.0.5" }
+renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "0.0.5", default-features = false, features = [
     "bevy",
     "serde",
 ] }
-bevy_replicon = { version = "0.25" }
+bevy_replicon = { version = "0.27" }
 bevy_replicon_renet2 = { path = "plugins/bevy-replicon-renet2" }
 
+# stdx
 anyhow = { version = "1.0" }
 bitflags = { version = "2.4" }
 itertools = { version = "0.12" }
+rand = { version = "0.8.5" }
 serde = { version = "1.0" }
 thiserror = { version = "1.0" }
