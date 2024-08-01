@@ -6,7 +6,7 @@ use bevy::prelude::{
     Window, WindowPlugin,
 };
 
-use chess_ui::{ChessUISystems, EguiBoardUIPlugin, HomeMenuUIPlugin, HomeMenuUISystems};
+use egui_chessboard::{ChessUISystems, EguiBoardUIPlugin, HomeMenuUIPlugin, HomeMenuUISystems};
 use games::{components::Game, GameplayPlugin};
 
 fn main() {

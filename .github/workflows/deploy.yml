@@ -86,5 +86,5 @@ jobs:
         uses: denoland/deployctl@v1
         with:
           project: wildchess
-          root: app/web
+          root: apps/web
           entrypoint: main.ts

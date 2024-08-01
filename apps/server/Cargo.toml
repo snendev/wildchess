@@ -7,12 +7,12 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-games = { path = "../../games" }
-replication = { path = "../../replication", features = ["log"] }
-transport = { path = "../../transport", features = [
+games = { workspace = true }
+replication = { workspace = true, features = ["log"] }
+transport = { workspace = true, features = [
     # "server",
     # "native_transport",
     # "steam_transport",
     "web_transport_server",
 ] }
-bevy = { version = "0.13", default-features = false }
+bevy = { workspace = true, default-features = false }

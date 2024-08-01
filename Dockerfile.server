@@ -7,6 +7,6 @@ COPY . .
 EXPOSE 7636
 EXPOSE 7637
 
-RUN cargo install --path ./app/server --profile release --locked
+RUN cargo install --path ./apps/server --profile release --locked
 
 CMD ["chess_app_server"]

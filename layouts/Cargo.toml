@@ -1,9 +1,0 @@
-[package]
-name = "layouts"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-chess = { path = "../chess" }
-rand = { version = "0.8.5" }
-serde = { version = "1.0" }

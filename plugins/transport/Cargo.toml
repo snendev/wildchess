@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [features]
 default = ["log"]
 log = ["dep:bevy_log"]
@@ -22,17 +20,14 @@ web_transport_server = ["server", "renet2/wt_server_transport"]
 steam_transport = ["dep:renet2_steam", "dep:steamworks"]
 
 [dependencies]
-bevy_app = { version = "0.13" }
-bevy_ecs = { version = "0.13" }
-bevy_log = { version = "0.13", optional = true }
-bevy_math = { version = "0.13" }
-bevy_renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "77cd4f0cff5bb2f173ea4345433d96c3aef2f207" }
-renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "77cd4f0cff5bb2f173ea4345433d96c3aef2f207", default-features = false, features = [
-    "bevy",
-    "serde",
-] }
-bevy_replicon = { version = "0.25" }
-serde = { version = "1.0", features = ["derive"] }
+bevy_app = { workspace = true }
+bevy_ecs = { workspace = true }
+bevy_log = { workspace = true, optional = true }
+bevy_math = { workspace = true }
+bevy_renet2 = { workspace = true }
+renet2 = { workspace = true }
+bevy_replicon = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 bincode = "1.3"
 base64 = { version = "0.22" }
 url = "2.5"

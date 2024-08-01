@@ -1,7 +1,7 @@
 [env]
 LIB = "web"
 PROFILE = "release"
-APP_DIR = "app/${LIB}"
+APP_DIR = "apps/${LIB}"
 
 [tasks.build-server]
 command = "cargo"
