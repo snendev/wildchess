@@ -8,6 +8,5 @@ publish = false
 
 [dependencies]
 games = { workspace = true }
-bevy = { workspace = true }
-transport = { workspace = true, features = ["client", "native_transport"] }
 egui_chessboard = { workspace = true }
+bevy = { workspace = true, default-features = true }

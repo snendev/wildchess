@@ -138,6 +138,9 @@ let currentIcons = null;
 let currentClocks = null;
 let promotionOptions = null;
 
+const DEV_IP = "127.0.0.1";
+const PROD_IP = "100.15.86.198";
+
 async function runApp() {
   postMessage({ kind: "init" });
 
@@ -145,18 +148,17 @@ async function runApp() {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
 
-  const [tokenResponse, serverIp] = await Promise.all([
+  const [tokenResponse] = await Promise.all([
     // send a network request to get the server token
     fetch("/token"),
     // also dns resolve the server
-    resolveServerIp(useDev),
     // and while waiting initialize the wasm
     wasm_bindgen("/wasm/chess_app_web_bg.wasm"),
   ]);
-
   const token = await tokenResponse.text();
+
   // build the bevy app
-  app = new wasm_bindgen.WasmApp(serverIp, token);
+  app = new wasm_bindgen.WasmApp(useDev ? DEV_IP : PROD_IP, token);
 
   // loop update calls
   while (true) {
@@ -348,16 +350,4 @@ function deepEqual(obj1, obj2) {
 
 function isPrimitive(obj) {
   return obj !== Object(obj);
-}
-
-async function resolveServerIp(useDev) {
-  if (useDev) {
-    return "127.0.0.1";
-  }
-  const dnsResponse = await fetch(
-    "https://dns.google/resolve?name=wildchess.saintnet.tech",
-  );
-  const dns = await dnsResponse.json();
-  const ip = dns.Answer[dns.Answer.length - 1].data;
-  return ip.endsWith(".") ? ip.slice(0, -1) : ip;
 }

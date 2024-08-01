@@ -15,4 +15,4 @@ transport = { workspace = true, features = [
     # "steam_transport",
     "web_transport_server",
 ] }
-bevy = { workspace = true, default-features = false }
+bevy = { workspace = true }
