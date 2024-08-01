@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use bevy_app::prelude::{App, Plugin, Update};
 use bevy_ecs::prelude::{IntoSystem, IntoSystemConfigs, Query, SystemSet};
-use bevy_replicon::prelude::{AppRuleExt, ParentSyncPlugin, RepliconCorePlugin};
+use bevy_replicon::prelude::AppRuleExt;
 
 use crate::{
     actions::{Action, Actions},
@@ -49,9 +49,6 @@ where
     Params: Send + Sync + 'static,
 {
     fn build(&self, app: &mut App) {
-        if !app.is_plugin_added::<RepliconCorePlugin>() {
-            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
-        }
         app.add_systems(
             Update,
             (

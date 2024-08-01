@@ -1,5 +1,5 @@
 use bevy_app::prelude::{App, Plugin};
-use bevy_replicon::prelude::{AppRuleExt, ParentSyncPlugin, RepliconCorePlugin};
+use bevy_replicon::prelude::AppRuleExt;
 
 pub mod actions;
 pub mod behavior;
@@ -12,9 +12,6 @@ pub struct ChessPlugin;
 
 impl Plugin for ChessPlugin {
     fn build(&self, app: &mut App) {
-        if !app.is_plugin_added::<RepliconCorePlugin>() {
-            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
-        }
         // TODO: should be plugins for each submodule instead
         app.replicate_mapped::<actions::Actions>()
             .replicate::<board::Board>()

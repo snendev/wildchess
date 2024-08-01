@@ -17,7 +17,6 @@ web_transport_client = [
     "dep:wasm-timer",
 ]
 web_transport_server = ["server", "renet2/wt_server_transport"]
-steam_transport = ["dep:renet2_steam", "dep:steamworks"]
 
 [dependencies]
 bevy_app = { workspace = true }
@@ -39,8 +38,3 @@ wasm-timer = { version = "0.2", optional = true }
 warp = { version = "0.3", default-features = false, optional = true }
 tokio = { version = "1.32", optional = true }
 fastrand = { version = "2.0", optional = true }
-## steam
-renet2_steam = { git = "https://github.com/UkoeHB/renet2", rev = "77cd4f0cff5bb2f173ea4345433d96c3aef2f207", features = [
-    "bevy",
-], optional = true }
-steamworks = { version = "0.11", optional = true }

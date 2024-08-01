@@ -7,8 +7,8 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-games = { workspace = true }
-replication = { workspace = true, features = ["log"] }
+games = { workspace = true, features = ["log"] }
+replication = { workspace = true, features = ["log", "server"] }
 transport = { workspace = true, features = [
     # "server",
     # "native_transport",

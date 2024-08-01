@@ -26,9 +26,9 @@ fn main() {
             },
         ))
         .add_plugins((
+            ReplicationPlugin,
             GameplayPlugin,
             MatchmakingPlugin,
-            ReplicationPlugin::Server,
             ServerTransportPlugin {
                 port: option_env!("SERVER_PORT").unwrap_or("7636").to_string(),
                 wt_tokens_port: option_env!("SERVER_TOKENS_PORT")

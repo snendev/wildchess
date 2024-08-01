@@ -23,9 +23,6 @@ pub struct MatchmakingPlugin;
 
 impl Plugin for MatchmakingPlugin {
     fn build(&self, app: &mut App) {
-        if !app.is_plugin_added::<RepliconCorePlugin>() {
-            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
-        }
         app.add_client_event::<RequestJoinGameEvent>(ChannelKind::Ordered)
             .add_client_event::<LeaveGameEvent>(ChannelKind::Ordered)
             .replicate::<components::GameRequestVariant>()

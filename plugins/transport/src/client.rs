@@ -21,8 +21,6 @@ impl Plugin for ClientPlugin {
             self.server_port.as_str(),
             &self.wt_server_token,
         ));
-        #[cfg(feature = "steam_transport")]
-        app.add_plugins(SteamClientTransportPlugin);
     }
 }
 
@@ -68,8 +66,6 @@ impl Plugin for NativeClientTransportPlugin {
         #[cfg(feature = "web_transport_client")]
         use wasm_timer::SystemTime;
 
-        app.add_plugins(bevy_renet2::transport::NetcodeClientPlugin);
-
         let server_addr: SocketAddr = self.server_address.clone().into();
         let current_time = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -109,38 +105,5 @@ impl Plugin for NativeClientTransportPlugin {
         let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
 
         app.insert_resource(transport);
-    }
-}
-
-// TODO: untested
-#[cfg(feature = "steam_transport")]
-struct SteamClientTransportPlugin;
-
-#[cfg(feature = "steam_transport")]
-impl Plugin for SteamClientTransportPlugin {
-    fn build(&self, app: &mut App) {
-        use bevy_app::PreUpdate;
-        use renet2_steam::bevy::{SteamClientPlugin, SteamClientTransport};
-        use steamworks::SteamId;
-
-        let (steam_client, single) = steamworks::Client::init_app(480).unwrap();
-        steam_client.networking_utils().init_relay_network_access();
-
-        app.add_plugins(SteamClientPlugin);
-        app.insert_non_send_resource(single);
-        app.add_systems(PreUpdate, Self::steam_callbacks);
-
-        let args: Vec<String> = std::env::args().collect();
-        let server_steam_id: u64 = args[1].parse().unwrap();
-        let server_steam_id = SteamId::from_raw(server_steam_id);
-        let transport = SteamClientTransport::new(&steam_client, &server_steam_id).unwrap();
-        app.insert_resource(transport);
-    }
-}
-
-#[cfg(feature = "steam_transport")]
-impl SteamClientTransportPlugin {
-    fn steam_callbacks(client: bevy_ecs::NonSend<steamworks::SingleClient>) {
-        client.run_callbacks();
     }
 }

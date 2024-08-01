@@ -7,6 +7,8 @@ license = "MIT OR Apache-2.0"
 [features]
 default = []
 log = ["dep:bevy_log"]
+client = ["bevy_replicon/client", "bevy_replicon_renet2/wt_client_transport"]
+server = ["bevy_replicon/server", "bevy_replicon_renet2/wt_server_transport"]
 
 [dependencies]
 serde = { workspace = true }

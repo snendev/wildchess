@@ -62,9 +62,9 @@ impl WasmApp {
             bevy_app::ScheduleRunnerPlugin::default(),
         ));
         app.add_plugins((
+            ReplicationPlugin,
             GameplayPlugin,
             MatchmakingPlugin,
-            ReplicationPlugin::Client,
             ClientTransportPlugin {
                 server_origin,
                 server_port,
@@ -89,6 +89,7 @@ impl WasmApp {
     }
 
     fn request_game(&mut self, game_request: WasmGameRequest, opponent: GameOpponent) {
+        log("requesting game!");
         self.0.world_mut().send_event(RequestJoinGameEvent {
             opponent,
             game: game_request.variant,

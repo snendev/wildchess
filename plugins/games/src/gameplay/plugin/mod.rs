@@ -41,9 +41,6 @@ pub struct GameplayPlugin;
 
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
-        if !app.is_plugin_added::<RepliconCorePlugin>() {
-            app.add_plugins((RepliconCorePlugin, ParentSyncPlugin));
-        }
         app.add_plugins((
             ChessPlugin,
             BehaviorsPlugin::from_input_system(systems::last_action),

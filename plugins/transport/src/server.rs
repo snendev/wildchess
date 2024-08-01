@@ -23,9 +23,6 @@ impl Plugin for ServerPlugin {
             self.port.as_str(),
             self.wt_tokens_port.as_str(),
         ));
-
-        // #[cfg(feature = "steam_transport")]
-        // app.add_plugins(SteamServerTransportPlugin);
     }
 }
 
@@ -71,10 +68,7 @@ impl Plugin for NativeServerTransportPlugin {
         use bevy_renet2::renet2::transport::{
             NetcodeServerTransport, ServerAuthentication, ServerSetupConfig,
         };
-        use bevy_renet2::transport::NetcodeServerPlugin;
         use std::time::SystemTime;
-
-        app.add_plugins(NetcodeServerPlugin);
 
         let public_addr: SocketAddr = self.server_address.clone().into();
 
@@ -137,40 +131,3 @@ impl Plugin for NativeServerTransportPlugin {
         app.insert_resource(transport);
     }
 }
-
-// TODO: untested
-// #[cfg(feature = "steam_transport")]
-// struct SteamServerTransportPlugin;
-
-// #[cfg(feature = "steam_transport")]
-// impl Plugin for SteamServerTransportPlugin {
-//     fn build(&self, app: &mut App) {
-//         use bevy_app::PreUpdate;
-//         use renet2_steam::bevy::{SteamServerConfig, SteamServerPlugin, SteamServerTransport};
-//         use renet2_steam::AccessPermission;
-
-//         let (steam_client, single) = steamworks::Client::init_app(480).unwrap();
-
-//         let server: RenetServer = RenetServer::new(connection_config());
-
-//         let steam_transport_config = SteamServerConfig {
-//             max_clients: 10,
-//             access_permission: AccessPermission::Public,
-//         };
-//         let transport = SteamServerTransport::new(&steam_client, steam_transport_config).unwrap();
-
-//         app.add_plugins(SteamServerPlugin);
-//         app.insert_resource(server);
-//         app.insert_non_send_resource(transport);
-//         app.insert_non_send_resource(single);
-
-//         app.add_systems(PreUpdate, Self::steam_callbacks);
-//     }
-// }
-
-// #[cfg(feature = "steam_transport")]
-// impl SteamServerTransportPlugin {
-//     fn steam_callbacks(client: bevy_ecs::prelude::NonSend<steamworks::SingleClient>) {
-//         client.run_callbacks();
-//     }
-// }

@@ -15,7 +15,7 @@ log = ["games/log"]
 
 [dependencies]
 games = { workspace = true }
-replication = { workspace = true }
+replication = { workspace = true, features = ["client"] }
 transport = { workspace = true, features = ["web_transport_client"] }
 wild_icons = { workspace = true }
 bevy_app = { workspace = true }
