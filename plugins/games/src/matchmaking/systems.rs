@@ -1,24 +1,18 @@
-use bevy_core::Name;
-use bevy_ecs::prelude::{
-    Added, Commands, Entity, EventReader, Query, RemovedComponents, ResMut, With, Without,
-};
-
-use bevy_replicon::prelude::{ConnectedClients, FromClient, Replicated};
-
-use chess::{
-    behavior::{BoardPieceCache, BoardThreatsCache},
-    board::{Board, OnBoard},
-    pieces::{PieceBundle, Position, Royal},
-    team::Team,
-};
 use itertools::Itertools;
-use layouts::{FeaturedWildLayout, PieceSpecification, RandomWildLayout};
+
+use bevy_ecs::prelude::{
+    Commands, Entity, EventReader, Query, RemovedComponents, ResMut, With, Without,
+};
+use bevy_replicon::prelude::{ConnectedClients, FromClient};
+
+use chess::team::Team;
+use layouts::{FeaturedWildLayout, RandomWildLayout};
 use replication::Client;
 
 use crate::{
     components::{
-        ActionHistory, ClockConfiguration, GameBoard, GameRequest, GameRequestBundle,
-        GameRequestClock, GameRequestVariant, HasTurn, History, InGame, Ply,
+        ClockConfiguration, GameBoard, GameRequest, GameRequestBundle, GameRequestClock,
+        GameRequestVariant, HasTurn, InGame,
     },
     gameplay::components::{Game, GameSpawner, PieceSet, Player, WinCondition},
 };
@@ -234,85 +228,6 @@ pub(super) fn assign_game_teams(
             }
             if let Some(clock) = clock {
                 builder.insert(clock.clock.clone());
-            }
-        }
-    }
-}
-
-// TODO: this system belongs in the other plugin
-pub(super) fn spawn_game_entities(
-    mut commands: Commands,
-    query: Query<(Entity, &PieceSet, &GameBoard), Added<Game>>,
-) {
-    for (game_entity, piece_set, game_board) in query.iter() {
-        #[cfg(feature = "log")]
-        bevy_log::info!("Spawning pieces for game {:?}", game_entity);
-
-        // add move history to the game
-        commands
-            .entity(game_entity)
-            .insert((Ply::default(), ActionHistory::default()));
-
-        // create an entity to manage board properties
-        let board = match game_board {
-            GameBoard::Chess => Board::chess_board(),
-        };
-        // TODO: Some sort of board bundle?
-        let board_entity = commands
-            .spawn((
-                board,
-                InGame(game_entity),
-                Name::new(format!("Board (Game {:?})", game_entity)),
-                BoardPieceCache::default(),
-                BoardThreatsCache::default(),
-                Replicated,
-            ))
-            .id();
-
-        // spawn all game pieces
-        for team in [Team::White, Team::Black].into_iter() {
-            for PieceSpecification {
-                piece,
-                start_square,
-            } in piece_set.0.iter()
-            {
-                let start_square = start_square.reorient(team.orientation(), &board);
-                let name = Name::new(format!("{:?} {}-{:?}", team, start_square, piece.identity));
-
-                let mut piece_builder = commands.spawn((
-                    name,
-                    piece.identity,
-                    PieceBundle::new(start_square.into(), team),
-                    InGame(game_entity),
-                    OnBoard(board_entity),
-                    History::<Position>::default(),
-                    Replicated,
-                ));
-
-                if piece.royal.is_some() {
-                    piece_builder.insert(Royal);
-                }
-                if let Some(mutation) = &piece.mutation {
-                    piece_builder.insert(mutation.clone());
-                }
-                if let Some(behavior) = piece.behaviors.mimic {
-                    piece_builder.insert(behavior);
-                }
-                if let Some(behavior) = &piece.behaviors.pattern {
-                    piece_builder.insert(behavior.clone());
-                }
-                if let Some(behavior) = &piece.behaviors.relay {
-                    piece_builder.insert(behavior.clone());
-                }
-                if let Some(behavior) = piece.behaviors.en_passant {
-                    piece_builder.insert(behavior);
-                }
-                if let Some(behavior) = piece.behaviors.castling {
-                    piece_builder.insert(behavior);
-                }
-                if let Some(behavior) = piece.behaviors.castling_target {
-                    piece_builder.insert(behavior);
-                }
             }
         }
     }

@@ -9,7 +9,7 @@ log = ["dep:bevy_log", "chess/log"]
 reflect = ["dep:bevy_reflect", "chess/reflect"]
 
 [dependencies]
-chess = { workspace = true, default-features = false }
+chess = { workspace = true }
 layouts = { workspace = true }
 replication = { workspace = true }
 bevy_app = { workspace = true }

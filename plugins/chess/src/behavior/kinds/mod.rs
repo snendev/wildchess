@@ -12,8 +12,8 @@ pub use pattern::PatternBehavior;
 mod en_passant;
 pub use en_passant::EnPassantBehavior;
 
-mod mimic;
-pub use mimic::MimicBehavior;
+// mod mimic;
+// pub use mimic::MimicBehavior;
 
 mod relay;
 pub use relay::RelayBehavior;

@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::prelude::{Commands, Component, Entity, In, Query};
+use bevy_ecs::prelude::{Commands, Component, Entity, Query};
 #[cfg(feature = "reflect")]
 use bevy_reflect::prelude::Reflect;
 use bevy_utils::HashMap;
 
 use crate::{
-    actions::{Action, Actions},
+    actions::{Action, Actions, LastAction},
     behavior::BoardPieceCache,
     board::{Board, OnBoard, Square},
     pattern::Pattern,
@@ -87,9 +87,8 @@ impl Behavior for PatternBehavior {
     type ActionsCache = PatternActionsCache;
 
     fn calculate_actions_system(
-        In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache, Option<&LastAction>)>,
         mut piece_query: Query<(
             Entity,
             Option<&PatternBehavior>,
@@ -100,7 +99,7 @@ impl Behavior for PatternBehavior {
             &OnBoard,
         )>,
     ) {
-        for (board_entity, board, pieces) in board_query.iter() {
+        for (board_entity, board, pieces, last_action) in board_query.iter() {
             for (entity, behavior, cache, position, orientation, team, _) in piece_query
                 .iter_mut()
                 .filter(|(_, _, _, _, _, _, on_board)| on_board.0 == board_entity)
@@ -112,7 +111,7 @@ impl Behavior for PatternBehavior {
                         team,
                         board,
                         &pieces.teams,
-                        last_action.as_ref(),
+                        last_action.map(|action| &action.0),
                     ));
                     if let Some(mut cache) = cache {
                         *cache = actions;

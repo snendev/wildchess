@@ -312,7 +312,7 @@ impl Pattern {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::board::{Board, File};
 
     use super::*;

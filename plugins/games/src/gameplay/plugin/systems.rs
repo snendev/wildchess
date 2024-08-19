@@ -1,21 +1,30 @@
-use bevy_ecs::prelude::{Commands, Entity, EventReader, EventWriter, Query, With};
-#[cfg(feature = "log")]
-use bevy_log::debug;
+use bevy_core::Name;
+use bevy_ecs::{
+    prelude::{Commands, Entity, EventReader, EventWriter, Query, With},
+    query::Added,
+};
 
-use bevy_replicon::prelude::{FromClient, SendMode, ToClients};
+use bevy_replicon::{
+    core::Replicated,
+    prelude::{FromClient, SendMode, ToClients},
+};
 
 use chess::{
-    actions::Action,
-    behavior::PieceBehaviorsBundle,
+    actions::LastAction,
+    behavior::{BoardPieceCache, BoardThreatsCache, PieceBehaviorsBundle},
     board::{Board, OnBoard},
-    pieces::{Mutation, MutationCondition, PieceIdentity, Position, Royal},
+    pieces::{Mutation, MutationCondition, PieceBundle, PieceIdentity, Position, Royal},
     team::Team,
 };
+use layouts::PieceSpecification;
 use replication::Client;
 
 use crate::{
-    components::{ActionHistory, Clock, Game, HasTurn, InGame, IsActiveGame, Ply, WinCondition},
-    gameplay::components::{GameOver, LastMove},
+    components::{
+        ActionHistory, Clock, Game, GameBoard, HasTurn, History, InGame, IsActiveGame, PieceSet,
+        Ply, WinCondition,
+    },
+    gameplay::components::GameOver,
 };
 
 use super::{RequestTurnEvent, RequireMutationEvent, TurnEvent};
@@ -146,6 +155,9 @@ pub(super) fn execute_turn_movement(
                         }
                     })
             {
+                // #[cfg(feature = "log")]
+                // bevy_log::info!("Piece {}", );
+
                 // keep the entity around so that we can maintain its position history
                 // and visualize it when viewing old ply
                 commands.entity(captured_piece).remove::<Position>();
@@ -199,10 +211,6 @@ pub(super) fn execute_turn_mutations(
                 commands.entity(event.piece).insert(*mutation_behavior);
             }
 
-            if let Some(mutation_behavior) = &mutated_piece.behaviors.mimic {
-                commands.entity(event.piece).insert(*mutation_behavior);
-            }
-
             if let Some(mutation_behavior) = &mutated_piece.behaviors.relay {
                 commands
                     .entity(event.piece)
@@ -215,16 +223,21 @@ pub(super) fn execute_turn_mutations(
 pub(super) fn set_last_move(
     mut commands: Commands,
     mut turn_reader: EventReader<TurnEvent>,
-    mut boards: Query<(Entity, Option<&mut LastMove>), With<Board>>,
+    mut boards: Query<(Entity, Option<&mut LastAction>), With<Board>>,
+    mut games: Query<(Entity, Option<&mut LastAction>), With<Game>>,
 ) {
     for event in turn_reader.read() {
-        if let Ok((entity, maybe_move)) = boards.get_mut(event.board) {
+        for (entity, maybe_move) in boards
+            .get_mut(event.board)
+            .into_iter()
+            .chain(games.get_mut(event.game).into_iter())
+        {
             if let Some(mut last_move) = maybe_move {
                 last_move.0 = event.action.clone();
             } else {
                 commands
                     .entity(entity)
-                    .insert(LastMove(event.action.clone()));
+                    .insert(LastAction(event.action.clone()));
             }
         }
     }
@@ -274,19 +287,16 @@ pub(super) fn track_turn_history(
         // TODO: in a future with 4-player, does this lead to bugs?
         if *game_ply != *ply {
             #[cfg(feature = "log")]
-            debug!(
+            bevy_log::warn!(
                 "Turn ply {:?} does not match current game ply {:?}",
-                *ply, *game_ply
+                *ply,
+                *game_ply
             );
             continue;
         }
         history.push(*piece, action.clone());
         game_ply.increment();
     }
-}
-
-pub(super) fn last_action(mut reader: EventReader<TurnEvent>) -> Option<Action> {
-    reader.read().last().map(|event| event.action.clone())
 }
 
 pub(super) fn detect_gameover(
@@ -307,11 +317,13 @@ pub(super) fn detect_gameover(
                         == 0
                 };
                 if all_captured(Team::White) {
+                    bevy_log::info!("Game {game_entity} over! Winner: Black");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::Black));
                 }
                 if all_captured(Team::Black) {
+                    bevy_log::info!("Game {game_entity} over! Winner: White");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::White));
@@ -328,11 +340,13 @@ pub(super) fn detect_gameover(
                         > 0
                 };
                 if any_captured(Team::White) {
+                    bevy_log::info!("Game {game_entity} over! Winner: Black");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::Black));
                 }
                 if any_captured(Team::Black) {
+                    bevy_log::info!("Game {game_entity} over! Winner: White");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::White));
@@ -343,6 +357,82 @@ pub(super) fn detect_gameover(
             }
             WinCondition::RaceToRegion(_goal_squares) => {
                 unimplemented!("TODO: Implement Racing Kings!")
+            }
+        }
+    }
+}
+
+pub(super) fn spawn_game_entities(
+    mut commands: Commands,
+    query: Query<(Entity, &PieceSet, &GameBoard), Added<Game>>,
+) {
+    for (game_entity, piece_set, game_board) in query.iter() {
+        #[cfg(feature = "log")]
+        bevy_log::info!("Spawning pieces for game {:?}", game_entity);
+
+        // add move history to the game
+        commands
+            .entity(game_entity)
+            .insert((Ply::default(), ActionHistory::default()));
+
+        // create an entity to manage board properties
+        let board = match game_board {
+            GameBoard::Chess => Board::chess_board(),
+        };
+        // TODO: Some sort of board bundle?
+        let board_entity = commands
+            .spawn((
+                board,
+                InGame(game_entity),
+                Name::new(format!("Board (Game {:?})", game_entity)),
+                BoardPieceCache::default(),
+                BoardThreatsCache::default(),
+                Replicated,
+            ))
+            .id();
+
+        // spawn all game pieces
+        for team in [Team::White, Team::Black].into_iter() {
+            for PieceSpecification {
+                piece,
+                start_square,
+            } in piece_set.0.iter()
+            {
+                let start_square = start_square.reorient(team.orientation(), &board);
+                let name = Name::new(format!("{:?} {}-{:?}", team, start_square, piece.identity));
+                bevy_log::info!("...spawning piece: {}", name);
+
+                let mut piece_builder = commands.spawn((
+                    name,
+                    piece.identity,
+                    PieceBundle::new(start_square.into(), team),
+                    InGame(game_entity),
+                    OnBoard(board_entity),
+                    History::<Position>::default(),
+                    Replicated,
+                ));
+
+                if piece.royal.is_some() {
+                    piece_builder.insert(Royal);
+                }
+                if let Some(mutation) = &piece.mutation {
+                    piece_builder.insert(mutation.clone());
+                }
+                if let Some(behavior) = &piece.behaviors.pattern {
+                    piece_builder.insert(behavior.clone());
+                }
+                if let Some(behavior) = &piece.behaviors.relay {
+                    piece_builder.insert(behavior.clone());
+                }
+                if let Some(behavior) = piece.behaviors.en_passant {
+                    piece_builder.insert(behavior);
+                }
+                if let Some(behavior) = piece.behaviors.castling {
+                    piece_builder.insert(behavior);
+                }
+                if let Some(behavior) = piece.behaviors.castling_target {
+                    piece_builder.insert(behavior);
+                }
             }
         }
     }

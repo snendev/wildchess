@@ -19,13 +19,6 @@ use super::{Game, InGame};
 #[derive(Deserialize, Serialize)]
 pub struct HasTurn;
 
-#[derive(Clone, Debug)]
-#[derive(Component)]
-#[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
-pub struct LastMove(pub Action);
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]

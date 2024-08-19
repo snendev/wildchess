@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::prelude::{Commands, Component, Entity, In, Query};
+use bevy_ecs::prelude::{Commands, Component, Entity, Query};
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 use bevy_utils::HashMap;
 
 use crate::{
-    actions::{Action, Actions},
+    actions::{Actions, LastAction},
     behavior::BoardPieceCache,
     board::{Board, OnBoard, Square},
     pattern::Pattern,
@@ -56,9 +56,8 @@ impl Behavior for RelayBehavior {
     type ActionsCache = RelayActionsCache;
 
     fn calculate_actions_system(
-        In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache, Option<&LastAction>)>,
         mut piece_query: Query<(
             Entity,
             Option<&RelayBehavior>,
@@ -69,7 +68,7 @@ impl Behavior for RelayBehavior {
             &OnBoard,
         )>,
     ) {
-        for (board_entity, board, pieces) in board_query.iter() {
+        for (board_entity, board, pieces, last_action) in board_query.iter() {
             // TODO: pre-filter this map so that it only stores the Squares with pieces on them
             // additionally, this could then only push patterns that match the appropriate team
             let mut relay_pattern_map: HashMap<Square, Vec<(Pattern, Team)>> = HashMap::new();
@@ -119,7 +118,7 @@ impl Behavior for RelayBehavior {
                         team,
                         board,
                         &pieces.teams,
-                        last_action.as_ref(),
+                        last_action.map(|action: &LastAction| &action.0),
                     ));
                     if let Some(mut cache) = cache {
                         *cache = actions;

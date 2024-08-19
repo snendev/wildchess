@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_ecs::prelude::{Bundle, Commands, Component, Entity, In, Query};
+use bevy_ecs::prelude::{Bundle, Commands, Component, Entity, Query};
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 
 use crate::{
-    actions::{Action, Actions},
+    actions::{Actions, LastAction},
     board::{Board, OnBoard},
     pieces::{Orientation, Position},
     team::Team,
@@ -16,8 +16,7 @@ pub use caches::{BoardPieceCache, BoardThreat, BoardThreatsCache};
 
 mod kinds;
 pub use kinds::{
-    CastlingBehavior, CastlingTarget, EnPassantBehavior, MimicBehavior, PatternBehavior,
-    RelayBehavior,
+    CastlingBehavior, CastlingTarget, EnPassantBehavior, PatternBehavior, RelayBehavior,
 };
 
 mod plugin;
@@ -35,9 +34,8 @@ pub trait Behavior {
     // Be sure to clear the cache each time this system is run.
     #[allow(clippy::type_complexity)]
     fn calculate_actions_system(
-        last_action: In<Option<Action>>,
         commands: Commands,
-        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache, Option<&LastAction>)>,
         piece_query: Query<(
             Entity,
             Option<&Self>,
@@ -86,7 +84,6 @@ pub trait Behavior {
 pub struct PieceBehaviors {
     pub pattern: Option<PatternBehavior>,
     pub en_passant: Option<EnPassantBehavior>,
-    pub mimic: Option<MimicBehavior>,
     pub relay: Option<RelayBehavior>,
     pub castling: Option<CastlingBehavior>,
     pub castling_target: Option<CastlingTarget>,
@@ -110,15 +107,6 @@ impl From<EnPassantBehavior> for PieceBehaviors {
     }
 }
 
-impl From<MimicBehavior> for PieceBehaviors {
-    fn from(behavior: MimicBehavior) -> Self {
-        PieceBehaviors {
-            mimic: Some(behavior),
-            ..Default::default()
-        }
-    }
-}
-
 impl From<RelayBehavior> for PieceBehaviors {
     fn from(behavior: RelayBehavior) -> Self {
         PieceBehaviors {
@@ -136,6 +124,5 @@ impl From<RelayBehavior> for PieceBehaviors {
 pub struct PieceBehaviorsBundle {
     pub pattern: PatternBehavior,
     pub en_passant: EnPassantBehavior,
-    pub mimic: MimicBehavior,
     pub relay: RelayBehavior,
 }

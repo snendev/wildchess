@@ -1,12 +1,10 @@
-use std::marker::PhantomData;
-
 use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::prelude::{IntoSystem, IntoSystemConfigs, Query, SystemSet};
+use bevy_ecs::prelude::{IntoSystemConfigs, Query, SystemSet};
 use bevy_replicon::prelude::AppRuleExt;
 
 use crate::{
-    actions::{Action, Actions},
-    behavior::{Behavior, EnPassantBehavior, MimicBehavior, PatternBehavior, RelayBehavior},
+    actions::Actions,
+    behavior::{Behavior, EnPassantBehavior, PatternBehavior, RelayBehavior},
 };
 
 use super::{
@@ -17,25 +15,7 @@ use super::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, SystemSet)]
 pub struct BehaviorsSystems;
 
-pub struct BehaviorsPlugin<System, Params>
-where
-    System: IntoSystem<(), Option<Action>, Params>,
-{
-    on_action: System,
-    marker: PhantomData<Params>,
-}
-
-impl<System, Params> BehaviorsPlugin<System, Params>
-where
-    System: IntoSystem<(), Option<Action>, Params>,
-{
-    pub fn from_input_system(input_system: System) -> Self {
-        Self {
-            on_action: input_system,
-            marker: PhantomData::<Params>,
-        }
-    }
-}
+pub struct BehaviorsPlugin;
 
 fn clear_actions(mut piece_query: Query<&mut Actions>) {
     for mut actions in piece_query.iter_mut() {
@@ -43,34 +23,20 @@ fn clear_actions(mut piece_query: Query<&mut Actions>) {
     }
 }
 
-impl<System, Params> Plugin for BehaviorsPlugin<System, Params>
-where
-    System: IntoSystem<(), Option<Action>, Params> + Clone + Send + Sync + 'static,
-    Params: Send + Sync + 'static,
-{
+impl Plugin for BehaviorsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
             (
                 (clear_actions, BoardPieceCache::track_pieces),
                 (
-                    self.on_action
-                        .clone()
-                        .pipe(PatternBehavior::calculate_actions_system),
-                    self.on_action
-                        .clone()
-                        .pipe(EnPassantBehavior::calculate_actions_system),
-                    self.on_action
-                        .clone()
-                        .pipe(MimicBehavior::calculate_actions_system),
-                    self.on_action
-                        .clone()
-                        .pipe(RelayBehavior::calculate_actions_system),
+                    PatternBehavior::calculate_actions_system,
+                    EnPassantBehavior::calculate_actions_system,
+                    RelayBehavior::calculate_actions_system,
                 ),
                 (
                     PatternBehavior::take_actions_system,
                     EnPassantBehavior::take_actions_system,
-                    MimicBehavior::take_actions_system,
                     RelayBehavior::take_actions_system,
                 ),
                 BoardThreatsCache::track_pieces,
@@ -90,7 +56,6 @@ where
             .replicate::<CastlingBehavior>()
             .replicate::<CastlingTarget>()
             .replicate::<EnPassantBehavior>()
-            .replicate::<RelayBehavior>()
-            .replicate::<MimicBehavior>();
+            .replicate::<RelayBehavior>();
     }
 }

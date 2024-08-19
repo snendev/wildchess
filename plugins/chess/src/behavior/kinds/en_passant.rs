@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::prelude::{Commands, Component, Entity, In, Query};
+use bevy_ecs::prelude::{Commands, Component, Entity, Query};
 #[cfg(feature = "reflect")]
 use bevy_reflect::prelude::Reflect;
 use bevy_utils::HashMap;
 
 use crate::{
-    actions::{Action, Actions},
+    actions::{Action, Actions, LastAction},
     behavior::BoardPieceCache,
     board::{Board, OnBoard, Square},
     pattern::Pattern,
@@ -87,9 +87,8 @@ impl Behavior for EnPassantBehavior {
     type ActionsCache = EnPassantActionsCache;
 
     fn calculate_actions_system(
-        In(last_action): In<Option<Action>>,
         mut commands: Commands,
-        board_query: Query<(Entity, &Board, &BoardPieceCache)>,
+        board_query: Query<(Entity, &Board, &BoardPieceCache, Option<&LastAction>)>,
         mut piece_query: Query<(
             Entity,
             Option<&EnPassantBehavior>,
@@ -100,7 +99,7 @@ impl Behavior for EnPassantBehavior {
             &OnBoard,
         )>,
     ) {
-        for (board_entity, board, _pieces) in board_query.iter() {
+        for (board_entity, board, _pieces, last_action) in board_query.iter() {
             let en_passant_pieces = piece_query
                 .iter()
                 .filter(|(_, _, _, _, _, _, on_board)| on_board.0 == board_entity)
@@ -120,7 +119,7 @@ impl Behavior for EnPassantBehavior {
                         team,
                         board,
                         &en_passant_pieces,
-                        last_action.as_ref(),
+                        last_action.map(|action: &LastAction| &action.0),
                     ));
                     if let Some(mut cache) = cache {
                         *cache = actions;
@@ -134,7 +133,7 @@ impl Behavior for EnPassantBehavior {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use bevy_utils::HashSet;
 
     use crate::{
@@ -192,10 +191,13 @@ mod test {
     fn en_passant_action() -> Action {
         let mut captures = HashSet::new();
         captures.insert(en_passant_capture_square());
+        let mut threats = HashSet::new();
+        threats.insert(en_passant_target_square());
         Action {
             movement: Movement::new(origin(), en_passant_target_square(), Orientation::Up),
             using_pattern: Some(Pattern::en_passant()),
             captures,
+            threats,
             ..Default::default()
         }
     }

@@ -41,11 +41,6 @@ impl<'a> Widget for PieceInspectorWidget<'a> {
                     ui.label(describe_pattern(pattern, self.piece.team));
                 }
             }
-            if self.piece.mimic_behavior.is_some() {
-                ui.label(
-                    RichText::new("Piece can execute the pattern used in the last turn.").size(24.),
-                );
-            }
             // TODO: also consider mutations
         })
         .response

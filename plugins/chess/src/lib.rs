@@ -14,6 +14,7 @@ impl Plugin for ChessPlugin {
     fn build(&self, app: &mut App) {
         // TODO: should be plugins for each submodule instead
         app.replicate_mapped::<actions::Actions>()
+            .replicate_mapped::<actions::LastAction>()
             .replicate::<board::Board>()
             .replicate_mapped::<board::OnBoard>()
             .replicate::<pieces::Mutation>()
@@ -26,6 +27,7 @@ impl Plugin for ChessPlugin {
         #[cfg(feature = "reflect")]
         app.register_type::<actions::Action>()
             .register_type::<actions::Actions>()
+            .register_type::<actions::LastAction>()
             .register_type::<behavior::PatternBehavior>()
             .register_type::<board::Square>()
             .register_type::<board::Rank>()

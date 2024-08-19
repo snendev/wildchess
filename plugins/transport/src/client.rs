@@ -60,7 +60,7 @@ impl NativeClientTransportPlugin {
 #[cfg(any(feature = "web_transport_client", feature = "native_transport"))]
 impl Plugin for NativeClientTransportPlugin {
     fn build(&self, app: &mut App) {
-        use renet2::transport::{ClientAuthentication, NetcodeClientTransport};
+        use renet2::transport::ClientAuthentication;
         #[cfg(not(feature = "web_transport_client"))]
         use std::time::SystemTime;
         #[cfg(feature = "web_transport_client")]
@@ -78,19 +78,21 @@ impl Plugin for NativeClientTransportPlugin {
             server_addr,
             user_data: None,
         };
-        #[cfg(feature = "native_transport")]
-        let socket = {
-            let udp_socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
-            renet2::transport::NativeSocket::new(udp_socket).unwrap()
-        };
+        // #[cfg(feature = "native_transport")]
+        // let socket = {
+        //     let udp_socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+        //     renet2::transport::NativeSocket::new(udp_socket).unwrap()
+        // };
 
         // TODO: to support this at this layer we would need to pass the client socket in from above
         // #[cfg(feature = "memory_transport")]
         // let socket = renet2::transport::MemorySocketClient::new(client_id as u16, client_memory_socket).unwrap();
         #[cfg(all(feature = "web_transport_client", target_family = "wasm"))]
-        let socket = {
+        {
             use base64::Engine;
-            use renet2::transport::{ServerCertHash, WebTransportClientConfig};
+            use renet2::transport::{
+                NetcodeClientTransport, ServerCertHash, WebTransportClientConfig,
+            };
 
             let hash = base64::engine::general_purpose::STANDARD
                 .decode(self.server_token.clone())
@@ -99,11 +101,13 @@ impl Plugin for NativeClientTransportPlugin {
                 server_addr,
                 Vec::from([ServerCertHash::try_from(hash).unwrap()]),
             );
-            renet2::transport::WebTransportClient::new(config)
+            let socket = renet2::transport::WebTransportClient::new(config);
+
+            let transport =
+                NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
+            app.insert_resource(transport);
         };
-
-        let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
-
-        app.insert_resource(transport);
+        #[cfg(not(all(feature = "web_transport_client", target_family = "wasm")))]
+        let _ = (authentication, app);
     }
 }

@@ -15,7 +15,7 @@ pub use game::{
     WinCondition,
 };
 mod turns;
-pub use turns::{ActionHistory, HasTurn, History, LastMove, Ply};
+pub use turns::{ActionHistory, HasTurn, History, Ply};
 
 #[derive(Clone, Debug)]
 #[derive(Component)]

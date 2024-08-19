@@ -76,6 +76,16 @@ impl Action {
     }
 }
 
+impl MapEntities for Action {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.side_effects = self
+            .side_effects
+            .iter()
+            .map(|(entity, movement)| (mapper.map_entity(*entity), movement.clone()))
+            .collect();
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 #[derive(Component)]
 #[derive(Deserialize, Serialize)]
@@ -105,11 +115,20 @@ impl Actions {
 impl MapEntities for Actions {
     fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
         for (_, action) in self.0.iter_mut() {
-            action.side_effects = action
-                .side_effects
-                .iter()
-                .map(|(entity, movement)| (mapper.map_entity(*entity), movement.clone()))
-                .collect();
+            action.map_entities(mapper);
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[derive(Component)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
+pub struct LastAction(pub Action);
+
+impl MapEntities for LastAction {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.0.map_entities(mapper);
     }
 }

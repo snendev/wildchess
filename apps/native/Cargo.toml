@@ -9,4 +9,26 @@ publish = false
 [dependencies]
 games = { workspace = true }
 egui_chessboard = { workspace = true }
-bevy = { workspace = true, default-features = true }
+bevy = { workspace = true, features = [
+    # default-features excluding audio, vorbis, other unneeded ones
+    "bevy_asset",
+    "bevy_state",
+    "bevy_color",
+    "bevy_scene",
+    "bevy_winit",
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_text",
+    "bevy_ui",
+    "multi_threaded",
+    "png",
+    "hdr",
+    "x11",
+    "android_shared_stdcxx",
+    "tonemapping_luts",
+    "smaa_luts",
+    "default_font",
+    "webgl2",
+    "sysinfo_plugin",
+] }
