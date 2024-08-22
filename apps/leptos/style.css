@@ -1,0 +1,70 @@
+:root {
+    /* Consider adjusting this color to match your splash screen! */
+    --loading-screen-bg-color: #282828;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+html,
+body,
+main {
+    width: 100%;
+    height: 100%;
+    background: #f2f2f2;
+}
+
+.center {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.scoreboard {
+    width: 200px;
+    margin: 0 auto 40px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    border: 1px solid #414141;
+}
+
+.arena {
+    display: flex;
+    gap: 80px;
+    flex-direction: row;
+    justify-content: space-evenly;
+    font-size: 64px;
+}
+
+.arena-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 12px;
+}
+
+.letter-slot {
+    width: 72px;
+    height: 72px;
+    border: 2px solid #313131;
+    border-top: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.friendly {
+    background: #7399b1;
+}
+
+.enemy {
+    background: #b07d80;
+}

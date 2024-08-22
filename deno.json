@@ -1,0 +1,11 @@
+{
+    "imports": {
+        "jsr:@std/http": "jsr:@std/http"
+    },
+    "tasks": {
+        "build": "trunk build --release",
+        "serve": "deno run -A webserver.ts",
+        "run-server": "cargo run -p wildchess-server --release",
+        "clippy": "cargo clippy --workspace --all-targets --all-features -- --deny warnings"
+    }
+}
