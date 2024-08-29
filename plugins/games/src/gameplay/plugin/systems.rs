@@ -317,12 +317,14 @@ pub(super) fn detect_gameover(
                         == 0
                 };
                 if all_captured(Team::White) {
+                    #[cfg(feature = "log")]
                     bevy_log::info!("Game {game_entity} over! Winner: Black");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::Black));
                 }
                 if all_captured(Team::Black) {
+                    #[cfg(feature = "log")]
                     bevy_log::info!("Game {game_entity} over! Winner: White");
                     commands
                         .entity(game_entity)
@@ -340,12 +342,14 @@ pub(super) fn detect_gameover(
                         > 0
                 };
                 if any_captured(Team::White) {
+                    #[cfg(feature = "log")]
                     bevy_log::info!("Game {game_entity} over! Winner: Black");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::Black));
                 }
                 if any_captured(Team::Black) {
+                    #[cfg(feature = "log")]
                     bevy_log::info!("Game {game_entity} over! Winner: White");
                     commands
                         .entity(game_entity)
@@ -400,6 +404,7 @@ pub(super) fn spawn_game_entities(
             {
                 let start_square = start_square.reorient(team.orientation(), &board);
                 let name = Name::new(format!("{:?} {}-{:?}", team, start_square, piece.identity));
+                #[cfg(feature = "log")]
                 bevy_log::info!("...spawning piece: {}", name);
 
                 let mut piece_builder = commands.spawn((

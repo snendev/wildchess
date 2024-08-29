@@ -56,6 +56,8 @@ pub(super) fn handle_game_requests(
             GameOpponent::Local => {
                 let player1 = commands.spawn(Player).id();
                 let player2 = commands.spawn(Player).id();
+                #[cfg(feature = "log")]
+                bevy_log::info!("Starting a local game with new players: {player1}, {player2}");
                 spawn_game(
                     &mut commands,
                     player1,

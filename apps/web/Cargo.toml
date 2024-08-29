@@ -11,10 +11,11 @@ name = "chess_app_web"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-log = ["games/log"]
+default = ["log"]
+log = ["dep:bevy_log", "games/log", "transport/log"]
 
 [dependencies]
-games = { workspace = true }
+games = { workspace = true, features = ["log"] }
 replication = { workspace = true, features = ["client"] }
 transport = { workspace = true, features = ["web_transport_client"] }
 wild_icons = { workspace = true }
@@ -22,6 +23,7 @@ bevy_app = { workspace = true }
 bevy_ecs = { workspace = true }
 bevy_core = { workspace = true }
 bevy_time = { workspace = true }
+bevy_log = { workspace = true, optional = true }
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 console_error_panic_hook = "0.1.7"
 # fix a bevy_asset bug by including the required feature
