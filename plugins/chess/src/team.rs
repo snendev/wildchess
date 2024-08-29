@@ -25,4 +25,11 @@ impl Team {
             Team::Black => Orientation::Down,
         }
     }
+
+    pub fn get_next(&self) -> Self {
+        match self {
+            Team::White => Team::Black,
+            Team::Black => Team::White,
+        }
+    }
 }

@@ -41,12 +41,14 @@ pub struct PieceQuery {
 pub struct PieceData<'a> {
     pub entity: Entity,
     pub in_game: &'a InGame,
+    #[allow(dead_code)]
     pub on_board: &'a OnBoard,
     pub team: &'a Team,
     pub actions: &'a Actions,
     pub position: Option<&'a Position>,
     pub pattern_behavior: Option<&'a PatternBehavior>,
     pub relay_behavior: Option<&'a RelayBehavior>,
+    #[allow(dead_code)]
     pub mutation: Option<&'a Mutation>,
     pub icon: Option<&'a PieceIconSvg>,
 }

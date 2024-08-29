@@ -5,7 +5,7 @@ use bevy_egui::{
     EguiContexts,
 };
 
-use games::components::{GameBoard, GameSpawner, WinCondition};
+use games::components::SpawnGame;
 use layouts::*;
 
 pub struct HomeMenuUIPlugin;
@@ -28,42 +28,22 @@ impl HomeMenuUIPlugin {
                 ui.vertical_centered(|ui| {
                     ui.allocate_ui(Vec2::new(250., 120.), |ui| {
                         if ui.button("Play Traditional Chess").clicked() {
-                            GameSpawner::new_game(
-                                GameBoard::Chess,
-                                ClassicalLayout::pieces().into(),
-                                WinCondition::RoyalCapture,
-                            )
-                            .spawn(&mut commands);
+                            commands.trigger(SpawnGame::new(ClassicalLayout::pieces().into()));
                         }
                     });
                     ui.allocate_ui(Vec2::new(250., 120.), |ui| {
                         if ui.button("Play Wild Chess").clicked() {
-                            GameSpawner::new_game(
-                                GameBoard::Chess,
-                                ClassicWildLayout::pieces().into(),
-                                WinCondition::RoyalCapture,
-                            )
-                            .spawn(&mut commands);
+                            commands.trigger(SpawnGame::new(ClassicWildLayout::pieces().into()));
                         }
                     });
                     ui.allocate_ui(Vec2::new(250., 120.), |ui| {
                         if ui.button("Play Super Relay Chess").clicked() {
-                            GameSpawner::new_game(
-                                GameBoard::Chess,
-                                SuperRelayLayout::pieces().into(),
-                                WinCondition::RoyalCapture,
-                            )
-                            .spawn(&mut commands);
+                            commands.trigger(SpawnGame::new(SuperRelayLayout::pieces().into()));
                         }
                     });
                     ui.allocate_ui(Vec2::new(250., 120.), |ui| {
                         if ui.button("Play (Not-Quite) Knight Relay Chess").clicked() {
-                            GameSpawner::new_game(
-                                GameBoard::Chess,
-                                KnightRelayLayout::pieces().into(),
-                                WinCondition::RoyalCapture,
-                            )
-                            .spawn(&mut commands);
+                            commands.trigger(SpawnGame::new(KnightRelayLayout::pieces().into()));
                         }
                     });
                 });

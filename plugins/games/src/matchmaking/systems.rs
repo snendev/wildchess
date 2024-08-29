@@ -6,15 +6,14 @@ use bevy_ecs::prelude::{
 use bevy_replicon::prelude::{ConnectedClients, FromClient};
 
 use chess::team::Team;
-use layouts::{FeaturedWildLayout, RandomWildLayout};
 use replication::Client;
 
 use crate::{
     components::{
-        ClockConfiguration, GameBoard, GameRequest, GameRequestBundle, GameRequestClock,
-        GameRequestVariant, HasTurn, InGame,
+        ClockConfiguration, GameRequest, GameRequestBundle, GameRequestClock, GameRequestVariant,
+        InGame, SpawnGame,
     },
-    gameplay::components::{Game, GameSpawner, PieceSet, Player, WinCondition},
+    gameplay::components::Game,
 };
 
 use super::{GameOpponent, LeaveGameEvent, RequestJoinGameEvent};
@@ -54,17 +53,13 @@ pub(super) fn handle_game_requests(
                 }
             }
             GameOpponent::Local => {
-                let player1 = commands.spawn(Player).id();
-                let player2 = commands.spawn(Player).id();
                 #[cfg(feature = "log")]
-                bevy_log::info!("Starting a local game with new players: {player1}, {player2}");
-                spawn_game(
-                    &mut commands,
-                    player1,
-                    player2,
-                    &event.event.game.unwrap_or_default(),
-                    event.event.clock.as_ref(),
-                );
+                bevy_log::info!("Starting a local game...");
+                let variant = event.event.game.unwrap_or_default();
+                let clock = event.event.clock.as_ref();
+                let spawn_game = SpawnGame::new(variant.piece_set())
+                    .with_clock(clock.map(|requested_clock| requested_clock.to_clock()));
+                commands.trigger(spawn_game);
             }
             GameOpponent::AgainstBot | GameOpponent::Analysis => {
                 unimplemented!("Can't play games against bots yet :(");
@@ -86,32 +81,6 @@ pub(super) fn handle_leave_events(
             commands.entity(entity).remove::<InGame>();
         }
     }
-}
-
-fn spawn_game(
-    commands: &mut Commands,
-    player1: Entity,
-    player2: Entity,
-    variant: &GameRequestVariant,
-    clock: Option<&GameRequestClock>,
-) {
-    let piece_set = PieceSet(match variant {
-        GameRequestVariant::FeaturedGameOne => FeaturedWildLayout::One.pieces(),
-        GameRequestVariant::FeaturedGameTwo => FeaturedWildLayout::Two.pieces(),
-        GameRequestVariant::FeaturedGameThree => FeaturedWildLayout::Three.pieces(),
-        GameRequestVariant::Wild => RandomWildLayout::pieces(),
-    });
-
-    let game = GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture);
-    let game = if let Some(clock) = clock {
-        game.with_clock(clock.to_clock())
-    } else {
-        game
-    }
-    .spawn(commands);
-
-    commands.entity(player1).insert(InGame(game));
-    commands.entity(player2).insert(InGame(game));
 }
 
 /// Compares combinations of tuples so that combinations with more "Some"s are handled first
@@ -154,6 +123,7 @@ fn combine_equal<O: Copy + PartialEq>(
 }
 
 // match the most specified game requests first since they will be less easy to match
+#[allow(clippy::type_complexity)]
 pub(super) fn match_game_requests(
     mut commands: Commands,
     specified_game_request: Query<
@@ -181,18 +151,22 @@ pub(super) fn match_game_requests(
         let clock = combine_equal(clock1, clock2);
         if let (Some(variant), Some(clock)) = (variant, clock) {
             #[cfg(feature = "log")]
-            bevy_log::info!("Spawning game for players {:?} and {:?}", entity1, entity2);
+            bevy_log::info!(
+                "Starting online game for players {:?} and {:?}",
+                entity1,
+                entity2
+            );
 
             matched_entities.push(entity1);
             matched_entities.push(entity2);
 
-            spawn_game(
-                &mut commands,
-                entity1,
-                entity2,
-                &variant.unwrap_or(GameRequestVariant::FeaturedGameOne),
-                clock.as_ref(),
-            );
+            let pieces = variant
+                .unwrap_or(GameRequestVariant::FeaturedGameOne)
+                .piece_set();
+            let spawn_game = SpawnGame::new(pieces)
+                .with_players(entity1, entity2)
+                .with_clock(clock.map(|requested_clock| requested_clock.to_clock()));
+            commands.trigger(spawn_game);
         }
     }
 
@@ -202,6 +176,7 @@ pub(super) fn match_game_requests(
 }
 
 // TODO: Give Players an `OnBoard` as well
+#[allow(clippy::type_complexity)]
 pub(super) fn assign_game_teams(
     mut commands: Commands,
     players: Query<(Entity, &InGame), (With<Client>, Without<Team>)>,
@@ -225,9 +200,6 @@ pub(super) fn assign_game_teams(
             );
             let mut builder = commands.entity(*entity);
             builder.insert((team, team.orientation()));
-            if team == Team::White {
-                builder.insert(HasTurn);
-            }
             if let Some(clock) = clock {
                 builder.insert(clock.clock.clone());
             }
@@ -241,7 +213,7 @@ pub(super) fn despawn_empty_games(
     players: Query<&InGame, With<Client>>,
 ) {
     for game in games.iter() {
-        if players.iter().find(|in_game| in_game.0 == game).is_none() {
+        if !players.iter().any(|in_game| in_game.0 == game) {
             commands.entity(game).despawn();
         }
     }
@@ -297,13 +269,7 @@ pub(super) fn handle_visibility(
         let visible = match (in_game1, in_game2) {
             (None, None) => true,
             (None, Some(_)) | (Some(_), None) => false,
-            (Some(game1), Some(game2)) => {
-                if game1 == game2 {
-                    true
-                } else {
-                    false
-                }
-            }
+            (Some(game1), Some(game2)) => game1 == game2,
         };
         let client1 = connected_clients.client_mut(player1.id);
         let visibility1 = client1.visibility_mut();

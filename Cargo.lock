@@ -4696,6 +4696,7 @@ dependencies = [
  "fastrand",
  "renet2",
  "serde",
+ "thiserror",
  "tokio",
  "url",
  "warp",

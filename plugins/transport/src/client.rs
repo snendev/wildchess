@@ -1,113 +1,148 @@
-use std::net::SocketAddr;
-use url::Url;
+use std::{
+    net::{AddrParseError, SocketAddr},
+    time::Duration,
+};
+use thiserror::Error;
 
 use bevy_app::prelude::{App, Plugin};
-use renet2::transport::WebServerDestination;
+use bevy_ecs::{event::Event, observer::Trigger, system::Commands};
+
+use renet2::transport::{ClientAuthentication, NetcodeClientTransport, WebServerDestination};
 
 use crate::PROTOCOL_ID;
 
-pub struct ClientPlugin {
-    pub server_origin: String,
-    pub server_port: String,
-    #[cfg(feature = "web_transport_client")]
-    pub wt_server_token: String,
-}
+pub struct ClientPlugin;
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(any(feature = "native_transport", feature = "web_transport_client"))]
-        app.add_plugins(NativeClientTransportPlugin::new(
-            self.server_origin.as_str(),
-            self.server_port.as_str(),
-            &self.wt_server_token,
-        ));
+        app.observe(ConnectToServer::observer);
     }
 }
 
-struct NativeClientTransportPlugin {
-    server_address: WebServerDestination,
-    server_token: String,
+#[derive(Debug)]
+#[derive(Event)]
+pub enum ConnectToServer {
+    #[cfg(feature = "web_transport_client")]
+    WebTransport {
+        server_origin: String,
+        server_port: String,
+        wt_server_token: String,
+    },
 }
 
-impl NativeClientTransportPlugin {
-    fn new(host: &str, port: &str, server_token: &str) -> Self {
-        Self::ip(host, port, server_token)
-            // .or_else(|| Self::url(host, port, server_token))
-            .unwrap()
+impl ConnectToServer {
+    fn observer(trigger: Trigger<Self>, mut commands: Commands) {
+        match trigger.event().create_transport() {
+            Ok(transport) => {
+                commands.insert_resource(transport);
+            }
+            Err(error) => {
+                #[cfg(feature = "log")]
+                bevy_log::error!("{error:?}");
+            }
+        }
     }
 
-    fn url(host: &str, port: &str, server_token: &str) -> Option<Self> {
-        format!("{host}:{port}")
-            .parse::<Url>()
-            .map(|url| Self {
-                server_address: WebServerDestination::Url(url),
-                server_token: server_token.to_string(),
-            })
-            .ok()
+    fn create_transport(&self) -> Result<NetcodeClientTransport, Box<dyn std::error::Error>> {
+        let current_time = Self::get_current_time()?;
+        let client_id: u64 = current_time.as_millis() as u64;
+        let socket_addr = self.create_server_address()?;
+        #[allow(unused)]
+        let authentication = Self::create_authentication(client_id, socket_addr);
+
+        match self {
+            #[cfg(feature = "web_transport_client")]
+            ConnectToServer::WebTransport {
+                wt_server_token, ..
+            } => {
+                use renet2::transport::WebServerDestination;
+
+                let server_address = WebServerDestination::Addr(socket_addr);
+
+                #[allow(unused)]
+                #[allow(clippy::let_unit_value)]
+                #[cfg(feature = "web_transport_client")]
+                let socket = Self::create_webtransport_socket(server_address, wt_server_token)?;
+
+                #[cfg(all(feature = "web_transport_client", target_family = "wasm"))]
+                return Ok(NetcodeClientTransport::new(
+                    current_time,
+                    authentication,
+                    socket,
+                )?);
+                #[cfg(all(feature = "web_transport_client", not(target_family = "wasm")))]
+                return Err(Box::new(WasmCFGError));
+            }
+        }
     }
 
-    fn ip(ip: &str, port: &str, server_token: &str) -> Option<Self> {
-        format!("{ip}:{port}")
-            .parse::<SocketAddr>()
-            .map(|addr| Self {
-                server_address: WebServerDestination::Addr(addr),
-                server_token: server_token.to_string(),
-            })
-            .ok()
+    fn create_server_address(&self) -> Result<SocketAddr, AddrParseError> {
+        match self {
+            #[cfg(feature = "web_transport_client")]
+            ConnectToServer::WebTransport {
+                server_origin,
+                server_port,
+                ..
+            } => format!("{server_origin}:{server_port}").parse::<SocketAddr>(),
+        }
     }
-}
 
-#[cfg(any(feature = "web_transport_client", feature = "native_transport"))]
-impl Plugin for NativeClientTransportPlugin {
-    fn build(&self, app: &mut App) {
-        use renet2::transport::ClientAuthentication;
-        #[cfg(not(feature = "web_transport_client"))]
-        use std::time::SystemTime;
-        #[cfg(feature = "web_transport_client")]
-        use wasm_timer::SystemTime;
-
-        let server_addr: SocketAddr = self.server_address.clone().into();
-        let current_time = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap();
-        let client_id = current_time.as_millis() as u64;
-        let authentication = ClientAuthentication::Unsecure {
+    fn create_authentication(client_id: u64, server_addr: SocketAddr) -> ClientAuthentication {
+        ClientAuthentication::Unsecure {
             client_id,
             protocol_id: PROTOCOL_ID,
             socket_id: 0,
             server_addr,
             user_data: None,
-        };
-        // #[cfg(feature = "native_transport")]
-        // let socket = {
-        //     let udp_socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
-        //     renet2::transport::NativeSocket::new(udp_socket).unwrap()
-        // };
+        }
+    }
 
-        // TODO: to support this at this layer we would need to pass the client socket in from above
-        // #[cfg(feature = "memory_transport")]
-        // let socket = renet2::transport::MemorySocketClient::new(client_id as u16, client_memory_socket).unwrap();
-        #[cfg(all(feature = "web_transport_client", target_family = "wasm"))]
-        {
-            use base64::Engine;
-            use renet2::transport::{
-                NetcodeClientTransport, ServerCertHash, WebTransportClientConfig,
-            };
+    fn get_current_time() -> Result<Duration, SystemTimeError> {
+        use wasm_timer::SystemTime;
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map_err(|_error| SystemTimeError)
+    }
 
-            let hash = base64::engine::general_purpose::STANDARD
-                .decode(self.server_token.clone())
-                .unwrap();
-            let config = WebTransportClientConfig::new_with_certs(
-                server_addr,
-                Vec::from([ServerCertHash::try_from(hash).unwrap()]),
-            );
-            let socket = renet2::transport::WebTransportClient::new(config);
+    #[cfg(all(feature = "web_transport_client", target_family = "wasm"))]
+    fn create_webtransport_socket(
+        server_address: WebServerDestination,
+        token: &String,
+    ) -> Result<renet2::transport::WebTransportClient, ConnectToSocketError> {
+        use base64::Engine;
+        use renet2::transport::{ServerCertHash, WebTransportClientConfig};
 
-            let transport =
-                NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
-            app.insert_resource(transport);
-        };
-        #[cfg(not(all(feature = "web_transport_client", target_family = "wasm")))]
-        let _ = (authentication, app);
+        let hash = base64::engine::general_purpose::STANDARD
+            .decode(token)
+            .map_err(|error| ConnectToSocketError::WTDecodeHashFailure(error))?;
+        let server_cert = ServerCertHash::try_from(hash)
+            .map_err(|_error| ConnectToSocketError::WTHashCertFailure(()))?;
+        let config =
+            WebTransportClientConfig::new_with_certs(server_address, Vec::from([server_cert]));
+        Ok(renet2::transport::WebTransportClient::new(config))
+    }
+
+    #[allow(unreachable_code)]
+    #[cfg(all(feature = "web_transport_client", not(target_family = "wasm")))]
+    fn create_webtransport_socket(_: WebServerDestination, _: &String) -> Result<(), WasmCFGError> {
+        Err(WasmCFGError)
     }
 }
+
+#[derive(Debug, Error)]
+pub enum ConnectToSocketError {
+    #[cfg(feature = "web_transport_client")]
+    #[error("Could not decode hash: {_0:?}")]
+    WTDecodeHashFailure(base64::DecodeError),
+    #[cfg(feature = "web_transport_client")]
+    #[error("Provided token failed to construct a valid cert hash")]
+    WTHashCertFailure(()),
+}
+
+#[derive(Debug, Error)]
+#[error("SystemTime failed to return a current_time")]
+pub struct SystemTimeError;
+
+#[derive(Debug, Error)]
+#[error("Attempted to create a WebTransport connection but not using wasm. This is unsupported")]
+pub struct WasmCFGError;

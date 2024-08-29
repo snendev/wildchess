@@ -36,7 +36,7 @@ impl<'a> Widget for BoardWidget<'a> {
 
                 for y in (0..=7).rev() {
                     for x in 0..=7 {
-                        let square = Square::new(x.try_into().unwrap(), (y).try_into().unwrap());
+                        let square = Square::new(x.into(), y.into());
                         if ui
                             .add(SquareWidget::new_from_context(
                                 square,

@@ -1,11 +1,11 @@
 use bevy_core::Name;
 use bevy_ecs::{
     prelude::{Commands, Entity, EventReader, EventWriter, Query, With},
-    query::Added,
+    query::{Added, Without},
 };
 
 use bevy_replicon::{
-    core::Replicated,
+    core::{ClientId, Replicated},
     prelude::{FromClient, SendMode, ToClients},
 };
 
@@ -21,8 +21,8 @@ use replication::Client;
 
 use crate::{
     components::{
-        ActionHistory, Clock, Game, GameBoard, HasTurn, History, InGame, IsActiveGame, PieceSet,
-        Ply, WinCondition,
+        ActionHistory, Clock, CurrentTurn, Game, GameBoard, History, InGame, IsActiveGame,
+        PieceSet, Ply, WinCondition,
     },
     gameplay::components::GameOver,
 };
@@ -30,10 +30,10 @@ use crate::{
 use super::{RequestTurnEvent, RequireMutationEvent, TurnEvent};
 
 pub(super) fn detect_turn(
-    game_query: Query<&Ply, IsActiveGame>,
+    game_query: Query<(&Ply, &CurrentTurn), IsActiveGame>,
     board_query: Query<&Board>,
-    player_query: Query<(&Team, &Client), With<HasTurn>>,
-    piece_query: Query<(&Team, &OnBoard, &InGame, Option<&Mutation>)>,
+    player_query: Query<(&Team, &InGame, Option<&Client>)>,
+    piece_query: Query<(&Team, &OnBoard, Option<&Mutation>)>,
     mut requested_turns: EventReader<FromClient<RequestTurnEvent>>,
     mut require_mutation_writer: EventWriter<ToClients<RequireMutationEvent>>,
     mut turn_writer: EventWriter<TurnEvent>,
@@ -48,21 +48,28 @@ pub(super) fn detect_turn(
         client_id,
     } in requested_turns.read()
     {
-        let Some((player_team, player)) = player_query
-            .iter()
-            .find(|(_, player)| player.id == *client_id)
-        else {
+        // get the player data
+        let Some((player_team, in_game, player)) = player_query.iter().find(|(_, _, player)| {
+            player.map(|client| client.id).unwrap_or(ClientId::SERVER) == *client_id
+        }) else {
             continue;
         };
-        let Ok((team, on_board, in_game, mutation)) = piece_query.get(*piece) else {
+        // is there a game instance?
+        let Ok((ply, current_turn)) = game_query.get(in_game.0) else {
             continue;
         };
-        if team != player_team {
+        // is it the player's turn?
+        if current_turn.0 != *player_team {
             continue;
         }
-        let Ok(ply) = game_query.get(in_game.0) else {
+        // does the selected piece exist?
+        let Ok((piece_team, on_board, mutation)) = piece_query.get(*piece) else {
             continue;
         };
+        // is the piece owned by the player?
+        if piece_team != player_team {
+            continue;
+        }
 
         if let Some(mutation) = mutation {
             let Ok(board) = board_query.get(on_board.0) else {
@@ -70,8 +77,11 @@ pub(super) fn detect_turn(
             };
             match mutation.condition {
                 MutationCondition::LocalRank(rank) => {
-                    let reoriented_rank =
-                        action.movement.to.reorient(team.orientation(), board).rank;
+                    let reoriented_rank = action
+                        .movement
+                        .to
+                        .reorient(piece_team.orientation(), board)
+                        .rank;
                     if rank != reoriented_rank {
                         turn_writer.send(TurnEvent::action(
                             *ply,
@@ -100,7 +110,9 @@ pub(super) fn detect_turn(
                         ));
                     } else {
                         require_mutation_writer.send(ToClients {
-                            mode: SendMode::Direct(player.id),
+                            mode: player
+                                .map(|player| SendMode::Direct(player.id))
+                                .unwrap_or(SendMode::Broadcast),
                             event: RequireMutationEvent {
                                 piece: *piece,
                                 action: action.clone(),
@@ -220,10 +232,11 @@ pub(super) fn execute_turn_mutations(
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub(super) fn set_last_move(
     mut commands: Commands,
     mut turn_reader: EventReader<TurnEvent>,
-    mut boards: Query<(Entity, Option<&mut LastAction>), With<Board>>,
+    mut boards: Query<(Entity, Option<&mut LastAction>), (With<Board>, Without<Game>)>,
     mut games: Query<(Entity, Option<&mut LastAction>), With<Game>>,
 ) {
     for event in turn_reader.read() {
@@ -245,26 +258,26 @@ pub(super) fn set_last_move(
 
 #[allow(clippy::type_complexity)]
 pub(super) fn end_turn(
-    mut players_query: Query<(Entity, &InGame, Option<&mut Clock>, Option<&HasTurn>), With<Client>>,
-    mut commands: Commands,
+    mut games: Query<&mut CurrentTurn>,
+    mut players: Query<(&InGame, &Team, Option<&mut Clock>), With<Client>>,
     mut turn_reader: EventReader<TurnEvent>,
 ) {
     for event in turn_reader.read() {
-        for (player, in_game, clock, my_turn) in players_query.iter_mut() {
+        let Ok(mut current_turn) = games.get_mut(event.game) else {
+            continue;
+        };
+        for (in_game, team, clock) in players.iter_mut() {
             if event.game != in_game.0 {
                 continue;
             }
-            if my_turn.is_some() {
+            if current_turn.0 == *team {
                 if let Some(mut clock) = clock {
                     clock.pause();
                 }
-                commands.entity(player).remove::<HasTurn>();
-            } else {
-                if let Some(mut clock) = clock {
-                    clock.unpause();
-                }
-                commands.entity(player).insert(HasTurn);
+            } else if let Some(mut clock) = clock {
+                clock.unpause();
             }
+            current_turn.0 = current_turn.0.get_next();
         }
     }
 }
@@ -366,6 +379,7 @@ pub(super) fn detect_gameover(
     }
 }
 
+// TODO: move to SpawnGame observer
 pub(super) fn spawn_game_entities(
     mut commands: Commands,
     query: Query<(Entity, &PieceSet, &GameBoard), Added<Game>>,

@@ -3,7 +3,7 @@ use games::chess::{
     team::Team::{self, Black, White},
 };
 
-pub(crate) fn piece_unicode(piece: &PieceIdentity, team: &Team) -> char {
+pub(crate) fn _piece_unicode(piece: &PieceIdentity, team: &Team) -> char {
     match (piece, team) {
         (King, White) => '\u{2654}',
         (King, Black) => '\u{265A}',

@@ -1,12 +1,6 @@
-use bevy::prelude::{EventReader, Query, ResMut, Resource};
+use bevy::prelude::Resource;
 
-use games::{
-    chess::{
-        pieces::{Mutation, PieceDefinition, Royal},
-        team::Team,
-    },
-    RequireMutationEvent,
-};
+use games::{chess::pieces::PieceDefinition, RequireMutationEvent};
 use wild_icons::PieceIconSvg;
 
 #[allow(clippy::type_complexity)]

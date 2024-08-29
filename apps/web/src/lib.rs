@@ -14,23 +14,26 @@ use bevy_ecs::{
 
 use games::{
     chess::{
-        actions::Actions,
+        actions::{Actions, LastAction},
         board::Square,
         pieces::{Mutation, Orientation, PieceIdentity, Position, Royal},
         team::Team,
     },
     components::{
-        Game, GameBoard, GameOver, GameRequestClock, GameRequestVariant, HasTurn, LastMove,
+        CurrentTurn, Game, GameBoard, GameOver, GameRequestClock, GameRequestVariant, Player,
     },
     Clock, GameOpponent, GameplayPlugin, LeaveGameEvent, MatchmakingPlugin, RequestJoinGameEvent,
     RequestTurnEvent, RequireMutationEvent,
 };
 use replication::{
-    replicon::{core::common_conditions as network_conditions, prelude::RepliconClient},
+    replicon::{
+        core::{common_conditions as network_conditions, ClientId},
+        prelude::RepliconClient,
+    },
     replicon_renet2::renet2::RenetClient,
     Client, ClientCommand, ReplicationPlugin,
 };
-use transport::client::ClientPlugin as ClientTransportPlugin;
+use transport::client::{ClientPlugin as ClientTransportPlugin, ConnectToServer};
 use wild_icons::PieceIconSvg;
 
 // Use this to enable console logging
@@ -45,13 +48,10 @@ pub struct WasmApp(App);
 
 #[wasm_bindgen]
 impl WasmApp {
+    #[allow(clippy::new_without_default)]
     #[wasm_bindgen(constructor)]
-    pub fn new(ip: String, server_token: String) -> WasmApp {
+    pub fn new() -> WasmApp {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-        let server_origin = ip;
-        // let server_origin = option_env!("SERVER_ORIGIN").unwrap_or(&ip).to_string();
-        let server_port = option_env!("SERVER_PORT").unwrap_or("7636").to_string();
-        log(format!("Connecting to {server_origin}:{server_port}").as_str());
 
         let mut app = bevy_app::App::default();
         app.add_plugins((
@@ -60,20 +60,36 @@ impl WasmApp {
             bevy_core::FrameCountPlugin,
             bevy_time::TimePlugin,
             bevy_app::ScheduleRunnerPlugin::default(),
+            #[cfg(feature = "log")]
+            bevy_log::LogPlugin {
+                filter: "wgpu=error,naga=warn,h3=error".to_string(),
+                level: bevy_log::Level::INFO,
+                ..Default::default()
+            },
         ));
         app.add_plugins((
             ReplicationPlugin,
             GameplayPlugin,
             MatchmakingPlugin,
-            ClientTransportPlugin {
-                server_origin,
-                server_port,
-                wt_server_token: server_token,
-            },
+            ClientTransportPlugin,
         ));
         app.add_plugins(wild_icons::PieceIconPlugin::new(get_orientation));
 
         WasmApp(app)
+    }
+
+    #[wasm_bindgen]
+    pub fn connect_to_server(&mut self, ip: String, server_token: String) {
+        let server_origin = ip;
+        // let server_origin = option_env!("SERVER_ORIGIN").unwrap_or(&ip).to_string();
+        let server_port = option_env!("SERVER_PORT").unwrap_or("7636").to_string();
+        log(format!("Connecting to {server_origin}:{server_port}").as_str());
+
+        self.0.world_mut().trigger(ConnectToServer::WebTransport {
+            server_origin,
+            server_port,
+            wt_server_token: server_token,
+        });
     }
 
     #[wasm_bindgen]
@@ -89,7 +105,7 @@ impl WasmApp {
     }
 
     fn request_game(&mut self, game_request: WasmGameRequest, opponent: GameOpponent) {
-        log("requesting game!");
+        log("Requesting game!");
         self.0.world_mut().send_event(RequestJoinGameEvent {
             opponent,
             game: game_request.variant,
@@ -137,7 +153,7 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn get_player_count(&mut self) -> usize {
-        let mut query = self.0.world_mut().query::<&Client>();
+        let mut query = self.0.world_mut().query::<&Player>();
         query.iter(self.0.world()).count()
     }
 
@@ -180,36 +196,31 @@ impl WasmApp {
         else {
             return false;
         };
-        let mut query = self
-            .0
-            .world_mut()
-            .query_filtered::<&Client, With<HasTurn>>();
+        let mut query = self.0.world_mut().query::<&CurrentTurn>();
+        let Ok(team_with_turn) = query.get_single(self.0.world()).map(|turn| turn.0) else {
+            return false;
+        };
+
+        let mut query = self.0.world_mut().query::<(&Client, &Team)>();
         query
             .iter(self.0.world())
-            .find(|player| player.id == client_id)
-            .is_some()
+            .any(|(player, team)| player.id == client_id && team_with_turn == *team)
     }
 
     #[wasm_bindgen]
     // specifically, returns either "white" or "black"
     // TODO: be less "stringly typed" in a useful way?
     pub fn get_my_team(&mut self) -> Option<String> {
-        let Some(client_id) = self
+        let client_id = self
             .0
             .world()
             .get_resource::<RepliconClient>()
-            .and_then(|client| client.id())
-        else {
-            return None;
-        };
+            .and_then(|client| client.id())?;
 
         let mut query = self.0.world_mut().query::<(&Client, &Team)>();
-        let Some((_, team)) = query
+        let (_, team) = query
             .iter(self.0.world())
-            .find(|(player, _)| player.id == client_id)
-        else {
-            return None;
-        };
+            .find(|(player, _)| player.id == client_id)?;
 
         Some(
             match team {
@@ -224,17 +235,12 @@ impl WasmApp {
     // specifically, returns either "white" or "black"
     // TODO: be less "stringly typed" in a useful way?
     pub fn get_piece_team(&mut self, square: String) -> Option<String> {
-        let Ok(square): Result<Square, _> = square.as_str().try_into() else {
-            return None;
-        };
+        let square: Square = square.as_str().try_into().ok()?;
 
         let mut query = self.0.world_mut().query::<(&Position, &Team)>();
-        let Some((_, team)) = query
+        let (_, team) = query
             .iter(self.0.world())
-            .find(|(position, _)| position.0 == square)
-        else {
-            return None;
-        };
+            .find(|(position, _)| position.0 == square)?;
 
         Some(
             match team {
@@ -306,7 +312,7 @@ impl WasmApp {
     // Vec should be size 2
     #[wasm_bindgen]
     pub fn get_last_move(&mut self) -> Option<Vec<WasmSquare>> {
-        let mut query = self.0.world_mut().query::<&LastMove>();
+        let mut query = self.0.world_mut().query::<&LastAction>();
         let Ok(last_move) = query.get_single(self.0.world()) else {
             return None;
         };
@@ -326,11 +332,11 @@ impl WasmApp {
         let piece_square: Square = piece_square
             .as_str()
             .try_into()
-            .expect(format!("a valid piece square: {piece_square}").as_str());
+            .unwrap_or_else(|_| panic!("a valid piece square: {piece_square}"));
         let target_square: Square = target_square
             .as_str()
             .try_into()
-            .expect(format!("a valid target square: {target_square}").as_str());
+            .unwrap_or_else(|_| panic!("a valid target square: {target_square}"));
         // selectedPiece
         let mut query = self
             .0
@@ -378,24 +384,17 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn get_promotion_request(&mut self) -> Option<WasmPromotions> {
-        let Some(mutation_request_events) = self
+        let mutation_request_events = self
             .0
             .world()
-            .get_resource::<Events<RequireMutationEvent>>()
-        else {
-            return None;
-        };
+            .get_resource::<Events<RequireMutationEvent>>()?;
 
         let mut reader = mutation_request_events.get_reader();
         // should only be one...
-        let event = reader.read(&mutation_request_events).last();
+        let event = reader.read(mutation_request_events).last();
         event.and_then(|event| {
-            let Some(mutation) = self.0.world().get::<Mutation>(event.piece) else {
-                return None;
-            };
-            let Some(team) = self.0.world().get::<Team>(event.piece) else {
-                return None;
-            };
+            let mutation = self.0.world().get::<Mutation>(event.piece)?;
+            let team = self.0.world().get::<Team>(event.piece)?;
             let maybe_royal = self.0.world().get::<Royal>(event.piece);
             let icons = mutation
                 .to_piece
@@ -550,7 +549,7 @@ impl WasmClock {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct WasmGameRequest {
     pub(crate) variant: Option<GameRequestVariant>,
     pub(crate) clock: Option<GameRequestClock>,
@@ -560,10 +559,7 @@ pub struct WasmGameRequest {
 impl WasmGameRequest {
     #[wasm_bindgen]
     pub fn new() -> Self {
-        Self {
-            variant: None,
-            clock: None,
-        }
+        Self::default()
     }
 
     #[wasm_bindgen]
@@ -634,12 +630,13 @@ impl WasmGameover {
 
 fn get_orientation(
     client: Option<Res<RepliconClient>>,
-    players: Query<(&Client, &Team)>,
+    players: Query<(&Team, Option<&Client>)>,
 ) -> Orientation {
-    if let Some((_, team)) = client
-        .and_then(|client| client.id())
-        .and_then(|client_id| players.iter().find(|(player, _)| player.id == client_id))
-    {
+    if let Some((team, _)) = client.and_then(|client| client.id()).and_then(|client_id| {
+        players.iter().find(|(_, player)| {
+            player.map(|client| client.id).unwrap_or(ClientId::SERVER) == client_id
+        })
+    }) {
         team.orientation()
     } else {
         Orientation::Up

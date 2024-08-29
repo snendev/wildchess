@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use bevy::{
-    prelude::{Entity, EventWriter, Query, Reflect, Res, ResMut, Resource, With},
+    prelude::{Entity, EventWriter, Query, Reflect, Res, ResMut, Resource},
     utils::HashMap,
 };
 
@@ -12,7 +12,7 @@ use bevy_egui::{
 
 use games::{
     chess::{board::Square, pieces::PieceDefinition, team::Team},
-    components::{ActionHistory, Clock, HasTurn, Ply},
+    components::{ActionHistory, Clock, CurrentTurn, Ply},
     RequestTurnEvent,
 };
 use wild_icons::PieceIconSvg;
@@ -118,11 +118,12 @@ pub(crate) fn egui_history_panel(
         });
 }
 
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
 pub(crate) fn egui_information_panel(
     mut contexts: EguiContexts,
+    game_query: Query<&CurrentTurn>,
     piece_query: Query<PieceQuery>,
-    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>)>,
+    player_query: Query<(&Team, Option<&Clock>)>,
     mut mutation_writer: EventWriter<RequestTurnEvent>,
     mut intended_mutation: ResMut<IntendedMutation>,
     selected_square: Res<SelectedSquare>,
@@ -131,12 +132,12 @@ pub(crate) fn egui_information_panel(
     let Some(current_game) = selected_game.0 else {
         return;
     };
-    let team_with_turn = player_query
-        .iter()
-        .find_map(|(team, _, turn)| turn.map(|_| team));
+    let Ok(team_with_turn) = game_query.get(current_game) else {
+        return;
+    };
 
     let upper_clock = player_query.iter().find_map(
-        |(team, clock, _)| {
+        |(team, clock)| {
             if *team == Team::Black {
                 clock
             } else {
@@ -147,7 +148,7 @@ pub(crate) fn egui_information_panel(
 
     let bottom_clock =
         player_query.iter().find_map(
-            |(team, clock, _)| {
+            |(team, clock)| {
                 if *team == Team::White {
                     clock
                 } else {
@@ -180,9 +181,7 @@ pub(crate) fn egui_information_panel(
                 }
                 ui.add_space(100.);
 
-                if let Some(team_with_turn) = team_with_turn {
-                    ui.label(RichText::new(format!("{:?}'s turn.", team_with_turn)).size(36.));
-                }
+                ui.label(RichText::new(format!("{:?}'s turn.", team_with_turn)).size(36.));
 
                 let mut selected_mutation = None;
                 if let Some((_, icons)) = intended_mutation.0.as_ref() {
@@ -211,8 +210,8 @@ pub(crate) fn egui_information_panel(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn egui_chessboard(
     mut contexts: EguiContexts,
+    game_query: Query<&CurrentTurn>,
     piece_query: Query<PieceQuery>,
-    player_query: Query<(&Team, Option<&Clock>, Option<&HasTurn>)>,
     mut move_writer: EventWriter<RequestTurnEvent>,
     mut intended_mutation: ResMut<IntendedMutation>,
     mut last_selected_square: ResMut<SelectedSquare>,
@@ -222,9 +221,9 @@ pub(crate) fn egui_chessboard(
     let Some(current_game) = selected_game.0 else {
         return;
     };
-    let team_with_turn = player_query
-        .iter()
-        .find_map(|(team, _, turn)| turn.map(|_| team));
+    let Ok(team_with_turn) = game_query.get(current_game) else {
+        return;
+    };
 
     let pieces: HashMap<Square, PieceData> = piece_query
         .into_iter()
@@ -270,7 +269,7 @@ pub(crate) fn egui_chessboard(
                         selected_square,
                         &mut last_selected_square.0,
                         &pieces,
-                        team_with_turn,
+                        team_with_turn.0,
                     ) {
                         move_writer.send(turn_event);
                     }
@@ -283,11 +282,11 @@ fn handle_clicked_square(
     selected_square: Square,
     last_selected_square: &mut Option<Square>,
     pieces: &HashMap<Square, PieceData>,
-    team_with_turn: Option<&Team>,
+    team_with_turn: Team,
 ) -> Option<RequestTurnEvent> {
     if let Some(piece) = (*last_selected_square).and_then(|square| pieces.get(&square)) {
         if let Some(action) = piece.actions.get(&selected_square) {
-            if team_with_turn.is_some_and(|team| piece.team == team) {
+            if *piece.team == team_with_turn {
                 *last_selected_square = None;
                 return Some(RequestTurnEvent::new(piece.entity, action.clone()));
             }

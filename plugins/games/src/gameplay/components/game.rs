@@ -3,16 +3,25 @@ use serde::{Deserialize, Serialize};
 use bevy_core::Name;
 #[cfg(feature = "reflect")]
 use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::prelude::{Commands, Component, Entity};
+use bevy_ecs::{
+    event::Event,
+    observer::Trigger,
+    prelude::{Commands, Component, Entity},
+};
 #[cfg(feature = "reflect")]
 use bevy_reflect::Reflect;
 
 use bevy_replicon::prelude::Replicated;
 
-use chess::board::{Rank, Square};
+use chess::{
+    board::{Rank, Square},
+    team::Team,
+};
 use layouts::PieceSpecification;
 
 use crate::Clock;
+
+use super::{InGame, Player};
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Deserialize, Serialize)]
@@ -71,9 +80,9 @@ pub struct AntiGame;
 #[cfg_attr(feature = "reflect", reflect(Component))]
 pub enum WinCondition {
     // The game is won once all enemy Royal pieces are captured.
-    #[default]
     RoyalCaptureAll,
     // The game is won once a single enemy Royal piece is captured.
+    #[default]
     RoyalCapture,
     // The game is won once a Royal piece reaches a specific Rank.
     // (The Rank is local to the player's Orientation.)
@@ -91,40 +100,63 @@ pub struct ClockConfiguration {
     pub clock: Clock,
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+#[derive(Deserialize, Serialize)]
+#[derive(Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
+pub struct CurrentTurn(pub Team);
+
 // TODO: revisit this API
 // perhaps use the blueprints lib
-#[derive(Clone)]
-#[derive(Default)]
+#[derive(Clone, Default)]
+#[derive(Event)]
 #[derive(Deserialize, Serialize)]
-pub struct GameSpawner {
-    pub game: Game,
-    pub board: GameBoard,
-    pub piece_set: PieceSet,
-    pub win_condition: WinCondition,
-    pub clock: Option<ClockConfiguration>,
-    pub atomic: Option<Atomic>,
-    pub crazyhouse: Option<Crazyhouse>,
-    pub anti: Option<AntiGame>,
+pub struct SpawnGame {
+    players: Option<(Entity, Entity)>,
+    game: Game,
+    board: GameBoard,
+    turn: CurrentTurn,
+    piece_set: PieceSet,
+    win_condition: WinCondition,
+    clock: Option<ClockConfiguration>,
+    atomic: Option<Atomic>,
+    crazyhouse: Option<Crazyhouse>,
+    anti: Option<AntiGame>,
 }
 
-impl GameSpawner {
+impl SpawnGame {
     #[must_use]
-    pub fn new_game(board: GameBoard, piece_set: PieceSet, win_condition: WinCondition) -> Self {
+    pub fn new(piece_set: PieceSet) -> Self {
         Self {
-            board,
+            players: None,
             piece_set,
-            win_condition,
-            ..Default::default()
+            game: Game,
+            board: GameBoard::default(),
+            turn: CurrentTurn::default(),
+            win_condition: WinCondition::default(),
+            clock: None,
+            atomic: None,
+            crazyhouse: None,
+            anti: None,
         }
     }
 
-    pub fn name(&self) -> Name {
-        Name::new(format!("{:?} Game", self.board))
+    #[must_use]
+    pub fn with_players(mut self, player1: Entity, player2: Entity) -> Self {
+        self.players = Some((player1, player2));
+        self
     }
 
     #[must_use]
-    pub fn with_clock(mut self, clock: Clock) -> Self {
-        self.clock = Some(ClockConfiguration { clock });
+    pub fn with_board(mut self, board: GameBoard) -> Self {
+        self.board = board;
+        self
+    }
+
+    #[must_use]
+    pub fn with_clock(mut self, clock: Option<Clock>) -> Self {
+        self.clock = clock.map(|clock| ClockConfiguration { clock });
         self
     }
 
@@ -146,30 +178,47 @@ impl GameSpawner {
         self
     }
 
-    pub fn spawn(self, commands: &mut Commands) -> Entity {
-        let entity = commands
-            .spawn((
-                self.name(),
-                self.game,
-                self.board,
-                self.piece_set,
-                self.win_condition,
-                Replicated,
-            ))
-            .id();
-        let mut builder = commands.entity(entity);
-        if let Some(clock) = self.clock {
-            builder.insert(clock);
+    pub fn name(&self) -> Name {
+        Name::new(format!("{:?} Game", self.board))
+    }
+}
+
+impl SpawnGame {
+    pub(crate) fn observer(trigger: Trigger<Self>, mut commands: Commands) {
+        let spawner = trigger.event();
+        let mut builder = commands.spawn((
+            spawner.name(),
+            spawner.turn,
+            spawner.game,
+            spawner.board,
+            spawner.piece_set.clone(),
+            spawner.win_condition.clone(),
+            Replicated,
+        ));
+        if let Some(clock) = &spawner.clock {
+            builder.insert(clock.clone());
         }
-        if self.atomic.is_some() {
+        if spawner.atomic.is_some() {
             builder.insert(Atomic);
         }
-        if self.crazyhouse.is_some() {
+        if spawner.crazyhouse.is_some() {
             builder.insert(Crazyhouse);
         }
-        if self.anti.is_some() {
+        if spawner.anti.is_some() {
             builder.insert(AntiGame);
         }
-        entity
+        let game = builder.id();
+
+        let (player1, player2) = if let Some((player1, player2)) = spawner.players {
+            commands.entity(player1).insert(InGame(game));
+            commands.entity(player2).insert(InGame(game));
+            (player1, player2)
+        } else {
+            let player1 = commands.spawn((Player, InGame(game))).id();
+            let player2 = commands.spawn((Player, InGame(game))).id();
+            (player1, player2)
+        };
+        #[cfg(feature = "log")]
+        bevy_log::info!("Spawning a game with new players: {player1}, {player2}");
     }
 }

@@ -20,10 +20,12 @@ use systems::detect_turn;
 use crate::{
     components::{
         ActionHistory, AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameOver,
-        HasTurn, History, InGame, Ply, WinCondition,
+        History, InGame, Ply, WinCondition,
     },
     ClockPlugin, MatchmakingSystems,
 };
+
+use super::components::{CurrentTurn, Player, SpawnGame};
 
 mod systems;
 
@@ -55,9 +57,10 @@ impl Plugin for GameplayPlugin {
             .add_mapped_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
             .add_event::<TurnEvent>()
             .replicate::<Ply>()
-            .replicate::<HasTurn>()
             .replicate_mapped::<InGame>()
             .replicate::<Game>()
+            .replicate::<Player>()
+            .replicate::<CurrentTurn>()
             .replicate::<GameOver>()
             .replicate::<GameBoard>()
             .replicate::<Atomic>()
@@ -116,6 +119,8 @@ impl Plugin for GameplayPlugin {
                 systems::detect_gameover.in_set(GameSystems::DetectGameover),
             );
 
+        app.observe(SpawnGame::observer);
+
         #[cfg(feature = "reflect")]
         app.register_type::<InGame>()
             .register_type::<GameBoard>()
@@ -136,7 +141,7 @@ mod tests {
     use chess::board::Square;
     use layouts::RandomWildLayout;
 
-    use crate::components::{GameBoard, GameSpawner, PieceSet, WinCondition};
+    use crate::components::PieceSet;
 
     use super::*;
 
@@ -194,20 +199,8 @@ mod tests {
 
         app.add_plugins(GameplayPlugin);
 
-        // TODO: use blueprints?
-        let game = GameSpawner::new_game(
-            GameBoard::Chess,
-            PieceSet(RandomWildLayout::pieces()),
-            WinCondition::RoyalCapture,
-        );
-        app.world_mut().spawn((
-            game.name(),
-            game.game,
-            game.board,
-            game.piece_set,
-            game.win_condition,
-            Replicated,
-        ));
+        app.world_mut()
+            .trigger(SpawnGame::new(PieceSet(RandomWildLayout::pieces())));
 
         app.update();
 

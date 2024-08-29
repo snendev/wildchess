@@ -78,6 +78,7 @@ pub struct PieceIconKey {
 
 enum PieceIcon {
     Svg(PieceIconSvg),
+    #[allow(dead_code)]
     Character(PieceIconCharacter),
 }
 
