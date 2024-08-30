@@ -7,72 +7,35 @@ use bevy_ecs::{
 
 use chess::{actions::Action, pieces::PieceDefinition};
 
-use crate::components::Ply;
-
-#[derive(Debug)]
-#[derive(Event)]
-#[derive(Deserialize, Serialize)]
-pub struct TurnEvent {
-    pub ply: Ply,
-    pub piece: Entity,
-    pub board: Entity,
-    pub game: Entity,
-    pub action: Action,
-    pub mutation: Option<PieceDefinition>,
-}
-
-impl TurnEvent {
-    pub fn action(ply: Ply, piece: Entity, board: Entity, game: Entity, action: Action) -> Self {
-        TurnEvent {
-            ply,
-            piece,
-            board,
-            game,
-            action,
-            mutation: None,
-        }
-    }
-
-    pub fn mutation(
-        ply: Ply,
-        piece: Entity,
-        board: Entity,
-        game: Entity,
-        action: Action,
-        mutated_piece: PieceDefinition,
-    ) -> Self {
-        TurnEvent {
-            ply,
-            piece,
-            board,
-            game,
-            action,
-            mutation: Some(mutated_piece),
-        }
-    }
-}
-
 #[derive(Clone)]
 #[derive(Event)]
 #[derive(Deserialize, Serialize)]
 pub struct RequestTurnEvent {
+    pub game: Entity,
     pub piece: Entity,
     pub action: Action,
     pub promotion: Option<PieceDefinition>,
 }
 
 impl RequestTurnEvent {
-    pub fn new(piece: Entity, action: Action) -> Self {
+    pub fn new(piece: Entity, game: Entity, action: Action) -> Self {
         Self {
             piece,
+            game,
             action,
             promotion: None,
         }
     }
 
-    pub fn new_with_mutation(piece: Entity, action: Action, promotion: PieceDefinition) -> Self {
+    pub fn new_with_mutation(
+        piece: Entity,
+        game: Entity,
+        action: Action,
+        promotion: PieceDefinition,
+    ) -> Self {
         Self {
             piece,
+            game,
             action,
             promotion: Some(promotion),
         }
@@ -82,6 +45,7 @@ impl RequestTurnEvent {
 impl MapEntities for RequestTurnEvent {
     fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
         self.piece = mapper.map_entity(self.piece);
+        self.game = mapper.map_entity(self.game);
         self.action.side_effects = self
             .action
             .side_effects
@@ -97,6 +61,7 @@ impl MapEntities for RequestTurnEvent {
 #[derive(Deserialize, Serialize)]
 pub struct RequireMutationEvent {
     pub piece: Entity,
+    pub game: Entity,
     pub action: Action,
 }
 

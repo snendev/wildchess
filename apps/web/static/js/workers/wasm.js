@@ -94,17 +94,25 @@ function onMessage(event) {
             // TODO enable premove
             app.update();
 
+            console.log(
+                `Playing move! ${event.data.source} -> ${event.data.target}`,
+            );
+
             // perform a pre-check in order to render the board optimistically
-            if (
-                // it's my turn
-                app.is_my_turn() &&
-                // the selected piece is one of my pieces
-                app.get_piece_team(event.data.source) === myTeam &&
-                // the target square is one of the allowed targets
-                app.get_target_squares(event.data.source)?.map((square) =>
-                    square.get_representation()
-                )?.includes(event.data.target)
-            ) {
+            // it's my turn
+            const currentTurn = app.current_turn();
+            const isMyTurn = myTeam === "any" || myTeam == currentTurn;
+            // the selected piece is one of my pieces
+            const isMyPiece = myTeam === "any" ||
+                app.get_piece_team(event.data.source) === currentTurn;
+            // the target square is one of the allowed targets
+            const isAllowedTarget = app.get_target_squares(event.data.source)
+                ?.map((square) => square.get_representation())?.includes(
+                    event.data.target,
+                );
+            console.log({ currentTurn, isMyPiece, isAllowedTarget });
+
+            if (isMyTurn && isMyPiece && isAllowedTarget) {
                 // send move event
                 app.trigger_move(event.data.source, event.data.target);
             } else {
@@ -137,10 +145,10 @@ function onMessage(event) {
     }
 }
 
-let last_player_count = 0;
+let lastPlayerCount = 0;
 
 // [piece, square][]
-let isMyTurn = false;
+let currentTurn = "white";
 let currentPosition = null;
 let lastMove = null;
 let currentIcons = null;
@@ -178,6 +186,9 @@ async function runApp() {
             connectToServerToken = null;
         }
 
+        app.log_entities();
+        // console.log({ currentTurn, currentPosition, lastMove });
+
         app.update();
 
         // check connections
@@ -186,13 +197,14 @@ async function runApp() {
             postMessage({ kind: "network-state", state: "connected" });
         }
 
-        console.log({ inGame, g: app.is_in_game() });
         // check game status
         if (!inGame && app.is_in_game()) {
             inGame = true;
+            console.log("In game!");
             postMessage({ kind: "network-state", state: "in-game" });
             app.update();
             const orientation = app.get_my_team();
+            console.log(orientation);
             myTeam = orientation;
             postMessage({
                 kind: "orientation",
@@ -208,19 +220,19 @@ async function runApp() {
         }
 
         // track player counts
-        const player_count = app.get_player_count();
-        if (player_count !== last_player_count) {
-            last_player_count = player_count;
+        const playerCount = app.get_player_count();
+        if (playerCount !== lastPlayerCount) {
+            lastPlayerCount = playerCount;
             postMessage({
                 kind: "player-count",
                 count: app.get_player_count(),
             });
         }
 
-        const myTurn = app.is_my_turn();
-        if (isMyTurn !== myTurn) {
-            isMyTurn = myTurn;
-            postMessage({ kind: "turn", myTurn });
+        const newCurrentTurn = app.current_turn();
+        if (newCurrentTurn !== null && currentTurn !== newCurrentTurn) {
+            currentTurn = newCurrentTurn;
+            postMessage({ kind: "turn", currentTurn });
         }
 
         // track piece positions

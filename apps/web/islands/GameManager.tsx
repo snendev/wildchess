@@ -38,13 +38,15 @@ export default function GameManager({ description, useDev }: GameManagerProps) {
       return (
         <div class="flex flex-col gap-2 lg:flex-row">
           <div class="flex flex-col items-end gap-2">
-            {boardState.myTurn && <h2 class="text-lg text-bold">MY TURN</h2>}
+            <div>
+                {boardState.currentTurn && <h2 class="text-lg text-bold">MY TURN</h2>}
+            </div>
             {clocks && (
               <Clock time={clocks[orientation === "white" ? "black" : "white"]} />
             )}
             <Board {...boardState} {...boardActions} size={600} />
             {clocks && (
-              <Clock time={clocks[orientation]} />
+              <Clock time={clocks[orientation === "any" ? boardState.currentTurn : orientation]} />
             )}
           </div>
           <PromotionPieces icons={promotionIcons} selectIcon={selectPromotion} />

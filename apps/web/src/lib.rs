@@ -15,22 +15,22 @@ use bevy_ecs::{
 use games::{
     chess::{
         actions::{Actions, LastAction},
-        board::Square,
+        board::{Board, Square},
         pieces::{Mutation, Orientation, PieceIdentity, Position, Royal},
         team::Team,
     },
     components::{
-        CurrentTurn, Game, GameBoard, GameOver, GameRequestClock, GameRequestVariant, Player,
+        CurrentTurn, Game, GameBoard, GameOver, GameRequestClock, GameRequestVariant, InGame,
+        Player,
     },
     Clock, GameOpponent, GameplayPlugin, LeaveGameEvent, MatchmakingPlugin, RequestJoinGameEvent,
     RequestTurnEvent, RequireMutationEvent,
 };
 use replication::{
     replicon::{
-        core::{common_conditions as network_conditions, ClientId},
-        prelude::RepliconClient,
+        core::common_conditions as network_conditions,
+        prelude::{ClientId, RepliconClient},
     },
-    replicon_renet2::renet2::RenetClient,
     Client, ClientCommand, ReplicationPlugin,
 };
 use transport::client::{ClientPlugin as ClientTransportPlugin, ConnectToServer};
@@ -40,7 +40,12 @@ use wild_icons::PieceIconSvg;
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
+    #[cfg(feature = "log")]
+    fn log(s: String);
+
+    #[wasm_bindgen(js_namespace = console)]
+    #[cfg(feature = "log")]
+    fn error(s: String);
 }
 
 #[wasm_bindgen]
@@ -83,7 +88,8 @@ impl WasmApp {
         let server_origin = ip;
         // let server_origin = option_env!("SERVER_ORIGIN").unwrap_or(&ip).to_string();
         let server_port = option_env!("SERVER_PORT").unwrap_or("7636").to_string();
-        log(format!("Connecting to {server_origin}:{server_port}").as_str());
+        #[cfg(feature = "log")]
+        log(format!("Connecting to {server_origin}:{server_port}"));
 
         self.0.world_mut().trigger(ConnectToServer::WebTransport {
             server_origin,
@@ -94,18 +100,23 @@ impl WasmApp {
 
     #[wasm_bindgen]
     pub fn request_online_game(&mut self, game_request: WasmGameRequest) {
+        #[cfg(feature = "log")]
+        log(format!("Requesting online game {game_request:?}",));
+
         self.request_game(game_request, GameOpponent::Online);
     }
 
     #[wasm_bindgen]
     pub fn start_local_game(&mut self, game_request: WasmGameRequest) {
         ClientCommand::Disconnect.apply(self.0.world_mut());
-        log("Client disconnected!");
+        #[cfg(feature = "log")]
+        log("Client disconnected!".to_string());
         self.request_game(game_request, GameOpponent::Local);
     }
 
     fn request_game(&mut self, game_request: WasmGameRequest, opponent: GameOpponent) {
-        log("Requesting game!");
+        #[cfg(feature = "log")]
+        log("Requesting game!".to_string());
         self.0.world_mut().send_event(RequestJoinGameEvent {
             opponent,
             game: game_request.variant,
@@ -117,6 +128,8 @@ impl WasmApp {
     pub fn leave_game(&mut self) {
         let mut query = self.0.world_mut().query_filtered::<Entity, With<Game>>();
         for game in query.iter(self.0.world()).collect::<Vec<_>>() {
+            #[cfg(feature = "log")]
+            log("Leaving game {game}.".to_string());
             self.0.world_mut().send_event(LeaveGameEvent { game });
         }
     }
@@ -152,6 +165,49 @@ impl WasmApp {
     }
 
     #[wasm_bindgen]
+    pub fn log_entities(&mut self) {
+        let mut games = self.0.world_mut().query_filtered::<Entity, With<Game>>();
+        let games = games
+            .iter(self.0.world())
+            .map(|game| game.to_string())
+            .collect::<Vec<_>>();
+        let games_count = games.len();
+
+        let mut players = self.0.world_mut().query_filtered::<Entity, With<Player>>();
+        let players = players
+            .iter(self.0.world())
+            .map(|player| player.to_string())
+            .collect::<Vec<_>>();
+        let players_count = players.len();
+
+        let mut pieces = self
+            .0
+            .world_mut()
+            .query_filtered::<Entity, With<PieceIdentity>>();
+        let pieces = pieces
+            .iter(self.0.world())
+            .map(|piece| piece.to_string())
+            .collect::<Vec<_>>();
+        let pieces_count = pieces.len();
+
+        let mut boards = self.0.world_mut().query_filtered::<Entity, With<Board>>();
+        let boards = boards
+            .iter(self.0.world())
+            .map(|board| board.to_string())
+            .collect::<Vec<_>>();
+        let boards_count = boards.len();
+
+        #[cfg(feature = "log")]
+        bevy_log::info!(
+            r#"World entities:
+Games ({games_count}): {games:?}
+Boards ({boards_count}): {boards:?}
+Players ({players_count}): {players:?}
+Pieces ({pieces_count}): {pieces:?}"#
+        );
+    }
+
+    #[wasm_bindgen]
     pub fn get_player_count(&mut self) -> usize {
         let mut query = self.0.world_mut().query::<&Player>();
         query.iter(self.0.world()).count()
@@ -184,27 +240,12 @@ impl WasmApp {
     }
 
     #[wasm_bindgen]
-    pub fn is_my_turn(&mut self) -> bool {
-        if self.0.world().get_resource::<RenetClient>().is_none() {
-            return true;
-        }
-        let Some(client_id) = self
-            .0
-            .world()
-            .get_resource::<RepliconClient>()
-            .and_then(|client| client.id())
-        else {
-            return false;
-        };
+    pub fn current_turn(&mut self) -> Option<String> {
         let mut query = self.0.world_mut().query::<&CurrentTurn>();
-        let Ok(team_with_turn) = query.get_single(self.0.world()).map(|turn| turn.0) else {
-            return false;
-        };
-
-        let mut query = self.0.world_mut().query::<(&Client, &Team)>();
         query
-            .iter(self.0.world())
-            .any(|(player, team)| player.id == client_id && team_with_turn == *team)
+            .get_single(self.0.world())
+            .map(|turn| format!("{:?}", turn.0).to_lowercase())
+            .ok()
     }
 
     #[wasm_bindgen]
@@ -215,20 +256,37 @@ impl WasmApp {
             .0
             .world()
             .get_resource::<RepliconClient>()
-            .and_then(|client| client.id())?;
+            .and_then(|client| client.id())
+            .unwrap_or(ClientId::SERVER);
 
-        let mut query = self.0.world_mut().query::<(&Client, &Team)>();
-        let (_, team) = query
+        let mut query = self
+            .0
+            .world_mut()
+            .query_filtered::<(&Team, Option<&Client>), With<Player>>();
+        let controlled_teams = query
             .iter(self.0.world())
-            .find(|(player, _)| player.id == client_id)?;
+            .filter(|(_, player)| {
+                player.map(|client| client.id).unwrap_or(ClientId::SERVER) == client_id
+            })
+            .map(|(team, _)| *team)
+            .collect::<Vec<_>>();
 
-        Some(
-            match team {
+        #[cfg(feature = "log")]
+        log(format!(
+            "ClientID {client_id:?} controls teams {controlled_teams:?}"
+        ));
+
+        if controlled_teams.len() > 1 {
+            Some("any".to_string())
+        } else if controlled_teams.len() == 1 {
+            let team = match controlled_teams.first().unwrap() {
                 Team::White => "white",
                 Team::Black => "black",
-            }
-            .to_string(),
-        )
+            };
+            Some(team.to_string())
+        } else {
+            None
+        }
     }
 
     #[wasm_bindgen]
@@ -341,11 +399,13 @@ impl WasmApp {
         let mut query = self
             .0
             .world_mut()
-            .query::<(Entity, &Position, &Actions, Option<&Mutation>)>();
-        let Some((piece, _, actions, maybe_mutations)) = query
+            .query::<(Entity, &Position, &Actions, Option<&Mutation>, &InGame)>();
+        let Some((piece, _, actions, maybe_mutations, in_game)) = query
             .iter(self.0.world())
-            .find(|(_, position, _, _)| position.0 == piece_square)
+            .find(|(_, position, _, _, _)| position.0 == piece_square)
         else {
+            #[cfg(feature = "log")]
+            error(format!("Warning! Piece not found at square {piece_square}"));
             return false;
         };
         let Some((_, action)) = actions
@@ -353,6 +413,10 @@ impl WasmApp {
             .iter()
             .find(|(square, _)| **square == target_square)
         else {
+            #[cfg(feature = "log")]
+            error(format!(
+                "Warning! Action not found for target {piece_square}"
+            ));
             return false;
         };
         let action = action.clone();
@@ -361,15 +425,24 @@ impl WasmApp {
             .zip(promotion_index)
             .and_then(|(mutation, index)| mutation.to_piece.get(index).cloned());
 
+        #[cfg(feature = "log")]
+        log(format!(
+            "Requesting piece {piece} from {} to {}",
+            action.movement.from(),
+            action.movement.to(),
+        ));
+
+        let my_move = RequestTurnEvent {
+            piece,
+            game: in_game.0,
+            action,
+            promotion,
+        };
         let mut move_events = self
             .0
             .world_mut()
             .resource_mut::<Events<RequestTurnEvent>>();
-        move_events.send(RequestTurnEvent {
-            piece,
-            action,
-            promotion,
-        });
+        move_events.send(my_move);
         true
     }
 
@@ -549,7 +622,7 @@ impl WasmClock {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct WasmGameRequest {
     pub(crate) variant: Option<GameRequestVariant>,
     pub(crate) clock: Option<GameRequestClock>,

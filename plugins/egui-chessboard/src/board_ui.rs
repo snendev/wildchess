@@ -192,6 +192,7 @@ pub(crate) fn egui_information_panel(
                     let (event, _) = intended_mutation.0.take().unwrap();
                     mutation_writer.send(RequestTurnEvent::new_with_mutation(
                         event.piece,
+                        event.game,
                         event.action,
                         piece_definition,
                     ));
@@ -267,6 +268,7 @@ pub(crate) fn egui_chessboard(
 
                     if let Some(turn_event) = handle_clicked_square(
                         selected_square,
+                        current_game,
                         &mut last_selected_square.0,
                         &pieces,
                         team_with_turn.0,
@@ -280,6 +282,7 @@ pub(crate) fn egui_chessboard(
 
 fn handle_clicked_square(
     selected_square: Square,
+    current_game: Entity,
     last_selected_square: &mut Option<Square>,
     pieces: &HashMap<Square, PieceData>,
     team_with_turn: Team,
@@ -288,7 +291,11 @@ fn handle_clicked_square(
         if let Some(action) = piece.actions.get(&selected_square) {
             if *piece.team == team_with_turn {
                 *last_selected_square = None;
-                return Some(RequestTurnEvent::new(piece.entity, action.clone()));
+                return Some(RequestTurnEvent::new(
+                    piece.entity,
+                    current_game,
+                    action.clone(),
+                ));
             }
         }
     }
