@@ -3,7 +3,7 @@ use itertools::Itertools;
 use bevy_ecs::prelude::{
     Commands, Entity, EventReader, Query, RemovedComponents, ResMut, With, Without,
 };
-use bevy_replicon::prelude::{ClientId, ConnectedClients, FromClient};
+use bevy_replicon::prelude::{ConnectedClients, FromClient};
 
 use replication::Client;
 
@@ -222,15 +222,15 @@ pub(super) fn handle_visibility(
     mut connected_clients: ResMut<ConnectedClients>,
 ) {
     // let players have visibility over all entities present in the same game
-    for (entity, player, player_game) in players
-        .iter()
-        .filter_map(|(entity, player, in_game)| in_game.map(|game| (entity, player, game)))
-    {
-        let client_id = player.map(|client| client.id).unwrap_or(ClientId::SERVER);
-        let client = connected_clients.client_mut(client_id);
+    for (entity, player, player_game) in players.iter().filter_map(|(entity, player, in_game)| {
+        player
+            .zip(in_game)
+            .map(|(player, game)| (entity, player, game))
+    }) {
+        let client = connected_clients.client_mut(player.id);
         let visibility = client.visibility_mut();
 
-        let client_id = client_id.get();
+        let client_id = player.id.get();
         #[cfg(feature = "log")]
         bevy_log::info!("Handling visibility for client {client_id}:");
 
@@ -259,11 +259,6 @@ pub(super) fn handle_visibility(
         }
     }
 
-    #[cfg(feature = "log")]
-    if players.iter().count() > 1 {
-        bevy_log::info!("Now handling visibility between clients:");
-    }
-
     // players also need to be able to see each other when either both in lobby, or both in the same game
     for [(entity1, player1, in_game1), (entity2, player2, in_game2)] in players.iter_combinations()
     {
@@ -273,23 +268,37 @@ pub(super) fn handle_visibility(
             (Some(game1), Some(game2)) => game1 == game2,
         };
 
-        let client1_id = player1.map(|client| client.id).unwrap_or(ClientId::SERVER);
-        let client1 = connected_clients.client_mut(client1_id);
-        let visibility1 = client1.visibility_mut();
-        visibility1.set_visibility(entity2, visible);
+        match (player1, player2) {
+            (Some(player1), Some(player2)) => {
+                let client1 = connected_clients.client_mut(player1.id);
+                let visibility1 = client1.visibility_mut();
+                visibility1.set_visibility(entity2, visible);
 
-        let client2_id = player2.map(|client| client.id).unwrap_or(ClientId::SERVER);
-        let client2 = connected_clients.client_mut(client2_id);
-        let visibility2 = client2.visibility_mut();
-        visibility2.set_visibility(entity1, visible);
+                let client2 = connected_clients.client_mut(player2.id);
+                let visibility2 = client2.visibility_mut();
+                visibility2.set_visibility(entity1, visible);
 
-        #[cfg(feature = "log")]
-        {
-            let client1_id = client1_id.get();
-            let client2_id = client2_id.get();
-            bevy_log::info!(
-                "Clients {client1_id} (entity {entity1}) and {client2_id} (entity {entity2}) see each other",
-            );
+                #[cfg(feature = "log")]
+                {
+                    let client1_id = player1.id.get();
+                    let client2_id = player2.id.get();
+                    bevy_log::info!(
+                        "Clients {client1_id} (entity {entity1}) and {client2_id} (entity {entity2}) see each other",
+                    );
+                }
+            }
+            (Some(player), None) | (None, Some(player)) => {
+                let client = connected_clients.client_mut(player.id);
+                let visibility = client.visibility_mut();
+                visibility.set_visibility(entity1, visible);
+
+                #[cfg(feature = "log")]
+                {
+                    let client_id = player.id.get();
+                    bevy_log::info!("Client {client_id} can see {entity1} and {entity2}",);
+                }
+            }
+            (None, None) => {}
         }
     }
 }

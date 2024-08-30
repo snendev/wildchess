@@ -186,7 +186,7 @@ async function runApp() {
             connectToServerToken = null;
         }
 
-        app.log_entities();
+        // app.log_entities();
         // console.log({ currentTurn, currentPosition, lastMove });
 
         app.update();

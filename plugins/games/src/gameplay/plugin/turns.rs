@@ -178,6 +178,9 @@ impl PlayTurn {
 
         // mutate the piece if specified
         if let Some(mutated_piece) = &mutation {
+            #[cfg(feature = "log")]
+            bevy_log::info!("Mutating {piece} to {:?}", mutated_piece.identity);
+
             // remove any existing behaviors and mutation
             commands.entity(*piece).remove::<PieceBehaviorsBundle>();
             commands.entity(*piece).remove::<Mutation>();
@@ -228,7 +231,7 @@ impl PlayTurn {
             commands.entity(*board).insert(LastAction(action.clone()));
         }
 
-        // up
+        // update clocks
         for (_, team, clock, in_game) in players.iter_mut() {
             if *game != in_game.0 {
                 continue;
@@ -255,5 +258,8 @@ impl PlayTurn {
                 *game_ply
             );
         }
+
+        // change whose turn it is
+        game_turn.0 = game_turn.0.get_next();
     }
 }
