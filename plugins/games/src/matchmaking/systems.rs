@@ -1,3 +1,4 @@
+use bevy_log::warn;
 use itertools::Itertools;
 
 use bevy_ecs::prelude::{
@@ -262,43 +263,40 @@ pub(super) fn handle_visibility(
     // players also need to be able to see each other when either both in lobby, or both in the same game
     for [(entity1, player1, in_game1), (entity2, player2, in_game2)] in players.iter_combinations()
     {
-        let visible = match (in_game1, in_game2) {
+        let is_visible = match (in_game1, in_game2) {
             (None, None) => true,
             (None, Some(_)) | (Some(_), None) => false,
             (Some(game1), Some(game2)) => game1 == game2,
         };
 
-        match (player1, player2) {
-            (Some(player1), Some(player2)) => {
-                let client1 = connected_clients.client_mut(player1.id);
-                let visibility1 = client1.visibility_mut();
-                visibility1.set_visibility(entity2, visible);
-
-                let client2 = connected_clients.client_mut(player2.id);
-                let visibility2 = client2.visibility_mut();
-                visibility2.set_visibility(entity1, visible);
-
+        let visibility_tuples = match (player1, player2) {
+            (Some(player1), Some(player2)) => vec![
+                (player1.id, entity1, entity2),
+                (player2.id, entity2, entity1),
+            ],
+            (Some(player), None) => vec![(player.id, entity1, entity2)],
+            (None, Some(player)) => vec![(player.id, entity2, entity1)],
+            (None, None) => vec![],
+        };
+        for (client_id, player_entity, target_entity) in visibility_tuples {
+            let Some(client) = connected_clients.get_client_mut(client_id) else {
                 #[cfg(feature = "log")]
-                {
-                    let client1_id = player1.id.get();
-                    let client2_id = player2.id.get();
-                    bevy_log::info!(
-                        "Clients {client1_id} (entity {entity1}) and {client2_id} (entity {entity2}) see each other",
-                    );
-                }
-            }
-            (Some(player), None) | (None, Some(player)) => {
-                let client = connected_clients.client_mut(player.id);
-                let visibility = client.visibility_mut();
-                visibility.set_visibility(entity1, visible);
+                bevy_log::warn!(
+                    "Client ID {} not connected but tested for visibility",
+                    client_id.get()
+                );
+                continue;
+            };
+            let visibility = client.visibility_mut();
+            visibility.set_visibility(target_entity, is_visible);
 
-                #[cfg(feature = "log")]
-                {
-                    let client_id = player.id.get();
-                    bevy_log::info!("Client {client_id} can see {entity1} and {entity2}",);
-                }
+            #[cfg(feature = "log")]
+            {
+                let client_id = client_id.get();
+                bevy_log::info!(
+                    "Client {client_id} (entity {player_entity}) can see entity {target_entity}",
+                );
             }
-            (None, None) => {}
         }
     }
 }
