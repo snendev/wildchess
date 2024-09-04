@@ -34,13 +34,11 @@ struct NativeServerTransportPlugin {
 
 #[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
 impl NativeServerTransportPlugin {
-    fn url(host: &str, port: &str, tokens_port: &str) -> Self {
+    fn _url(host: &str, port: &str, tokens_port: &str) -> Self {
         Self {
             server_address: WebServerDestination::Url(format!("{host}:{port}").parse().unwrap()),
             tokens_address: WebServerDestination::Url(
-                format!("{host}:{}", tokens_port.to_string())
-                    .parse()
-                    .unwrap(),
+                format!("{host}:{}", tokens_port).parse().unwrap(),
             ),
         }
     }
@@ -49,7 +47,7 @@ impl NativeServerTransportPlugin {
         Self {
             server_address: WebServerDestination::Addr(format!("{ip}:{port}").parse().unwrap()),
             tokens_address: WebServerDestination::Addr(
-                format!("{ip}:{}", tokens_port.to_string()).parse().unwrap(),
+                format!("{ip}:{}", tokens_port).parse().unwrap(),
             ),
         }
     }

@@ -27,9 +27,7 @@ impl File {
 
     pub fn checked_add(&self, delta: i16) -> Option<File> {
         let current: u16 = self.into();
-        current
-            .checked_add_signed(delta)
-            .and_then(|next| next.try_into().ok())
+        current.checked_add_signed(delta).map(File::from)
     }
 
     // TODO: safer arithmetic
@@ -112,9 +110,7 @@ impl Rank {
 
     pub fn checked_add(&self, delta: i16) -> Option<Rank> {
         let current: u16 = self.into();
-        current
-            .checked_add_signed(delta)
-            .and_then(|next| next.try_into().ok())
+        current.checked_add_signed(delta).map(Rank::from)
     }
 
     // TODO: safer arithmetic

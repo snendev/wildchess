@@ -1,3 +1,4 @@
+use layouts::{FeaturedWildLayout, RandomWildLayout};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -5,7 +6,7 @@ use bevy_ecs::prelude::{Bundle, Component};
 #[cfg(feature = "reflect")]
 use bevy_reflect::prelude::Reflect;
 
-use crate::components::Clock;
+use crate::components::{Clock, PieceSet};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[derive(Component)]
@@ -18,6 +19,17 @@ pub enum GameRequestVariant {
     FeaturedGameThree,
     Wild,
     // TODO: configuration...?
+}
+
+impl GameRequestVariant {
+    pub fn piece_set(&self) -> PieceSet {
+        PieceSet(match self {
+            GameRequestVariant::FeaturedGameOne => FeaturedWildLayout::One.pieces(),
+            GameRequestVariant::FeaturedGameTwo => FeaturedWildLayout::Two.pieces(),
+            GameRequestVariant::FeaturedGameThree => FeaturedWildLayout::Three.pieces(),
+            GameRequestVariant::Wild => RandomWildLayout::pieces(),
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

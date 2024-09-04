@@ -1,7 +1,6 @@
 use bevy_app::prelude::{App, Plugin, Update};
 use bevy_ecs::prelude::{
-    on_event, Added, Component, Condition, IntoSystemConfigs, IntoSystemSetConfigs, Query,
-    SystemSet,
+    Added, Changed, Component, Condition, IntoSystemConfigs, IntoSystemSetConfigs, Query, SystemSet,
 };
 
 use chess::{
@@ -12,30 +11,30 @@ use chess::{
 };
 
 use bevy_replicon::prelude::*;
-
-mod events;
-pub use events::{RequestTurnEvent, RequireMutationEvent, TurnEvent};
-use systems::detect_turn;
+use turns::PlayTurn;
 
 use crate::{
     components::{
         ActionHistory, AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameOver,
-        HasTurn, History, InGame, Ply, WinCondition,
+        History, InGame, Ply, WinCondition,
     },
     ClockPlugin, MatchmakingSystems,
 };
 
+use super::components::{CurrentTurn, Player, SpawnGame};
+
+mod events;
+pub use events::*;
 mod systems;
+mod turns;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[derive(SystemSet)]
 pub enum GameSystems {
     All,
-    DetectGameover,
+    TriggerTurn,
     TrackHistory,
-    DetectTurn,
-    ExecuteTurn,
-    SpawnGame,
+    DetectGameover,
 }
 
 pub struct GameplayPlugin;
@@ -45,19 +44,21 @@ impl Plugin for GameplayPlugin {
         app.add_plugins((ChessPlugin, BehaviorsPlugin, ClockPlugin))
             .configure_sets(
                 Update,
-                BehaviorsSystems
-                    .run_if(any_with_component_added::<Actions>().or_else(on_event::<TurnEvent>())),
+                BehaviorsSystems.run_if(any_with_component_added::<Actions>().or_else(
+                    // TODO: do this some other way
+                    any_with_component_changed::<CurrentTurn>(),
+                )),
             )
             .configure_sets(Update, GameSystems::All.before(BehaviorsSystems))
             // todo doesn't really belong here, but useful for now
             .configure_sets(Update, GameSystems::All.after(MatchmakingSystems))
             .add_mapped_client_event::<RequestTurnEvent>(ChannelKind::Ordered)
             .add_mapped_server_event::<RequireMutationEvent>(ChannelKind::Ordered)
-            .add_event::<TurnEvent>()
             .replicate::<Ply>()
-            .replicate::<HasTurn>()
             .replicate_mapped::<InGame>()
             .replicate::<Game>()
+            .replicate::<Player>()
+            .replicate::<CurrentTurn>()
             .replicate::<GameOver>()
             .replicate::<GameBoard>()
             .replicate::<Atomic>()
@@ -72,11 +73,9 @@ impl Plugin for GameplayPlugin {
             .configure_sets(
                 Update,
                 (
+                    GameSystems::TriggerTurn,
                     GameSystems::TrackHistory,
-                    GameSystems::DetectTurn,
-                    GameSystems::ExecuteTurn.run_if(on_event::<TurnEvent>()),
-                    GameSystems::DetectGameover.run_if(on_event::<TurnEvent>()),
-                    GameSystems::SpawnGame,
+                    GameSystems::DetectGameover,
                 )
                     .chain()
                     .in_set(GameSystems::All),
@@ -93,28 +92,18 @@ impl Plugin for GameplayPlugin {
                     .chain()
                     .in_set(GameSystems::TrackHistory),
             )
-            .add_systems(Update, detect_turn.in_set(GameSystems::DetectTurn))
             .add_systems(
                 Update,
-                (
-                    systems::execute_turn_movement,
-                    systems::execute_turn_mutations,
-                    systems::set_last_move,
-                    systems::end_turn,
-                    // TODO: double check how history behaves wrt TurnEvent and system ordering
-                    systems::track_turn_history,
-                )
-                    .chain()
-                    .in_set(GameSystems::ExecuteTurn),
+                systems::trigger_turns.in_set(GameSystems::TriggerTurn),
             )
             .add_systems(
                 Update,
-                systems::spawn_game_entities.in_set(GameSystems::SpawnGame),
-            )
-            .add_systems(
-                Update,
+                // TODO: double check how history behaves wrt PlayTurn and system ordering
                 systems::detect_gameover.in_set(GameSystems::DetectGameover),
             );
+
+        app.observe(SpawnGame::observer);
+        app.observe(PlayTurn::observer);
 
         #[cfg(feature = "reflect")]
         app.register_type::<InGame>()
@@ -130,13 +119,17 @@ pub fn any_with_component_added<T: Component>() -> impl FnMut(Query<(), Added<T>
     move |query: Query<(), Added<T>>| query.iter().count() > 0
 }
 
+pub fn any_with_component_changed<T: Component>() -> impl FnMut(Query<(), Changed<T>>) -> bool {
+    move |query: Query<(), Changed<T>>| query.iter().count() > 0
+}
+
 #[cfg(test)]
 mod tests {
     use bevy_ecs::prelude::{Entity, Events, World};
     use chess::board::Square;
     use layouts::RandomWildLayout;
 
-    use crate::components::{GameBoard, GameSpawner, PieceSet, WinCondition};
+    use crate::components::PieceSet;
 
     use super::*;
 
@@ -167,10 +160,10 @@ mod tests {
         piece_square: Square,
         target_square: Square,
     ) -> RequestTurnEvent {
-        let mut query = world.query::<(Entity, &Position, &Actions)>();
-        let (piece, _, actions) = query
+        let mut query = world.query::<(Entity, &Position, &Actions, &InGame)>();
+        let (piece, _, actions, in_game) = query
             .iter(&world)
-            .find(|(_, position, _)| position.0 == piece_square)
+            .find(|(_, position, _, _)| position.0 == piece_square)
             .unwrap();
         let (_, action) = actions
             .0
@@ -179,7 +172,7 @@ mod tests {
             .unwrap();
         let action = action.clone();
 
-        RequestTurnEvent::new(piece, action.clone())
+        RequestTurnEvent::new(piece, in_game.0, action.clone())
     }
 
     #[test]
@@ -194,20 +187,8 @@ mod tests {
 
         app.add_plugins(GameplayPlugin);
 
-        // TODO: use blueprints?
-        let game = GameSpawner::new_game(
-            GameBoard::Chess,
-            PieceSet(RandomWildLayout::pieces()),
-            WinCondition::RoyalCapture,
-        );
-        app.world_mut().spawn((
-            game.name(),
-            game.game,
-            game.board,
-            game.piece_set,
-            game.win_condition,
-            Replicated,
-        ));
+        app.world_mut()
+            .trigger(SpawnGame::new(PieceSet(RandomWildLayout::pieces())));
 
         app.update();
 

@@ -116,7 +116,7 @@ impl<T> History<T> {
     // This also applies to "fast-forwarding" state.
     pub fn get_previous_nearest(&self, ply: &Ply) -> Option<&T> {
         let mut latest_ply = *ply;
-        while self.0.get(&latest_ply).is_none() && latest_ply.0 > 0 {
+        while !self.0.contains_key(&latest_ply) && latest_ply.0 > 0 {
             latest_ply.0 -= 1;
         }
         self.0.get(&latest_ply).and_then(|value| value.as_ref())

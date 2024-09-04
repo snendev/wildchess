@@ -59,12 +59,15 @@ impl ServerReplicationPlugin {
                         Client { id: *client_id },
                     ));
                 }
-                ServerEvent::ClientDisconnected { client_id, reason } => {
+                ServerEvent::ClientDisconnected {
+                    client_id,
+                    reason: _reason,
+                } => {
                     if let Some((player_entity, _)) =
                         clients.iter().find(|(_, Client { id })| *id == *client_id)
                     {
                         #[cfg(feature = "log")]
-                        bevy_log::debug!("Player disconnected: {}", reason);
+                        bevy_log::debug!("Player disconnected: {}", _reason);
                         commands.entity(player_entity).despawn();
                     }
                 }

@@ -11,11 +11,11 @@ use bevy_reflect::prelude::Reflect;
 
 mod game;
 pub use game::{
-    AntiGame, Atomic, ClockConfiguration, Crazyhouse, Game, GameBoard, GameSpawner, PieceSet,
-    WinCondition,
+    AntiGame, Atomic, ClockConfiguration, Crazyhouse, CurrentTurn, Game, GameBoard, PieceSet,
+    SpawnGame, WinCondition,
 };
 mod turns;
-pub use turns::{ActionHistory, HasTurn, History, Ply};
+pub use turns::{ActionHistory, History, Ply};
 
 #[derive(Clone, Debug)]
 #[derive(Component)]

@@ -5,16 +5,14 @@ use bevy_ecs::prelude::{
 };
 use bevy_replicon::prelude::{ConnectedClients, FromClient};
 
-use chess::team::Team;
-use layouts::{FeaturedWildLayout, RandomWildLayout};
 use replication::Client;
 
 use crate::{
     components::{
-        ClockConfiguration, GameBoard, GameRequest, GameRequestBundle, GameRequestClock,
-        GameRequestVariant, HasTurn, InGame,
+        GameRequest, GameRequestBundle, GameRequestClock, GameRequestVariant, InGame, Player,
+        SpawnGame,
     },
-    gameplay::components::{Game, GameSpawner, PieceSet, Player, WinCondition},
+    gameplay::components::Game,
 };
 
 use super::{GameOpponent, LeaveGameEvent, RequestJoinGameEvent};
@@ -54,15 +52,15 @@ pub(super) fn handle_game_requests(
                 }
             }
             GameOpponent::Local => {
-                let player1 = commands.spawn(Player).id();
-                let player2 = commands.spawn(Player).id();
-                spawn_game(
-                    &mut commands,
-                    player1,
-                    player2,
-                    &event.event.game.unwrap_or_default(),
-                    event.event.clock.as_ref(),
+                let variant = event.event.game.unwrap_or_default();
+                let clock = event.event.clock.as_ref();
+                let spawn_game = SpawnGame::new(variant.piece_set())
+                    .with_clock(clock.map(|requested_clock| requested_clock.to_clock()));
+                #[cfg(feature = "log")]
+                bevy_log::info!(
+                    "Starting a local game with variant {variant:?} and clock {clock:?}"
                 );
+                commands.trigger(spawn_game);
             }
             GameOpponent::AgainstBot | GameOpponent::Analysis => {
                 unimplemented!("Can't play games against bots yet :(");
@@ -77,39 +75,19 @@ pub(super) fn handle_leave_events(
     players: Query<(Entity, &Client)>,
 ) {
     for event in leave_requests.read() {
-        if let Some((entity, _)) = players
+        if let Some((entity, client)) = players
             .iter()
-            .find(|(_, player)| player.id == event.client_id)
+            .find(|(_, client)| client.id == event.client_id)
         {
+            #[cfg(feature = "log")]
+            bevy_log::info!(
+                "Player {} has left the game. Removing player entity {entity}",
+                client.id.get()
+            );
+
             commands.entity(entity).remove::<InGame>();
         }
     }
-}
-
-fn spawn_game(
-    commands: &mut Commands,
-    player1: Entity,
-    player2: Entity,
-    variant: &GameRequestVariant,
-    clock: Option<&GameRequestClock>,
-) {
-    let piece_set = PieceSet(match variant {
-        GameRequestVariant::FeaturedGameOne => FeaturedWildLayout::One.pieces(),
-        GameRequestVariant::FeaturedGameTwo => FeaturedWildLayout::Two.pieces(),
-        GameRequestVariant::FeaturedGameThree => FeaturedWildLayout::Three.pieces(),
-        GameRequestVariant::Wild => RandomWildLayout::pieces(),
-    });
-
-    let game = GameSpawner::new_game(GameBoard::Chess, piece_set, WinCondition::RoyalCapture);
-    let game = if let Some(clock) = clock {
-        game.with_clock(clock.to_clock())
-    } else {
-        game
-    }
-    .spawn(commands);
-
-    commands.entity(player1).insert(InGame(game));
-    commands.entity(player2).insert(InGame(game));
 }
 
 /// Compares combinations of tuples so that combinations with more "Some"s are handled first
@@ -152,6 +130,7 @@ fn combine_equal<O: Copy + PartialEq>(
 }
 
 // match the most specified game requests first since they will be less easy to match
+#[allow(clippy::type_complexity)]
 pub(super) fn match_game_requests(
     mut commands: Commands,
     specified_game_request: Query<
@@ -179,18 +158,22 @@ pub(super) fn match_game_requests(
         let clock = combine_equal(clock1, clock2);
         if let (Some(variant), Some(clock)) = (variant, clock) {
             #[cfg(feature = "log")]
-            bevy_log::info!("Spawning game for players {:?} and {:?}", entity1, entity2);
+            bevy_log::info!(
+                "Starting online game for players {:?} and {:?}",
+                entity1,
+                entity2
+            );
 
             matched_entities.push(entity1);
             matched_entities.push(entity2);
 
-            spawn_game(
-                &mut commands,
-                entity1,
-                entity2,
-                &variant.unwrap_or(GameRequestVariant::FeaturedGameOne),
-                clock.as_ref(),
-            );
+            let pieces = variant
+                .unwrap_or(GameRequestVariant::FeaturedGameOne)
+                .piece_set();
+            let spawn_game = SpawnGame::new(pieces)
+                .with_players(entity1, entity2)
+                .with_clock(clock.map(|requested_clock| requested_clock.to_clock()));
+            commands.trigger(spawn_game);
         }
     }
 
@@ -199,47 +182,15 @@ pub(super) fn match_game_requests(
     }
 }
 
-// TODO: Give Players an `OnBoard` as well
-pub(super) fn assign_game_teams(
-    mut commands: Commands,
-    players: Query<(Entity, &InGame), (With<Client>, Without<Team>)>,
-    games: Query<Option<&ClockConfiguration>, With<Game>>,
-) {
-    for chunk in players
-        .iter()
-        .collect::<Vec<_>>()
-        .chunk_by(|(_, game1), (_, game2)| **game1 == **game2)
-    {
-        for ((entity, in_game), team) in chunk.iter().zip([Team::White, Team::Black]) {
-            let Ok(clock) = games.get(in_game.0) else {
-                continue;
-            };
-            #[cfg(feature = "log")]
-            bevy_log::info!(
-                "Setting player {:?} to team {:?} in game {:?}",
-                entity,
-                team,
-                in_game.0
-            );
-            let mut builder = commands.entity(*entity);
-            builder.insert((team, team.orientation()));
-            if team == Team::White {
-                builder.insert(HasTurn);
-            }
-            if let Some(clock) = clock {
-                builder.insert(clock.clock.clone());
-            }
-        }
-    }
-}
-
 pub(super) fn despawn_empty_games(
     mut commands: Commands,
     games: Query<Entity, With<Game>>,
-    players: Query<&InGame, With<Client>>,
+    players: Query<&InGame, With<Player>>,
 ) {
     for game in games.iter() {
-        if players.iter().find(|in_game| in_game.0 == game).is_none() {
+        if !players.iter().any(|in_game| in_game.0 == game) {
+            #[cfg(feature = "log")]
+            bevy_log::info!("Players not found for game {game}: Despawning game");
             commands.entity(game).despawn();
         }
     }
@@ -251,10 +202,14 @@ pub(super) fn cleanup_game_entities(
     game_entities: Query<(Entity, &InGame)>,
 ) {
     for game in removed_games.read() {
+        #[cfg(feature = "log")]
+        bevy_log::info!("Game {game} removed; despawning entities:");
         for (entity, _) in game_entities
             .iter()
             .filter(|(_, in_game)| in_game.0 == game)
         {
+            #[cfg(feature = "log")]
+            bevy_log::info!("...despawning {entity}");
             commands.entity(entity).despawn();
         }
     }
@@ -262,28 +217,43 @@ pub(super) fn cleanup_game_entities(
 
 // TODO: there are probably some visibility bugs right now
 pub(super) fn handle_visibility(
-    players: Query<(Entity, &Client, Option<&InGame>)>,
-    game_entities: Query<(Entity, &InGame), Without<Client>>,
+    players: Query<(Entity, Option<&Client>, Option<&InGame>), With<Player>>,
+    game_entities: Query<(Entity, &InGame), Without<Player>>,
     mut connected_clients: ResMut<ConnectedClients>,
 ) {
     // let players have visibility over all entities present in the same game
-    for (entity, player, player_game) in players
-        .iter()
-        .filter_map(|(entity, player, in_game)| in_game.map(|game| (entity, player, game)))
-    {
+    for (entity, player, player_game) in players.iter().filter_map(|(entity, player, in_game)| {
+        player
+            .zip(in_game)
+            .map(|(player, game)| (entity, player, game))
+    }) {
         let client = connected_clients.client_mut(player.id);
         let visibility = client.visibility_mut();
+
+        let client_id = player.id.get();
+        #[cfg(feature = "log")]
+        bevy_log::info!("Handling visibility for client {client_id}:");
+
         // player can see themselves
         visibility.set_visibility(entity, true);
+        #[cfg(feature = "log")]
+        bevy_log::info!("...CAN see its player entity {entity}");
+
         // and the game instance
         // TODO: turning this off when switching / ending games?
         visibility.set_visibility(player_game.0, true);
+        #[cfg(feature = "log")]
+        bevy_log::info!("...CAN see its game entity {}", player_game.0);
 
         // player can see other game entities
         for (entity, in_game) in game_entities.iter() {
             if in_game == player_game {
+                #[cfg(feature = "log")]
+                bevy_log::info!("...CAN see {entity}");
                 visibility.set_visibility(entity, true);
             } else {
+                #[cfg(feature = "log")]
+                bevy_log::info!("...CANNOT see {entity}");
                 visibility.set_visibility(entity, false);
             }
         }
@@ -292,23 +262,40 @@ pub(super) fn handle_visibility(
     // players also need to be able to see each other when either both in lobby, or both in the same game
     for [(entity1, player1, in_game1), (entity2, player2, in_game2)] in players.iter_combinations()
     {
-        let visible = match (in_game1, in_game2) {
+        let is_visible = match (in_game1, in_game2) {
             (None, None) => true,
             (None, Some(_)) | (Some(_), None) => false,
-            (Some(game1), Some(game2)) => {
-                if game1 == game2 {
-                    true
-                } else {
-                    false
-                }
-            }
+            (Some(game1), Some(game2)) => game1 == game2,
         };
-        let client1 = connected_clients.client_mut(player1.id);
-        let visibility1 = client1.visibility_mut();
-        visibility1.set_visibility(entity2, visible);
 
-        let client2 = connected_clients.client_mut(player2.id);
-        let visibility2 = client2.visibility_mut();
-        visibility2.set_visibility(entity1, visible);
+        let visibility_tuples = match (player1, player2) {
+            (Some(player1), Some(player2)) => vec![
+                (player1.id, entity1, entity2),
+                (player2.id, entity2, entity1),
+            ],
+            (Some(player), None) => vec![(player.id, entity1, entity2)],
+            (None, Some(player)) => vec![(player.id, entity2, entity1)],
+            (None, None) => vec![],
+        };
+        for (client_id, player_entity, target_entity) in visibility_tuples {
+            let Some(client) = connected_clients.get_client_mut(client_id) else {
+                #[cfg(feature = "log")]
+                bevy_log::warn!(
+                    "Client ID {} not connected but tested for visibility",
+                    client_id.get()
+                );
+                continue;
+            };
+            let visibility = client.visibility_mut();
+            visibility.set_visibility(target_entity, is_visible);
+
+            #[cfg(feature = "log")]
+            {
+                let client_id = client_id.get();
+                bevy_log::info!(
+                    "Client {client_id} (entity {player_entity}) can see entity {target_entity}",
+                );
+            }
+        }
     }
 }

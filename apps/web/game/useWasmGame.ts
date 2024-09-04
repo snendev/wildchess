@@ -11,7 +11,7 @@ export type RecvMessage =
   | { kind: 'require-promotion', icons: string[] }
   | { kind: 'position', position: Record<string, string>, lastMove: [string, string] | null | undefined }
   | { kind: 'targets', source: string, targets?: string[] }
-  | { kind: 'turn', myTurn: boolean }
+  | { kind: 'turn', currentTurn: 'white' | 'black' }
   | { kind: 'player-count', count: number }
   | { kind: 'orientation', orientation: 'white' | 'black'}
   | { kind: 'gameover', winningTeam: 'white' | 'black' }
@@ -28,13 +28,13 @@ export type SendMessage =
   | { kind: 'leave-game' }
 
 export interface GameState {
-  myTurn: boolean
+  currentTurn: "white" | "black"
   position: Record<string, string> | null
   clocks: {white: string, black: string} | null
   icons:  Record<string, string> | null
   targetSquares: string[] | null
   lastMoveSquares: [string, string] | null
-  orientation: "white" | "black"
+  orientation: "white" | "black" | "any"
 }
 
 export interface GameActions {
@@ -70,7 +70,7 @@ export default function useWasmGame(useDev: boolean = false): WasmGameData {
   const [isInitialized, setIsInitialized] = useState(false);
   const [netState, setNetState] = useState<NetworkState>("not-connected");
   const [position, setPosition] = useState<Record<string, string> | null>(null);
-  const [myTurn, setMyTurn] = useState(false);
+  const [currentTurn, setCurrentTurn] = useState<'white' | 'black'>('white');
   const [clocks, setClocks] = useState<{white: string, black: string} | null>(null);
   const [orientation, setOrientation] = useState<"white" | "black">("white");
   const [icons, setIcons] = useState<Record<string, string> | null>(null);
@@ -104,7 +104,7 @@ export default function useWasmGame(useDev: boolean = false): WasmGameData {
           return;
         }
         case "turn": {
-          setMyTurn(event.data.myTurn);
+          setCurrentTurn(event.data.currentTurn);
           return;
         }
         case "targets": {
@@ -178,7 +178,7 @@ export default function useWasmGame(useDev: boolean = false): WasmGameData {
 
   return {
     boardState: {
-      myTurn, position, icons, targetSquares, lastMoveSquares, orientation, clocks,
+      currentTurn, position, icons, targetSquares, lastMoveSquares, orientation, clocks,
     },
     boardActions: {
       requestTargets, resetTargets, playMove,
