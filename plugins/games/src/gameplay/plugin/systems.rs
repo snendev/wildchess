@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::{Commands, Entity, EventReader, EventWriter, Query, With};
+use bevy::prelude::{Commands, Entity, EventReader, EventWriter, Query, With};
 
 use bevy_replicon::prelude::{ClientId, FromClient, SendMode, ToClients};
 
@@ -7,10 +7,9 @@ use chess::{
     pieces::{Mutation, MutationCondition, Position, Royal},
     team::Team,
 };
-use replication::Client;
 
 use crate::{
-    components::{CurrentTurn, InGame, IsActiveGame, Ply, WinCondition},
+    components::{Client, CurrentTurn, InGame, IsActiveGame, Ply, WinCondition},
     gameplay::components::GameOver,
 };
 
@@ -38,14 +37,12 @@ pub(super) fn trigger_turns(
     {
         // is there a game instance?
         let Ok((ply, current_turn)) = game_query.get(*game) else {
-            #[cfg(feature = "log")]
-            bevy_log::warn!("Failed to find game data for {game}");
+            bevy::log::warn!("Failed to find game data for {game}");
             continue;
         };
         // does the selected piece exist?
         let Ok((piece_team, on_board, mutation)) = piece_query.get(*piece) else {
-            #[cfg(feature = "log")]
-            bevy_log::warn!("Failed to find piece data for {piece}");
+            bevy::log::warn!("Failed to find piece data for {piece}");
             continue;
         };
         // get the player data
@@ -55,18 +52,16 @@ pub(super) fn trigger_turns(
                     && **player_team == current_turn.0
             })
         else {
-            #[cfg(feature = "log")]
-            bevy_log::warn!(
+            bevy::log::warn!(
                 "Failed to find player for ClientId {client_id:?} that can play for team {:?}",
                 current_turn.0
             );
             continue;
         };
-        // is the piece owned by the player?
+        // is the piece controlled by the player?
         if piece_team != player_team {
-            #[cfg(feature = "log")]
-            bevy_log::warn!(
-                "Piece {piece} is owned by team {piece_team:?}, not team {player_team:?}",
+            bevy::log::warn!(
+                "Piece {piece} is controlled by team {piece_team:?}, not team {player_team:?}",
             );
             continue;
         }
@@ -74,8 +69,7 @@ pub(super) fn trigger_turns(
         let mut turn = None;
         if let Some(mutation) = mutation {
             let Ok(board) = board_query.get(on_board.0) else {
-                #[cfg(feature = "log")]
-                bevy_log::warn!("Failed to find board {}", on_board.0);
+                bevy::log::warn!("Failed to find board {}", on_board.0);
                 continue;
             };
             match mutation.condition {
@@ -162,15 +156,13 @@ pub(super) fn detect_gameover(
                         == 0
                 };
                 if all_captured(Team::White) {
-                    #[cfg(feature = "log")]
-                    bevy_log::info!("Game {game_entity} over! Winner: Black");
+                    bevy::log::info!("Game {game_entity} over! Winner: Black");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::Black));
                 }
                 if all_captured(Team::Black) {
-                    #[cfg(feature = "log")]
-                    bevy_log::info!("Game {game_entity} over! Winner: White");
+                    bevy::log::info!("Game {game_entity} over! Winner: White");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::White));
@@ -187,15 +179,13 @@ pub(super) fn detect_gameover(
                         > 0
                 };
                 if any_captured(Team::White) {
-                    #[cfg(feature = "log")]
-                    bevy_log::info!("Game {game_entity} over! Winner: Black");
+                    bevy::log::info!("Game {game_entity} over! Winner: Black");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::Black));
                 }
                 if any_captured(Team::Black) {
-                    #[cfg(feature = "log")]
-                    bevy_log::info!("Game {game_entity} over! Winner: White");
+                    bevy::log::info!("Game {game_entity} over! Winner: White");
                     commands
                         .entity(game_entity)
                         .insert(GameOver::new(Team::White));

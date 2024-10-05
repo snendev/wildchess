@@ -1,9 +1,26 @@
 use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
 
-pub use wordfight::*;
+use wildchess::{
+    bevy::utils::HashMap,
+    games::chess::{
+        actions::{Action, LastAction},
+        board::Square,
+        pieces::{Mutation, PieceDefinition, PieceIdentity},
+        team::Team,
+    },
+    games::Clock,
+    wild_icons::PieceIconSvg,
+};
 
 mod worker;
 pub use worker::*;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn log(s: String);
+}
 
 pub const SERVER_IP: Option<&str> = option_env!("SERVER_IP");
 pub const SERVER_DEFAULT_IP: &str = "127.0.0.1";
@@ -17,32 +34,66 @@ pub const SERVER_DEFAULT_PORT: &str = "7636";
 pub const SERVER_TOKENS_PORT: Option<&str> = option_env!("SERVER_TOKENS_PORT");
 pub const SERVER_DEFAULT_TOKENS_PORT: &str = "7637";
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[derive(Deserialize, Serialize)]
-pub enum AppMessage {
-    AddLetter(Letter),
-    Backspace,
+pub enum PlayerMessage {
+    RequestMove {
+        from: Square,
+        to: Square,
+        promotion_index: Option<usize>,
+    },
+    SelectPiece {
+        square: Square,
+    },
+    OfferDraw,
+    AcceptDraw,
+    Resign,
 }
 
-impl AppMessage {
-    pub fn add_letter(letter: &str) -> Option<Self> {
-        Letter::from_string(letter).map(Self::AddLetter)
+#[derive(Clone, Debug)]
+#[derive(Deserialize, Serialize)]
+pub enum WorkerMessage {
+    State(BoardState),
+    Targets(Option<BoardTargets>),
+}
+
+#[derive(Clone, Debug)]
+#[derive(Deserialize, Serialize)]
+pub struct BoardState {
+    pub size: (u16, u16),
+    pub current_turn: Team,
+    pub my_team: Team,
+    pub pieces: PieceMap,
+    pub icons: PieceIconMap,
+    pub clocks: Vec<Clock>,
+    pub last_action: Option<LastAction>,
+}
+
+#[derive(Clone, Debug)]
+#[derive(Deserialize, Serialize)]
+pub struct BoardTargets {
+    pub origin: Square,
+    pub actions: HashMap<Square, (Action, Option<PieceDefinition>)>,
+}
+
+impl Default for BoardState {
+    fn default() -> Self {
+        Self {
+            size: (8, 8),
+            current_turn: Default::default(),
+            my_team: Default::default(),
+            pieces: Default::default(),
+            icons: Default::default(),
+            clocks: Default::default(),
+            last_action: None,
+        }
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-pub enum WorkerMessage {
-    UpdateState(UpdateStateMessage),
-}
+pub struct PieceMap(pub HashMap<Square, (PieceIdentity, Team, Option<Mutation>)>);
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-pub struct UpdateStateMessage {
-    pub my_side: PlayerSide,
-    pub left_word: String,
-    pub left_score: usize,
-    pub right_word: String,
-    pub right_score: usize,
-    pub arena_size: usize,
-}
+pub struct PieceIconMap(pub HashMap<PieceIdentity, PieceIconSvg>);

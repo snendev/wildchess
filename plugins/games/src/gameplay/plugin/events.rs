@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_ecs::{
-    entity::MapEntities,
+use bevy::{
+    ecs::entity::MapEntities,
     prelude::{Entity, EntityMapper, Event},
 };
 

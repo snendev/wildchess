@@ -1,4 +1,4 @@
-use bevy_app::prelude::{App, Plugin};
+use bevy::app::prelude::{App, Plugin};
 use bevy_replicon::prelude::AppRuleExt;
 
 pub mod actions;
@@ -24,7 +24,6 @@ impl Plugin for ChessPlugin {
             .replicate::<pieces::Royal>()
             .replicate::<team::Team>();
 
-        #[cfg(feature = "reflect")]
         app.register_type::<actions::Action>()
             .register_type::<actions::Actions>()
             .register_type::<actions::LastAction>()

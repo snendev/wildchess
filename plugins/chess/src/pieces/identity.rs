@@ -1,20 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_ecs::prelude::Component;
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-#[cfg(feature = "reflect")]
-use bevy_reflect::Reflect;
+use bevy::prelude::{Component, Reflect};
 
 // A name for the "kind" of piece this is. Usually relates to a specific set of behaviors,
 // but variants often change these.
 // It is mostly useful for supplying contextual information to users, such as displaying a
 // particular icon.
-#[derive(Clone, Copy, Debug, Default)]
-#[derive(Component)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub enum PieceIdentity {
     // The default: implies that this piece does not fit an existing stereotype
     // #[default]
@@ -31,4 +25,21 @@ pub enum PieceIdentity {
     // TODO: Shogi
     // TODO: Xiangqi
     // TODO: others
+}
+
+impl PieceIdentity {
+    pub fn name(self) -> String {
+        format!("{:?}", self)
+    }
+
+    pub fn code(self) -> char {
+        match self {
+            PieceIdentity::King => 'K',
+            PieceIdentity::Queen => 'Q',
+            PieceIdentity::Rook => 'R',
+            PieceIdentity::Bishop => 'B',
+            PieceIdentity::Knight => 'N',
+            PieceIdentity::Pawn => 'P',
+        }
+    }
 }

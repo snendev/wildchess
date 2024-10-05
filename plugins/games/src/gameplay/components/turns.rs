@@ -1,29 +1,25 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::{
-    entity::MapEntities,
-    prelude::{Changed, Commands, Component, Entity, EntityMapper, Query, RemovedComponents, With},
+use bevy::{
+    ecs::entity::MapEntities,
+    prelude::{
+        Changed, Commands, Component, Entity, EntityMapper, Query, Reflect, RemovedComponents, With,
+    },
 };
-#[cfg(feature = "reflect")]
-use bevy_reflect::Reflect;
 
 use chess::actions::Action;
 
 use super::{Game, InGame};
 
 #[derive(Clone, Copy, Debug)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct HasTurn;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Ply(usize);
 
 impl Ply {
@@ -43,10 +39,8 @@ impl Ply {
 // A vector using Ply as an index.
 // It tracks the action made each ply.
 #[derive(Clone, Debug, Default)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct ActionHistory(Vec<(Entity, Action)>);
 
 impl std::ops::Index<Ply> for ActionHistory {
@@ -88,7 +82,7 @@ impl MapEntities for ActionHistory {
 // A sparse vector using Ply as an index.
 // It is kept sparse in order to minimize cloning.
 #[derive(Clone, Debug)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct History<T>(BTreeMap<Ply, Option<T>>);
 

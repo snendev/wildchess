@@ -7,22 +7,21 @@ lto = true
 opt-level = "z"
 
 [workspace.dependencies]
+# workspace package
+wildchess = { path = "./" }
+
 # plugins
 chess = { path = "plugins/chess" }
 games = { path = "plugins/games" }
 wild_icons = { path = "plugins/wild-icons" }
 layouts = { path = "plugins/layouts" }
-replication = { path = "plugins/replication" }
-transport = { path = "plugins/transport" }
-egui_chessboard = { path = "plugins/egui-chessboard" }
+client = { path = "plugins/client" }
+server = { path = "plugins/server" }
 
 # bevy
-bevy = { version = "0.14", default-features = false }
-bevy_app = { version = "0.14" }
-bevy_core = { version = "0.14" }
-bevy_ecs = { version = "0.14" }
-bevy_log = { version = "0.14" }
-bevy_math = { version = "0.14" }
+bevy = { version = "0.14" }
+bevy_prng = { version = "0.7", features = ["wyrand"] }
+bevy_rand = { version = "0.7", features = ["wyrand"] }
 bevy_reflect = { version = "0.14" }
 bevy_time = { version = "0.14" }
 bevy_utils = { version = "0.14" }
@@ -38,6 +37,29 @@ bevy_replicon_renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "0.0.5"
 anyhow = { version = "1.0" }
 bitflags = { version = "2.4" }
 itertools = { version = "0.12" }
-rand = { version = "0.8.5" }
+rand_core = { version = "0.6" }
 serde = { version = "1.0" }
 thiserror = { version = "1.0" }
+
+[package]
+name = "wildchess"
+version = "0.1.0"
+edition = "2021"
+authors = ["Sean Sullivan <me@snen.dev>"]
+
+[features]
+client = ["dep:client"]
+server = ["dep:server"]
+
+[dependencies]
+games = { workspace = true }
+wild_icons = { workspace = true }
+layouts = { workspace = true }
+client = { workspace = true, optional = true }
+server = { workspace = true, optional = true }
+
+bevy = { workspace = true }
+bevy_renet2 = { workspace = true }
+renet2 = { workspace = true }
+bevy_replicon = { workspace = true }
+bevy_replicon_renet2 = { workspace = true }

@@ -1,6 +1,6 @@
-use bevy_app::prelude::{Plugin, PluginGroup, Startup, Update};
-use bevy_core::Name;
-use bevy_ecs::prelude::{Commands, Entity, EventReader, Query, Res};
+use bevy::prelude::{
+    App, Commands, Entity, EventReader, Name, Plugin, PluginGroup, Query, Res, Startup, Update,
+};
 
 use bevy_replicon::prelude::{
     Replicated, RepliconChannels, RepliconCorePlugin, RepliconPlugins, ServerEvent, ServerPlugin,
@@ -10,13 +10,12 @@ use bevy_replicon_renet2::{
     renet2::{ConnectionConfig, RenetServer},
     RenetChannelsExt,
 };
-
-use crate::Client;
+use games::components::Client;
 
 pub struct ServerReplicationPlugin;
 
 impl Plugin for ServerReplicationPlugin {
-    fn build(&self, app: &mut bevy_app::App) {
+    fn build(&self, app: &mut App) {
         if !app.is_plugin_added::<RepliconCorePlugin>() {
             app.add_plugins(RepliconPlugins.build().disable::<ServerPlugin>());
         }
@@ -50,8 +49,7 @@ impl ServerReplicationPlugin {
         for event in server_events.read() {
             match event {
                 ServerEvent::ClientConnected { client_id } => {
-                    #[cfg(feature = "log")]
-                    bevy_log::info!("Player {} connected.", client_id.get());
+                    bevy::log::info!("Player {} connected.", client_id.get());
                     // Spawn new player entity
                     commands.spawn((
                         Replicated,
@@ -66,8 +64,7 @@ impl ServerReplicationPlugin {
                     if let Some((player_entity, _)) =
                         clients.iter().find(|(_, Client { id })| *id == *client_id)
                     {
-                        #[cfg(feature = "log")]
-                        bevy_log::debug!("Player disconnected: {}", _reason);
+                        bevy::log::debug!("Player disconnected: {}", _reason);
                         commands.entity(player_entity).despawn();
                     }
                 }

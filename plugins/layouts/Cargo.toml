@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bevy = { workspace = true }
 chess = { workspace = true }
-rand = { workspace = true }
+# TODO: bevy rand and rand_core
+rand = "0.8"
 serde = { workspace = true }

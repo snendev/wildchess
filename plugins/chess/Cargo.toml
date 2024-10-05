@@ -3,17 +3,8 @@ name = "chess"
 version = "0.1.0"
 edition = "2021"
 
-[features]
-default = []
-log = ["dep:bevy_log"]
-reflect = ["dep:bevy_reflect"]
-
 [dependencies]
-bevy_app = { workspace = true }
-bevy_ecs = { workspace = true }
-bevy_log = { workspace = true, optional = true }
-bevy_reflect = { workspace = true, optional = true }
-bevy_utils = { workspace = true }
+bevy = { workspace = true }
 bevy_replicon = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }

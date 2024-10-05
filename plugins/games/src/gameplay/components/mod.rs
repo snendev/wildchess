@@ -1,13 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::{
-    entity::MapEntities,
-    prelude::{Component, Entity, EntityMapper, With, Without},
+use bevy::{
+    ecs::entity::MapEntities,
+    prelude::{Component, Entity, EntityMapper, Reflect, With, Without},
 };
-#[cfg(feature = "reflect")]
-use bevy_reflect::prelude::Reflect;
+
+use bevy_replicon::prelude::ClientId;
 
 mod game;
 pub use game::{
@@ -18,17 +16,20 @@ mod turns;
 pub use turns::{ActionHistory, History, Ply};
 
 #[derive(Clone, Debug)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Player;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
+pub struct Client {
+    pub id: ClientId,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Component, Reflect)]
+#[derive(Deserialize, Serialize)]
 pub struct InGame(pub Entity);
 
 impl MapEntities for InGame {
@@ -38,10 +39,8 @@ impl MapEntities for InGame {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct GameOver {
     winner: chess::team::Team,
 }

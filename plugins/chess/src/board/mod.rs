@@ -1,22 +1,16 @@
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::{
-    entity::{EntityMapper, MapEntities},
-    prelude::{Component, Entity},
+use bevy::{
+    ecs::entity::MapEntities,
+    prelude::{Component, Entity, EntityMapper, Reflect},
 };
-#[cfg(feature = "reflect")]
-use bevy_reflect::Reflect;
 
 mod square;
 pub use square::{File, Rank, Square};
 
 #[derive(Clone, Copy, Debug)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 
 pub struct OnBoard(pub Entity);
 
@@ -27,10 +21,8 @@ impl MapEntities for OnBoard {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Board {
     pub size: Square,
 }

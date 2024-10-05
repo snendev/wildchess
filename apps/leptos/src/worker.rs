@@ -4,18 +4,28 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, RequestInit, RequestMode, Response};
 
-use bevy::{prelude::*, utils::HashSet};
-
-use client::{
-    bevy_replicon::prelude::{RepliconClient, RepliconClientStatus},
-    ClientPlugin,
-};
-use wordfight::{ActiveGameUpdate, Client, PlayerSide, WordFightPlugins};
+use wildchess::bevy::ecs::entity::Entity;
+// use client::{
+//     bevy_replicon::prelude::{RepliconClient, RepliconClientStatus},
+//     ClientPlugin,
+// };
+use wildchess::bevy::app::App;
+use wildchess::bevy::ecs::event::Events;
+use wildchess::bevy::ecs::world::World;
+use wildchess::bevy::utils::{HashMap, HashSet};
+use wildchess::bevy_replicon::prelude::RepliconClient;
+use wildchess::bevy_replicon::prelude::RepliconClientStatus;
+use wildchess::games::chess::actions::Actions;
+use wildchess::games::chess::pieces::{Mutation, MutationCondition, Position};
+use wildchess::games::chess::team::Team;
+use wildchess::games::components::Client;
+use wildchess::games::components::InGame;
+use wildchess::games::RequestTurnEvent;
 
 use crate::{
-    AppMessage, UpdateStateMessage, WorkerMessage, SERVER_DEFAULT_IP, SERVER_DEFAULT_ORIGIN,
-    SERVER_DEFAULT_PORT, SERVER_DEFAULT_TOKENS_PORT, SERVER_IP, SERVER_ORIGIN, SERVER_PORT,
-    SERVER_TOKENS_PORT,
+    BoardState, BoardTargets, PlayerMessage, WorkerMessage, SERVER_DEFAULT_IP,
+    SERVER_DEFAULT_ORIGIN, SERVER_DEFAULT_PORT, SERVER_DEFAULT_TOKENS_PORT, SERVER_IP,
+    SERVER_ORIGIN, SERVER_PORT, SERVER_TOKENS_PORT,
 };
 
 // Use this to enable console logging
@@ -23,22 +33,32 @@ use crate::{
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: String);
+
+    #[wasm_bindgen(js_namespace = console)]
+    fn error(s: String);
 }
 
 #[wasm_bindgen]
 extern "C" {
-    fn setInterval(closure: &Closure<dyn FnMut()>, millis: u32) -> f64;
-    fn clearInterval(token: f64);
+    fn setInterval(closure: &Closure<dyn FnMut()>, millis: u32) -> u64;
+    fn clearInterval(token: u64);
 }
+
 pub struct BevyWorker {
     game: Option<App>,
     subscriptions: HashSet<HandlerId>,
     _trigger_update: Closure<dyn FnMut()>,
-    _interval: Interval,
+    interval: Interval,
+}
+
+impl PartialEq for BevyWorker {
+    fn eq(&self, other: &Self) -> bool {
+        self.interval.0 == other.interval.0
+    }
 }
 
 impl Worker for BevyWorker {
-    type Input = AppMessage;
+    type Input = PlayerMessage;
     type Output = WorkerMessage;
     type Message = WorkerUpdateMessage;
 
@@ -53,8 +73,8 @@ impl Worker for BevyWorker {
         Self {
             game: None,
             subscriptions: HashSet::default(),
+            interval: Interval(interval),
             _trigger_update: trigger_update,
-            _interval: Interval(interval),
         }
     }
 
@@ -72,30 +92,27 @@ impl Worker for BevyWorker {
             let Some((_, my_side)) = get_my_player(app.world_mut()) else {
                 return;
             };
-            let events = app.world().resource::<Events<ActiveGameUpdate>>();
-            let mut reader = events.get_reader();
-            if let Some(update) = reader.read(events).last() {
-                for id in &self.subscriptions {
-                    scope.respond(
-                        *id,
-                        WorkerMessage::UpdateState(UpdateStateMessage {
-                            my_side,
-                            left_word: update.left_word.to_string(),
-                            left_score: *update.left_score,
-                            right_word: update.right_word.to_string(),
-                            right_score: *update.right_score,
-                            arena_size: update.arena_size,
-                        }),
-                    );
-                }
-            }
+            // let events = app.world().resource::<Events<ActiveGameUpdate>>();
+            // let mut reader = events.get_reader();
+            // if let Some(update) = reader.read(events).last() {
+            //     for id in &self.subscriptions {
+            //         scope.respond(
+            //             *id,
+            //             WorkerMessage::State(BoardState {
+            //                 orientation,
+            //                 pieces,
+            //                 icons,
+            //             }),
+            //         );
+            //     }
+            // }
         } else if let WorkerUpdateMessage::Token(token) = message {
             let app = build_app(token);
             self.game = Some(app);
         }
     }
 
-    fn received(&mut self, _: &WorkerScope<Self>, message: Self::Input, _: HandlerId) {
+    fn received(&mut self, scope: &WorkerScope<Self>, message: Self::Input, handler_id: HandlerId) {
         let Some(app) = self.game.as_mut() else {
             #[cfg(feature = "log")]
             log(format!(
@@ -118,20 +135,11 @@ impl Worker for BevyWorker {
         };
         #[cfg(feature = "log")]
         log(format!("Message received! {:?}", message));
-        let action: wordfight::Action = match message {
-            AppMessage::AddLetter(letter) => wordfight::Action::Append(letter),
-            AppMessage::Backspace => wordfight::Action::Delete,
-        };
-        let mut query = app.world_mut().query::<(Entity, &PlayerSide, &Client)>();
-        let Some((my_player, my_side, _)) = query
-            .iter(app.world())
-            .find(|(_, _, client)| ***client == my_client_id)
-        else {
-            return;
-        };
-        let my_side = *my_side;
-        app.world_mut()
-            .send_event(action.made_by(my_player, my_side));
+
+        // todo: where are we checking who the player is?
+        let response = handle_message(app, message);
+        scope.respond(handler_id, response);
+
         app.update();
     }
 }
@@ -141,7 +149,7 @@ pub enum WorkerUpdateMessage {
     Update,
 }
 
-pub struct Interval(f64);
+struct Interval(u64);
 
 impl Drop for Interval {
     fn drop(&mut self) {
@@ -154,18 +162,18 @@ fn build_app(server_token: String) -> App {
     let server_origin = SERVER_IP.unwrap_or(SERVER_DEFAULT_IP).to_string();
     let server_port = SERVER_PORT.unwrap_or(SERVER_DEFAULT_PORT).to_string();
 
-    app.add_plugins(WordFightPlugins);
-    app.add_plugins(ClientPlugin {
-        server_origin,
-        server_port,
-        server_token,
-    });
+    // app.add_plugins(WildchessPlugins);
+    // // app.add_plugins(ClientPlugin {
+    // //     server_origin,
+    // //     server_port,
+    // //     server_token,
+    // // });
     app.update();
     app.update();
     app
 }
 
-fn get_my_player(world: &mut World) -> Option<(Entity, PlayerSide)> {
+fn get_my_player(world: &mut World) -> Option<(Entity, Team)> {
     let replicon_client = world.resource::<RepliconClient>();
     let RepliconClientStatus::Connected {
         client_id: Some(my_client_id),
@@ -173,10 +181,10 @@ fn get_my_player(world: &mut World) -> Option<(Entity, PlayerSide)> {
     else {
         return None;
     };
-    let mut query = world.query::<(Entity, &PlayerSide, &Client)>();
+    let mut query = world.query::<(Entity, &Team, &Client)>();
     let (my_player, my_side, _) = query
         .iter(world)
-        .find(|(_, _, client)| ***client == my_client_id)?;
+        .find(|(_, _, client)| client.id == my_client_id)?;
     Some((my_player, *my_side))
 }
 
@@ -202,4 +210,92 @@ async fn fetch_server_token() -> Result<String, JsValue> {
     let text = JsFuture::from(response.text()?).await?;
     log(text.as_string().unwrap());
     Ok(text.as_string().unwrap())
+}
+
+fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
+    match message {
+        PlayerMessage::RequestMove {
+            from,
+            to,
+            promotion_index,
+        } => {
+            let mut query =
+                app.world_mut()
+                    .query::<(Entity, &Position, &Actions, Option<&Mutation>, &InGame)>();
+
+            // get the selected piece data
+            let Some((piece, _, actions, maybe_mutations, in_game)) = query
+                .iter(app.world())
+                .find(|(_, position, _, _, _)| position.0 == from)
+            else {
+                #[cfg(feature = "log")]
+                error(format!("Warning! Piece not found at square {piece_square}"));
+                return WorkerMessage::Targets(None);
+            };
+            let game = in_game.0;
+            let promotion = maybe_mutations
+                .zip(promotion_index)
+                .and_then(|(mutation, index)| mutation.to_piece.get(index).cloned());
+
+            // get the action being taken
+            let Some((_, action)) = actions.0.iter().find(|(square, _)| **square == to) else {
+                #[cfg(feature = "log")]
+                error(format!(
+                    "Warning! Action not found for target {piece_square}"
+                ));
+                return WorkerMessage::Targets(None);
+            };
+            let action = action.clone();
+
+            // request a turn and be optimistic
+            app.world_mut().send_event(RequestTurnEvent {
+                game,
+                piece,
+                action,
+                promotion,
+            });
+
+            WorkerMessage::Targets(None)
+        }
+        PlayerMessage::SelectPiece { square } => {
+            let mut query = app
+                .world_mut()
+                .query::<(&Position, &Actions, Option<&Mutation>)>();
+            let Some((_, actions, mutations)) = query
+                .iter(app.world())
+                .find(|(position, _, _)| position.0 == square)
+            else {
+                #[cfg(feature = "log")]
+                error(format!("No action not found for target {square}."));
+                return WorkerMessage::Targets(None);
+            };
+
+            let actions = if let Some(mutation) = mutations {
+                actions
+                    .0
+                    .iter()
+                    .flat_map(|(square, action)| {
+                        mutation
+                            .to_piece
+                            .iter()
+                            .map(|piece| (*square, (action.clone(), Some(piece.clone()))))
+                    })
+                    .collect::<HashMap<_, _>>()
+            } else {
+                actions
+                    .0
+                    .iter()
+                    .flat_map(|(square, action)| std::iter::once((*square, (action.clone(), None))))
+                    .collect::<HashMap<_, _>>()
+            };
+
+            WorkerMessage::Targets(Some(BoardTargets {
+                origin: square,
+                actions,
+            }))
+        }
+        PlayerMessage::OfferDraw => todo!(),
+        PlayerMessage::AcceptDraw => todo!(),
+        PlayerMessage::Resign => todo!(),
+    }
 }

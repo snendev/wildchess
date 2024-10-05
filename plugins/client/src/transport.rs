@@ -4,12 +4,9 @@ use std::{
 };
 use thiserror::Error;
 
-use bevy_app::prelude::{App, Plugin};
-use bevy_ecs::{event::Event, observer::Trigger, system::Commands};
+use bevy::prelude::{App, Commands, Event, Plugin, Trigger};
 
 use renet2::transport::{ClientAuthentication, NetcodeClientTransport, WebServerDestination};
-
-use crate::PROTOCOL_ID;
 
 pub struct ClientPlugin;
 
@@ -22,7 +19,6 @@ impl Plugin for ClientPlugin {
 #[derive(Debug)]
 #[derive(Event)]
 pub enum ConnectToServer {
-    #[cfg(feature = "web_transport_client")]
     WebTransport {
         server_origin: String,
         server_port: String,
@@ -37,8 +33,7 @@ impl ConnectToServer {
                 commands.insert_resource(transport);
             }
             Err(error) => {
-                #[cfg(feature = "log")]
-                bevy_log::error!("{error:?}");
+                bevy::log::error!("{error:?}");
             }
         }
     }
@@ -51,26 +46,22 @@ impl ConnectToServer {
         let authentication = Self::create_authentication(client_id, socket_addr);
 
         match self {
-            #[cfg(feature = "web_transport_client")]
             ConnectToServer::WebTransport {
                 wt_server_token, ..
             } => {
-                use renet2::transport::WebServerDestination;
-
                 let server_address = WebServerDestination::Addr(socket_addr);
 
                 #[allow(unused)]
                 #[allow(clippy::let_unit_value)]
-                #[cfg(feature = "web_transport_client")]
                 let socket = Self::create_webtransport_socket(server_address, wt_server_token)?;
 
-                #[cfg(all(feature = "web_transport_client", target_family = "wasm"))]
+                #[cfg(target_family = "wasm")]
                 return Ok(NetcodeClientTransport::new(
                     current_time,
                     authentication,
                     socket,
                 )?);
-                #[cfg(all(feature = "web_transport_client", not(target_family = "wasm")))]
+                #[cfg(not(target_family = "wasm"))]
                 return Err(Box::new(WasmCFGError));
             }
         }
@@ -78,7 +69,6 @@ impl ConnectToServer {
 
     fn create_server_address(&self) -> Result<SocketAddr, AddrParseError> {
         match self {
-            #[cfg(feature = "web_transport_client")]
             ConnectToServer::WebTransport {
                 server_origin,
                 server_port,
@@ -90,7 +80,8 @@ impl ConnectToServer {
     fn create_authentication(client_id: u64, server_addr: SocketAddr) -> ClientAuthentication {
         ClientAuthentication::Unsecure {
             client_id,
-            protocol_id: PROTOCOL_ID,
+            // TODO: make this meaningful
+            protocol_id: 5,
             socket_id: 0,
             server_addr,
             user_data: None,
@@ -104,7 +95,7 @@ impl ConnectToServer {
             .map_err(|_error| SystemTimeError)
     }
 
-    #[cfg(all(feature = "web_transport_client", target_family = "wasm"))]
+    #[cfg(target_family = "wasm")]
     fn create_webtransport_socket(
         server_address: WebServerDestination,
         token: &String,
@@ -123,18 +114,17 @@ impl ConnectToServer {
     }
 
     #[allow(unreachable_code)]
-    #[cfg(all(feature = "web_transport_client", not(target_family = "wasm")))]
+    #[cfg(not(target_family = "wasm"))]
     fn create_webtransport_socket(_: WebServerDestination, _: &String) -> Result<(), WasmCFGError> {
         Err(WasmCFGError)
     }
 }
 
 #[derive(Debug, Error)]
+#[allow(dead_code)]
 pub enum ConnectToSocketError {
-    #[cfg(feature = "web_transport_client")]
     #[error("Could not decode hash: {_0:?}")]
     WTDecodeHashFailure(base64::DecodeError),
-    #[cfg(feature = "web_transport_client")]
     #[error("Provided token failed to construct a valid cert hash")]
     WTHashCertFailure(()),
 }

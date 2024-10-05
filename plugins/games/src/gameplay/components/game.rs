@@ -1,15 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_core::Name;
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::{
-    event::Event,
-    observer::Trigger,
-    prelude::{Commands, Component, Entity},
-};
-#[cfg(feature = "reflect")]
-use bevy_reflect::Reflect;
+use bevy::prelude::{Commands, Component, Entity, Event, Name, Reflect, Trigger};
 
 use bevy_replicon::prelude::Replicated;
 
@@ -30,14 +21,12 @@ use super::{InGame, Player};
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct Game;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
+#[derive(Component, Reflect)]
 pub enum GameBoard {
     #[default]
     Chess,
@@ -46,8 +35,8 @@ pub enum GameBoard {
 }
 
 #[derive(Clone, Debug, Default)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component)]
 pub struct PieceSet(pub Vec<PieceSpecification>);
 
 impl From<Vec<PieceSpecification>> for PieceSet {
@@ -59,7 +48,7 @@ impl From<Vec<PieceSpecification>> for PieceSet {
 // A game rule specifying that captures result in an "explosion"
 // additionally capturing on all squares in the region of the capture.
 #[derive(Clone, Debug, Default)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct Atomic;
 
@@ -67,22 +56,20 @@ pub struct Atomic;
 // on the board using a turn.
 #[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct Crazyhouse;
 
 // A game rule specifying that the typical win condition results in a loss;
 // Pieces must capture if they are able to.
 #[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct AntiGame;
 
 // The set of win conditions for the board
 #[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
+#[derive(Component, Reflect)]
 pub enum WinCondition {
     // The game is won once all enemy Royal pieces are captured.
     RoyalCaptureAll,
@@ -97,19 +84,15 @@ pub enum WinCondition {
 }
 
 #[derive(Clone, Debug, Default)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct ClockConfiguration {
     pub clock: Clock,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
+#[derive(Component, Reflect)]
 pub struct CurrentTurn(pub Team);
 
 // TODO: revisit this API
@@ -273,8 +256,7 @@ impl SpawnGame {
             {
                 let start_square = start_square.reorient(team.orientation(), &board_data);
                 let name = Name::new(format!("{:?} {}-{:?}", team, start_square, piece.identity));
-                #[cfg(feature = "log")]
-                bevy_log::info!("...spawning piece: {}", name);
+                bevy::log::debug!("...spawning piece: {}", name);
 
                 let mut piece_builder = commands.spawn((
                     name,
@@ -310,7 +292,6 @@ impl SpawnGame {
             }
         }
 
-        #[cfg(feature = "log")]
-        bevy_log::info!("Spawned game {game} with players {player1}, {player2} on board {board}");
+        bevy::log::info!("Spawned game {game} with players {player1}, {player2} on board {board}");
     }
 }

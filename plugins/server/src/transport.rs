@@ -1,23 +1,19 @@
 use std::net::SocketAddr;
-
-#[cfg(feature = "web_transport_server")]
 use warp::Filter;
 
-use bevy_app::prelude::{App, Plugin};
-use bevy_ecs::prelude::Resource;
-
-use crate::PROTOCOL_ID;
+use bevy::prelude::{App, Plugin, Resource};
 
 use renet2::transport::WebServerDestination;
 
-pub struct ServerPlugin {
+use game::PROTOCOL_ID;
+
+pub struct ServerTransportPlugin {
     pub port: String,
     pub wt_tokens_port: String,
 }
 
-impl Plugin for ServerPlugin {
+impl Plugin for ServerTransportPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
         app.add_plugins(NativeServerTransportPlugin::ip(
             "0.0.0.0",
             self.port.as_str(),
@@ -26,13 +22,11 @@ impl Plugin for ServerPlugin {
     }
 }
 
-#[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
 struct NativeServerTransportPlugin {
     server_address: WebServerDestination,
     tokens_address: WebServerDestination,
 }
 
-#[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
 impl NativeServerTransportPlugin {
     fn _url(host: &str, port: &str, tokens_port: &str) -> Self {
         Self {
@@ -53,14 +47,12 @@ impl NativeServerTransportPlugin {
     }
 }
 
-#[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
 impl Default for NativeServerTransportPlugin {
     fn default() -> Self {
         Self::ip("0.0.0.0", "7636", "7637")
     }
 }
 
-#[cfg(any(feature = "web_transport_server", feature = "native_transport"))]
 impl Plugin for NativeServerTransportPlugin {
     fn build(&self, app: &mut App) {
         use bevy_renet2::renet2::transport::{
@@ -81,13 +73,6 @@ impl Plugin for NativeServerTransportPlugin {
             authentication: ServerAuthentication::Unsecure,
         };
 
-        #[cfg(feature = "native_transport")]
-        let socket = {
-            let udp_socket = std::net::UdpSocket::bind(public_addr).unwrap();
-            renet2::transport::NativeSocket::new(udp_socket).unwrap()
-        };
-
-        #[cfg(feature = "web_transport_server")]
         let socket = {
             use base64::Engine;
 

@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_ecs::{
-    observer::Trigger,
-    prelude::{Commands, Entity, Event, Query, With, Without},
-};
+use bevy::prelude::{Commands, Entity, Event, Query, Trigger, With, Without};
 
 use chess::{
     actions::LastAction,
@@ -13,7 +10,10 @@ use chess::{
     team::Team,
 };
 
-use crate::components::{ActionHistory, Clock, CurrentTurn, Game, InGame, Player, Ply};
+use crate::{
+    components::{ActionHistory, CurrentTurn, Game, InGame, Player, Ply},
+    Clock,
+};
 
 use chess::{actions::Action, pieces::PieceDefinition};
 
@@ -90,15 +90,13 @@ impl PlayTurn {
         let Ok((mut game_turn, mut game_ply, mut game_action_history, game_last_action)) =
             games.get_mut(*game)
         else {
-            #[cfg(feature = "log")]
-            bevy_log::warn!("Failed to find game {game}");
+            bevy::log::warn!("Failed to find game {game}");
             return;
         };
 
         // get the board instance
         let Ok(board_last_action) = boards.get_mut(*board) else {
-            #[cfg(feature = "log")]
-            bevy_log::warn!("Failed to find board {board}");
+            bevy::log::warn!("Failed to find board {board}");
             return;
         };
 
@@ -106,30 +104,26 @@ impl PlayTurn {
         match pieces.get(*piece) {
             Ok((_, team, _, _)) => {
                 if *team != game_turn.0 {
-                    #[cfg(feature = "log")]
-                    bevy_log::warn!(
+                    bevy::log::warn!(
                         "PlayTurn submitted for the wrong team: (piece) {team:?} != (turn) {:?}",
                         game_turn.0
                     );
                     return;
                 }
             }
-            Err(error) => {
-                #[cfg(feature = "log")]
-                bevy_log::warn!("{error}");
+            Err(_error) => {
+                bevy::log::warn!("{_error}");
                 return;
             }
         }
 
         // get the piece taking action
         let Ok((_, _, mut piece_square, _)) = pieces.get_mut(*piece) else {
-            #[cfg(feature = "log")]
-            bevy_log::warn!("Failed to find piece data for {piece}");
+            bevy::log::warn!("Failed to find piece data for {piece}");
             return;
         };
 
-        #[cfg(feature = "log")]
-        bevy_log::info!(
+        bevy::log::debug!(
             "Executing {:?}'s turn {ply:?} on board {board}: Moving {piece} {} -> {}",
             game_turn.0,
             action.movement.from,
@@ -144,8 +138,7 @@ impl PlayTurn {
             if let Ok((_, _, mut current_square, _)) = pieces.get_mut(*side_effect_piece) {
                 current_square.0 = additional_movement.to;
             } else {
-                #[cfg(feature = "log")]
-                bevy_log::warn!(
+                bevy::log::warn!(
                     "Failed to find piece data for {side_effect_piece}: Side effect ignored."
                 );
             }
@@ -167,8 +160,7 @@ impl PlayTurn {
                         }
                     })
             {
-                #[cfg(feature = "log")]
-                bevy_log::info!("Capturing {captured_piece} on {capture_square}");
+                bevy::log::debug!("Capturing {captured_piece} on {capture_square}");
 
                 // keep the entity around so that we can maintain its position history
                 // and visualize it when viewing old ply
@@ -178,8 +170,7 @@ impl PlayTurn {
 
         // mutate the piece if specified
         if let Some(mutated_piece) = &mutation {
-            #[cfg(feature = "log")]
-            bevy_log::info!("Mutating {piece} to {:?}", mutated_piece.identity);
+            bevy::log::debug!("Mutating {piece} to {:?}", mutated_piece.identity);
 
             // remove any existing behaviors and mutation
             commands.entity(*piece).remove::<PieceBehaviorsBundle>();
@@ -251,8 +242,7 @@ impl PlayTurn {
             game_action_history.push(*piece, action.clone());
             game_ply.increment();
         } else {
-            #[cfg(feature = "log")]
-            bevy_log::warn!(
+            bevy::log::warn!(
                 "Turn ply {:?} does not match current game ply {:?}",
                 *ply,
                 *game_ply

@@ -4,6 +4,7 @@
     },
     "tasks": {
         "build": "trunk build --release",
+        "build-dev": "trunk build --release --features log",
         "serve": "deno run -A webserver.ts",
         "run-server": "cargo run -p wildchess-server --release",
         "clippy": "cargo clippy --workspace --all-targets --all-features -- --deny warnings"

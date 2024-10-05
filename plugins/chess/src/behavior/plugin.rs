@@ -1,5 +1,5 @@
-use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::prelude::{IntoSystemConfigs, Query, SystemSet};
+use bevy::prelude::{App, IntoSystemConfigs, Plugin, Query, SystemSet, Update};
+
 use bevy_replicon::prelude::AppRuleExt;
 
 use crate::{

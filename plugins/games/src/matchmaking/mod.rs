@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::{
-    entity::MapEntities,
+use bevy::{
+    ecs::entity::MapEntities,
     prelude::{
-        resource_exists, Entity, EntityMapper, Event, IntoSystemConfigs, IntoSystemSetConfigs,
-        SystemSet,
+        resource_exists, App, Entity, EntityMapper, Event, IntoSystemConfigs, IntoSystemSetConfigs,
+        Plugin, SystemSet, Update,
     },
 };
 

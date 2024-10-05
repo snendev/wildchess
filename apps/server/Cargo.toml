@@ -6,17 +6,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
 
-[features]
-default = ["log"]
-log = ["games/log", "transport/log"]
-
 [dependencies]
-games = { workspace = true }
-replication = { workspace = true, features = ["server"] }
-transport = { workspace = true, features = [
-    # "server",
-    # "native_transport",
-    # "steam_transport",
-    "web_transport_server",
-] }
+wildchess = { workspace = true }
+
 bevy = { workspace = true }

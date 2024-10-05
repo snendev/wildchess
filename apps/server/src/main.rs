@@ -2,15 +2,12 @@
 compile_error!("Native build is not intended for use with WASM. Please build the WASM app.");
 
 use bevy::{
-    app::ScheduleRunnerPlugin,
+    app::{App, PluginGroup, ScheduleRunnerPlugin},
     log::{Level, LogPlugin},
-    prelude::{App, PluginGroup},
     MinimalPlugins,
 };
 
-use games::{GameplayPlugin, MatchmakingPlugin};
-use replication::ReplicationPlugin;
-use transport::server::ServerPlugin as ServerTransportPlugin;
+use wildchess::WildchessPlugins;
 
 fn main() {
     App::default()
@@ -24,23 +21,7 @@ fn main() {
                 level: Level::INFO,
                 ..Default::default()
             },
-        ))
-        .add_plugins((
-            ReplicationPlugin,
-            GameplayPlugin,
-            MatchmakingPlugin,
-            ServerTransportPlugin {
-                port: option_env!("SERVER_PORT").unwrap_or("7636").to_string(),
-                wt_tokens_port: option_env!("SERVER_TOKENS_PORT")
-                    .unwrap_or("7637")
-                    .to_string(),
-                // native_host: option_env!("SERVER_IP")
-                //     .unwrap_or("127.0.0.1")
-                //     .to_string(),
-                // native_port: option_env!("SERVER_IP")
-                //     .unwrap_or("127.0.0.1")
-                //     .to_string(),
-            },
+            WildchessPlugins,
         ))
         .run();
 }

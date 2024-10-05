@@ -1,6 +1,6 @@
-use bevy_app::prelude::{App, Plugin, Update};
-use bevy_ecs::prelude::{
-    Added, Changed, Component, Condition, IntoSystemConfigs, IntoSystemSetConfigs, Query, SystemSet,
+use bevy::prelude::{
+    Added, App, Changed, Component, Condition, IntoSystemConfigs, IntoSystemSetConfigs, Plugin,
+    Query, SystemSet, Update,
 };
 
 use chess::{
@@ -11,7 +11,6 @@ use chess::{
 };
 
 use bevy_replicon::prelude::*;
-use turns::PlayTurn;
 
 use crate::{
     components::{
@@ -21,12 +20,13 @@ use crate::{
     ClockPlugin, MatchmakingSystems,
 };
 
-use super::components::{CurrentTurn, Player, SpawnGame};
+use super::components::{Client, CurrentTurn, Player, SpawnGame};
 
 mod events;
 pub use events::*;
 mod systems;
 mod turns;
+use turns::PlayTurn;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[derive(SystemSet)]
@@ -57,6 +57,7 @@ impl Plugin for GameplayPlugin {
             .replicate::<Ply>()
             .replicate_mapped::<InGame>()
             .replicate::<Game>()
+            .replicate::<Client>()
             .replicate::<Player>()
             .replicate::<CurrentTurn>()
             .replicate::<GameOver>()
@@ -105,7 +106,6 @@ impl Plugin for GameplayPlugin {
         app.observe(SpawnGame::observer);
         app.observe(PlayTurn::observer);
 
-        #[cfg(feature = "reflect")]
         app.register_type::<InGame>()
             .register_type::<GameBoard>()
             .register_type::<WinCondition>()
@@ -125,7 +125,11 @@ pub fn any_with_component_changed<T: Component>() -> impl FnMut(Query<(), Change
 
 #[cfg(test)]
 mod tests {
-    use bevy_ecs::prelude::{Entity, Events, World};
+    use bevy::app::{App, ScheduleRunnerPlugin};
+    use bevy::core::{FrameCountPlugin, TaskPoolPlugin, TypeRegistrationPlugin};
+    use bevy::ecs::prelude::{Entity, Events, World};
+    use bevy::time::TimePlugin;
+    use bevy_replicon::core::RepliconCorePlugin;
     use chess::board::Square;
     use layouts::RandomWildLayout;
 
@@ -177,12 +181,12 @@ mod tests {
 
     #[test]
     fn test_lifecycle() {
-        let mut app = bevy_app::App::default();
-        app.add_plugins(bevy_core::TaskPoolPlugin::default());
-        app.add_plugins(bevy_core::TypeRegistrationPlugin);
-        app.add_plugins(bevy_core::FrameCountPlugin);
-        app.add_plugins(bevy_time::TimePlugin);
-        app.add_plugins(bevy_app::ScheduleRunnerPlugin::default());
+        let mut app = App::default();
+        app.add_plugins(TaskPoolPlugin::default());
+        app.add_plugins(TypeRegistrationPlugin);
+        app.add_plugins(FrameCountPlugin);
+        app.add_plugins(TimePlugin);
+        app.add_plugins(ScheduleRunnerPlugin::default());
         app.add_plugins(RepliconCorePlugin);
 
         app.add_plugins(GameplayPlugin);

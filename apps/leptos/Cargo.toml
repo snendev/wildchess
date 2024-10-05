@@ -4,19 +4,18 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Sean Sullivan <me@snen.dev>"]
 
-[features]
-default = []
-log = []
-
 [dependencies]
 # plugins
-# = { path = "../../" }
-# client = { workspace = true }
+wildchess = { path = "../../" }
 
 # bevy
-bevy = { workspace = true }
 serde = { workspace = true }
-leptos = { version = "0.6", features = ["csr"] }
+leptos = { version = "=0.6.14", features = ["csr"] }
+leptos_router = { version = "=0.6.14", features = ["csr"] }
+leptos-use = { version = "0.13", default-features = false, features = [
+    "use_draggable",
+    "on_click_outside",
+] }
 
 console_error_panic_hook = "0.1"
 js-sys = "0.3"
