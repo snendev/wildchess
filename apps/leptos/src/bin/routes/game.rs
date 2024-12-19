@@ -16,9 +16,7 @@ pub fn Game() -> impl IntoView {
 
     let worker = create_memo(move |_| {
         let message_callback = move |message: WorkerMessage| {
-            #[cfg(feature = "log")]
             wildchess_web::log(format!("Update from Bevy app: {:?}", message));
-            #[cfg(feature = "log")]
             wildchess_web::log("Setting state...".to_string());
             match message {
                 WorkerMessage::State(board_state) => {
