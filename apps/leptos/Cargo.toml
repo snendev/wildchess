@@ -6,7 +6,7 @@ authors = ["Sean Sullivan <me@snen.dev>"]
 
 [dependencies]
 # plugins
-wildchess = { path = "../../" }
+wildchess = { workspace = true, features = ["client"] }
 
 # bevy
 serde = { workspace = true }

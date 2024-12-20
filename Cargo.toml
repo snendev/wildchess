@@ -63,3 +63,5 @@ bevy_renet2 = { workspace = true }
 renet2 = { workspace = true }
 bevy_replicon = { workspace = true }
 bevy_replicon_renet2 = { workspace = true }
+
+serde = { workspace = true }

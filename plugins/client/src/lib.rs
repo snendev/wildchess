@@ -22,7 +22,6 @@ pub struct ClientPlugin {
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(RepliconRenetClientPlugin);
-
         app.add_plugins(transport::ClientPlugin);
         app.insert_resource(ServerInfo {
             server_origin: self.server_origin.clone(),

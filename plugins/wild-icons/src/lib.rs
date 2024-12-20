@@ -3,8 +3,8 @@ use std::marker::PhantomData;
 
 use bevy::{
     prelude::{
-        App, Changed, Commands, Component, Entity, In, IntoSystem, Local, Or, Plugin, PreUpdate,
-        Query, Reflect,
+        App, Changed, Commands, Component, Deref, DerefMut, Entity, In, IntoSystem, Local, Or,
+        Plugin, PreUpdate, Query, Reflect,
     },
     utils::HashMap,
 };
@@ -24,11 +24,16 @@ use wild::wild_behavior_icon;
 #[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct PieceIconSvg {
-    pub source: String,
+    pub source: PieceIconSource,
     pub bytes: Vec<u8>,
     pub uri: String,
     pub label: String,
 }
+
+#[derive(Clone, Debug)]
+#[derive(Deref, DerefMut, Reflect)]
+#[derive(Deserialize, Serialize)]
+pub struct PieceIconSource(pub String);
 
 #[derive(Clone)]
 #[derive(Component, Reflect)]
@@ -58,7 +63,7 @@ impl PieceIconSvg {
         let label = format!("{:?}-{}", identity, key.into());
         PieceIconSvg {
             bytes: icon_source.bytes().collect::<Vec<u8>>(),
-            source: icon_source,
+            source: PieceIconSource(icon_source),
             uri: format!("bytes://{}.svg", label),
             label,
         }

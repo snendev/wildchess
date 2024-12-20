@@ -1,13 +1,17 @@
 use leptos::*;
 
-use wildchess::games::chess::{board::Square, pieces::PieceDefinition};
-use wildchess_web::{BoardState, BoardTargets, PlayerMessage};
+use wildchess::{
+    games::chess::{board::Square, pieces::PieceDefinition, team::Team},
+    BoardState,
+};
+use wildchess_web::{BoardTargets, PlayerMessage};
 
 use super::{grid::Grid, piece::Piece, square::Square};
 
 #[component]
 pub fn Board(
     #[prop(into)] state: Signal<BoardState>,
+    #[prop(into)] my_team: Signal<Team>,
     #[prop(into)] targets: Signal<Option<BoardTargets>>,
     #[prop(into)] square_size: Signal<u16>,
     #[prop(into)] send_player_message: Signal<impl Fn(PlayerMessage) + 'static>,
@@ -33,7 +37,7 @@ pub fn Board(
             .and_then(|square| get_piece_on_square()(square));
         let action_for_target = targets
             .get()
-            .and_then(|(targets)| targets.actions.get(&target).cloned());
+            .and_then(|targets| targets.actions.get(&target).cloned());
         let target_piece = get_piece_on_square()(target);
 
         if let Some((origin, id, team, mutation)) = selected_piece {

@@ -1,3 +1,4 @@
 {
-    "deno.config": "apps/web/deno.json"
+    "deno.config": "apps/web/deno.json",
+    "deno.enable": true
 }

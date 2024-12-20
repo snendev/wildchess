@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Bundle, Reflect};
+use bevy::{
+    ecs::entity::MapEntities,
+    prelude::{Bundle, Component, Entity, EntityMapper, Reflect},
+};
 
 use crate::{actions::Actions, behavior::PieceBehaviors, team::Team};
 
@@ -56,5 +59,20 @@ impl PieceDefinition {
             identity,
             ..Default::default()
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[derive(Component, Reflect)]
+#[derive(Deserialize, Serialize)]
+pub struct HasPieces(pub Vec<Entity>);
+
+impl MapEntities for HasPieces {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.0 = self
+            .0
+            .iter()
+            .map(|entity| mapper.map_entity(*entity))
+            .collect();
     }
 }

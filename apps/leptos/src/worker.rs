@@ -1,60 +1,44 @@
 use gloo_worker::{HandlerId, Worker, WorkerScope};
 use js_sys::Promise;
+use leptos::set_timeout;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, RequestInit, RequestMode, Response};
 
-use wildchess::bevy::ecs::entity::Entity;
-// use client::{
-//     bevy_replicon::prelude::{RepliconClient, RepliconClientStatus},
-//     ClientPlugin,
-// };
 use wildchess::bevy::app::App;
-use wildchess::bevy::ecs::event::Events;
+use wildchess::bevy::ecs::entity::Entity;
 use wildchess::bevy::ecs::world::World;
+use wildchess::bevy::prelude::With;
 use wildchess::bevy::utils::{HashMap, HashSet};
 use wildchess::bevy_replicon::prelude::RepliconClient;
 use wildchess::bevy_replicon::prelude::RepliconClientStatus;
 use wildchess::games::chess::actions::Actions;
-use wildchess::games::chess::pieces::{Mutation, MutationCondition, Position};
+use wildchess::games::chess::pieces::{Mutation, Position};
 use wildchess::games::chess::team::Team;
 use wildchess::games::components::Client;
 use wildchess::games::components::InGame;
 use wildchess::games::RequestTurnEvent;
+use wildchess::{Active, BoardState};
 
 use crate::{
-    BoardState, BoardTargets, PlayerMessage, WorkerMessage, SERVER_DEFAULT_IP,
-    SERVER_DEFAULT_ORIGIN, SERVER_DEFAULT_PORT, SERVER_DEFAULT_TOKENS_PORT, SERVER_IP,
-    SERVER_ORIGIN, SERVER_PORT, SERVER_TOKENS_PORT,
+    BoardTargets, PlayerMessage, WorkerMessage, SERVER_DEFAULT_IP, SERVER_DEFAULT_ORIGIN,
+    SERVER_DEFAULT_PORT, SERVER_DEFAULT_TOKENS_PORT, SERVER_IP, SERVER_ORIGIN, SERVER_PORT,
+    SERVER_TOKENS_PORT,
 };
 
 // Use this to enable console logging
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
-    fn log(s: String);
+    fn log(s: &str);
 
     #[wasm_bindgen(js_namespace = console)]
-    fn error(s: String);
-}
-
-#[wasm_bindgen]
-extern "C" {
-    fn setInterval(closure: &Closure<dyn FnMut()>, millis: u32) -> u64;
-    fn clearInterval(token: u64);
+    fn error(s: &str);
 }
 
 pub struct BevyWorker {
     game: Option<App>,
     subscriptions: HashSet<HandlerId>,
-    _trigger_update: Closure<dyn FnMut()>,
-    interval: Interval,
-}
-
-impl PartialEq for BevyWorker {
-    fn eq(&self, other: &Self) -> bool {
-        self.interval.0 == other.interval.0
-    }
 }
 
 impl Worker for BevyWorker {
@@ -63,49 +47,58 @@ impl Worker for BevyWorker {
     type Message = WorkerUpdateMessage;
 
     fn create(scope: &WorkerScope<Self>) -> Self {
-        scope
-            .send_future(async { WorkerUpdateMessage::Token(fetch_server_token().await.unwrap()) });
-        let scope_clone = scope.clone();
-        let trigger_update = Closure::new(move || {
-            scope_clone.send_message(WorkerUpdateMessage::Update);
+        log("create");
+        scope.send_future(async {
+            WorkerUpdateMessage::Token(fetch_server_token().await.expect("to fetch server token"))
         });
-        let interval = setInterval(&trigger_update, 10);
+        scope.send_future(async {
+            log("pls sleep");
+            sleep(10).await;
+            log("sending update");
+            WorkerUpdateMessage::Update
+        });
+
         Self {
             game: None,
             subscriptions: HashSet::default(),
-            interval: Interval(interval),
-            _trigger_update: trigger_update,
         }
     }
 
     fn connected(&mut self, _scope: &WorkerScope<Self>, id: HandlerId) {
+        log("connected");
         self.subscriptions.insert(id);
     }
 
     fn update(&mut self, scope: &WorkerScope<Self>, message: Self::Message) {
+        log("update");
+        scope.send_future(async {
+            sleep(10).await;
+            WorkerUpdateMessage::Update
+        });
+
         if let Some(app) = self.game.as_mut() {
             let WorkerUpdateMessage::Update = message else {
                 return;
             };
             app.update();
 
-            let Some((_, my_side)) = get_my_player(app.world_mut()) else {
+            let Some((_, my_team)) = get_my_player(app.world_mut()) else {
                 return;
             };
-            // let events = app.world().resource::<Events<ActiveGameUpdate>>();
-            // let mut reader = events.get_reader();
-            // if let Some(update) = reader.read(events).last() {
-            //     for id in &self.subscriptions {
-            //         scope.respond(
-            //             *id,
-            //             WorkerMessage::State(BoardState {
-            //                 orientation,
-            //                 pieces,
-            //                 icons,
-            //             }),
-            //         );
-            //     }
-            // }
+
+            let mut query = app
+                .world_mut()
+                .query_filtered::<&BoardState, With<Active>>();
+            let state = query.single(app.world());
+            for id in &self.subscriptions {
+                scope.respond(
+                    *id,
+                    WorkerMessage::State {
+                        state: state.clone(),
+                        my_team,
+                    },
+                );
+            }
         } else if let WorkerUpdateMessage::Token(token) = message {
             let app = build_app(token);
             self.game = Some(app);
@@ -113,28 +106,33 @@ impl Worker for BevyWorker {
     }
 
     fn received(&mut self, scope: &WorkerScope<Self>, message: Self::Input, handler_id: HandlerId) {
+        log("received");
         let Some(app) = self.game.as_mut() else {
-            #[cfg(feature = "log")]
-            log(format!(
+            log(&format!(
                 "Discarding message received before app is ready: {:?}",
                 message
             ));
             return;
         };
-        let replicon_client = app.world().resource::<RepliconClient>();
+        let replicon_client = app
+            .world()
+            .get_resource::<RepliconClient>()
+            .expect("RepliconPlugins to be added to game");
         let RepliconClientStatus::Connected {
             client_id: Some(my_client_id),
         } = replicon_client.status()
         else {
-            #[cfg(feature = "log")]
-            log(format!(
+            log(&format!(
                 "Discarding message received before client is connected: {:?}",
                 message
             ));
             return;
         };
-        #[cfg(feature = "log")]
-        log(format!("Message received! {:?}", message));
+        log(&format!(
+            "Client {} received a message! {:?}",
+            my_client_id.get(),
+            message
+        ));
 
         // todo: where are we checking who the player is?
         let response = handle_message(app, message);
@@ -149,32 +147,23 @@ pub enum WorkerUpdateMessage {
     Update,
 }
 
-struct Interval(u64);
-
-impl Drop for Interval {
-    fn drop(&mut self) {
-        clearInterval(self.0);
-    }
-}
-
 fn build_app(server_token: String) -> App {
     let mut app = App::new();
-    let server_origin = SERVER_IP.unwrap_or(SERVER_DEFAULT_IP).to_string();
-    let server_port = SERVER_PORT.unwrap_or(SERVER_DEFAULT_PORT).to_string();
-
-    // app.add_plugins(WildchessPlugins);
-    // // app.add_plugins(ClientPlugin {
-    // //     server_origin,
-    // //     server_port,
-    // //     server_token,
-    // // });
+    log("Building app!");
+    app.add_plugins(wildchess::WildchessPlugins::as_client(
+        SERVER_IP.unwrap_or(SERVER_DEFAULT_IP).to_string(),
+        SERVER_PORT.unwrap_or(SERVER_DEFAULT_PORT).to_string(),
+        server_token,
+    ));
     app.update();
     app.update();
     app
 }
 
 fn get_my_player(world: &mut World) -> Option<(Entity, Team)> {
-    let replicon_client = world.resource::<RepliconClient>();
+    let Some(replicon_client) = world.get_resource::<RepliconClient>() else {
+        return None;
+    };
     let RepliconClientStatus::Connected {
         client_id: Some(my_client_id),
     } = replicon_client.status()
@@ -208,8 +197,9 @@ async fn fetch_server_token() -> Result<String, JsValue> {
     assert!(response.is_instance_of::<Response>());
     let response: Response = response.dyn_into().unwrap();
     let text = JsFuture::from(response.text()?).await?;
-    log(text.as_string().unwrap());
-    Ok(text.as_string().unwrap())
+    let token = text.as_string().expect("Server token to be a string");
+    log(&token);
+    Ok(token)
 }
 
 fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
@@ -228,8 +218,7 @@ fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
                 .iter(app.world())
                 .find(|(_, position, _, _, _)| position.0 == from)
             else {
-                #[cfg(feature = "log")]
-                error(format!("Warning! Piece not found at square {piece_square}"));
+                error(&format!("Warning! Piece not found at square {from}"));
                 return WorkerMessage::Targets(None);
             };
             let game = in_game.0;
@@ -239,9 +228,8 @@ fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
 
             // get the action being taken
             let Some((_, action)) = actions.0.iter().find(|(square, _)| **square == to) else {
-                #[cfg(feature = "log")]
-                error(format!(
-                    "Warning! Action not found for target {piece_square}"
+                error(&format!(
+                    "Warning! Action not found for piece on square {from}"
                 ));
                 return WorkerMessage::Targets(None);
             };
@@ -265,8 +253,7 @@ fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
                 .iter(app.world())
                 .find(|(position, _, _)| position.0 == square)
             else {
-                #[cfg(feature = "log")]
-                error(format!("No action not found for target {square}."));
+                error(&format!("No action not found for target {square}."));
                 return WorkerMessage::Targets(None);
             };
 
@@ -298,4 +285,29 @@ fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
         PlayerMessage::AcceptDraw => todo!(),
         PlayerMessage::Resign => todo!(),
     }
+}
+
+async fn sleep(millis: u32) {
+    #[wasm_bindgen]
+    unsafe extern "C" {
+        unsafe fn setTimeout(closure: &Closure<dyn FnMut()>, millis: u32) -> u64;
+    }
+
+    log("outside promise");
+    use js_sys::Function;
+    let mut promise_callback = move |resolve: Function, _: Function| unsafe {
+        log("inside promise");
+        let closure = Closure::new(move || {
+            log("inside closure!");
+            resolve
+                .call0(&JsValue::undefined())
+                .expect("resolve call0 ???");
+        });
+        log("closure created!");
+        setTimeout(&closure, millis);
+    };
+    JsFuture::from(js_sys::Promise::new(&mut promise_callback))
+        .await
+        .expect("PLS EXPLAIN SOMEWHERE");
+    log("Finish!");
 }

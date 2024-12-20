@@ -5,3 +5,5 @@ logs
 
 /wasm
 /dist
+
+/.vscode

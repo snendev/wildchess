@@ -7,8 +7,7 @@ use wildchess::games::chess::{
     pieces::{Orientation, PieceIdentity},
     team::Team,
 };
-use wildchess::wild_icons::PieceIconSvg;
-use wildchess_web::{BoardState, PieceIconMap, PieceMap};
+use wildchess::{wild_icons::PieceIconSvg, BoardState, PieceIconMap, PieceMap};
 
 #[component]
 pub fn FakeBoard() -> impl IntoView {
@@ -20,6 +19,7 @@ pub fn FakeBoard() -> impl IntoView {
                 let icons = fallback_icons();
                 BoardState { size: (8, 8), pieces, icons, ..Default::default() }
             }
+            my_team=|| Team::White
             targets=|| None
             send_player_message=move || |_| {}
             square_size=|| 80
@@ -64,7 +64,11 @@ fn fallback_icons() -> PieceIconMap {
         Orientation::Up,
         false,
     );
-    piece_icon_map.0.insert(PieceIdentity::King, w_k_icon);
-    piece_icon_map.0.insert(PieceIdentity::Queen, b_q_icon);
+    piece_icon_map
+        .0
+        .insert(PieceIdentity::King, w_k_icon.source);
+    piece_icon_map
+        .0
+        .insert(PieceIdentity::Queen, b_q_icon.source);
     piece_icon_map
 }

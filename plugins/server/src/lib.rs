@@ -3,32 +3,45 @@ use bevy::prelude::{
 };
 
 use bevy_replicon::prelude::{
-    Replicated, RepliconChannels, RepliconCorePlugin, RepliconPlugins, ServerEvent, ServerPlugin,
-    VisibilityPolicy,
+    Replicated, RepliconChannels, RepliconCorePlugin, RepliconPlugins, ServerEvent,
+    ServerEventsPlugin, ServerPlugin as RepliconServerPlugin, VisibilityPolicy,
 };
 use bevy_replicon_renet2::{
     renet2::{ConnectionConfig, RenetServer},
     RenetChannelsExt,
 };
+
 use games::components::Client;
 
-pub struct ServerReplicationPlugin;
+mod transport;
 
-impl Plugin for ServerReplicationPlugin {
+pub struct ServerPlugin {
+    pub port: String,
+    pub wt_tokens_port: String,
+}
+
+impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
         if !app.is_plugin_added::<RepliconCorePlugin>() {
-            app.add_plugins(RepliconPlugins.build().disable::<ServerPlugin>());
+            app.add_plugins(RepliconPlugins.build().disable::<RepliconServerPlugin>());
         }
-        app.add_plugins(ServerPlugin {
-            visibility_policy: VisibilityPolicy::Whitelist,
-            ..Default::default()
+        app.add_plugins((
+            RepliconServerPlugin {
+                visibility_policy: VisibilityPolicy::Whitelist,
+                ..Default::default()
+            },
+            ServerEventsPlugin,
+        ))
+        .add_plugins(transport::ServerTransportPlugin {
+            port: self.port.clone(),
+            wt_tokens_port: self.wt_tokens_port.clone(),
         })
         .add_systems(Startup, Self::start_server)
         .add_systems(Update, Self::handle_connections);
     }
 }
 
-impl ServerReplicationPlugin {
+impl ServerPlugin {
     fn start_server(mut commands: Commands, replicon_channels: Res<RepliconChannels>) {
         let server_channels_config = replicon_channels.get_server_configs();
         let client_channels_config = replicon_channels.get_client_configs();

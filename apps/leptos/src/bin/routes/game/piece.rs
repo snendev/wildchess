@@ -8,12 +8,12 @@ use wildchess::games::chess::{
     pieces::{Mutation, PieceIdentity},
     team::Team,
 };
-use wildchess::wild_icons::PieceIconSvg;
+use wildchess::wild_icons::PieceIconSource;
 
 #[component]
 pub fn Piece(
     #[prop(into)] piece: Signal<(PieceIdentity, Team, Option<Mutation>)>,
-    #[prop(into)] icon: Signal<PieceIconSvg>,
+    #[prop(into)] icon: Signal<PieceIconSource>,
     #[prop(into)] square: Signal<Option<String>>,
     #[prop(into)] square_size: Signal<u16>,
     #[prop(into)] hidden: Signal<bool>,
@@ -39,8 +39,7 @@ pub fn Piece(
         let icon = icon.get();
         format!(
             "data:image/svg+xml;charset=utf-8,{}",
-            icon.source
-                .replace('#', "%23")
+            icon.replace('#', "%23")
                 .replace('"', "'")
                 .replace('&', "&amp;")
         )

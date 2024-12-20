@@ -3,15 +3,12 @@ use wasm_bindgen::prelude::*;
 
 use wildchess::{
     bevy::utils::HashMap,
-    games::chess::{
-        actions::{Action, LastAction},
-        board::Square,
-        pieces::{Mutation, PieceDefinition, PieceIdentity},
-        team::Team,
-    },
-    games::Clock,
-    wild_icons::PieceIconSvg,
+    games::chess::{actions::Action, board::Square, pieces::PieceDefinition, team::Team},
+    BoardState,
 };
+
+mod interval;
+pub(crate) use interval::*;
 
 mod worker;
 pub use worker::*;
@@ -53,20 +50,8 @@ pub enum PlayerMessage {
 #[derive(Clone, Debug)]
 #[derive(Deserialize, Serialize)]
 pub enum WorkerMessage {
-    State(BoardState),
+    State { state: BoardState, my_team: Team },
     Targets(Option<BoardTargets>),
-}
-
-#[derive(Clone, Debug)]
-#[derive(Deserialize, Serialize)]
-pub struct BoardState {
-    pub size: (u16, u16),
-    pub current_turn: Team,
-    pub my_team: Team,
-    pub pieces: PieceMap,
-    pub icons: PieceIconMap,
-    pub clocks: Vec<Clock>,
-    pub last_action: Option<LastAction>,
 }
 
 #[derive(Clone, Debug)]
@@ -75,25 +60,3 @@ pub struct BoardTargets {
     pub origin: Square,
     pub actions: HashMap<Square, (Action, Option<PieceDefinition>)>,
 }
-
-impl Default for BoardState {
-    fn default() -> Self {
-        Self {
-            size: (8, 8),
-            current_turn: Default::default(),
-            my_team: Default::default(),
-            pieces: Default::default(),
-            icons: Default::default(),
-            clocks: Default::default(),
-            last_action: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-#[derive(Deserialize, Serialize)]
-pub struct PieceMap(pub HashMap<Square, (PieceIdentity, Team, Option<Mutation>)>);
-
-#[derive(Clone, Debug, Default)]
-#[derive(Deserialize, Serialize)]
-pub struct PieceIconMap(pub HashMap<PieceIdentity, PieceIconSvg>);

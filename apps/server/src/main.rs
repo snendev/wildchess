@@ -21,7 +21,12 @@ fn main() {
                 level: Level::INFO,
                 ..Default::default()
             },
-            WildchessPlugins,
+            WildchessPlugins::as_server(
+                option_env!("SERVER_PORT").unwrap_or("7636").to_string(),
+                option_env!("SERVER_TOKENS_PORT")
+                    .unwrap_or("7637")
+                    .to_string(),
+            ),
         ))
         .run();
 }

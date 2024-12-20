@@ -20,6 +20,18 @@ pub use turns::{ActionHistory, History, Ply};
 #[derive(Deserialize, Serialize)]
 pub struct Player;
 
+#[derive(Clone, Debug)]
+#[derive(Component, Reflect)]
+#[derive(Deserialize, Serialize)]
+pub struct HasPlayers(pub Entity, pub Entity);
+
+impl MapEntities for HasPlayers {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.0 = mapper.map_entity(self.0);
+        self.1 = mapper.map_entity(self.1);
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]

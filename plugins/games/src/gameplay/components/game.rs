@@ -7,13 +7,13 @@ use bevy_replicon::prelude::Replicated;
 use chess::{
     behavior::{BoardPieceCache, BoardThreatsCache},
     board::{Board, OnBoard, Rank, Square},
-    pieces::{PieceBundle, Position, Royal},
+    pieces::{HasPieces, PieceBundle, Position, Royal},
     team::Team,
 };
 use layouts::PieceSpecification;
 
 use crate::{
-    components::{ActionHistory, History, Ply},
+    components::{ActionHistory, HasPlayers, History, Ply},
     Clock,
 };
 
@@ -247,6 +247,8 @@ impl SpawnGame {
             }
         }
 
+        let mut pieces = vec![];
+
         // finally, spawn all game pieces
         for team in [Team::White, Team::Black].into_iter() {
             for PieceSpecification {
@@ -289,9 +291,17 @@ impl SpawnGame {
                 if let Some(behavior) = piece.behaviors.castling_target {
                     piece_builder.insert(behavior);
                 }
+
+                pieces.push(piece_builder.id());
             }
         }
 
+        commands
+            .entity(game)
+            .insert((HasPlayers(player1, player2), HasPieces(pieces.clone())));
+        commands
+            .entity(board)
+            .insert((HasPlayers(player1, player2), HasPieces(pieces.clone())));
         bevy::log::info!("Spawned game {game} with players {player1}, {player2} on board {board}");
     }
 }
