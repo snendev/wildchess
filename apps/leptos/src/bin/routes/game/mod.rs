@@ -44,32 +44,34 @@ pub fn Game() -> impl IntoView {
             .unwrap();
     });
 
-    match board_state.get() {
-        Some(_) => {
-            wildchess_web::log("Spawning board!".to_string());
-            let handle_player_message = |message: PlayerMessage| {
-                BEVY_WORKER
-                    .get()
-                    .expect("Bevy worker to be initialized before sending messages!")
-                    .send(message);
-            };
-            view! {
-                <Board
-                    state=move || board_state.get().unwrap()
-                    my_team=my_team
-                    targets=board_targets
-                    send_player_message=move || handle_player_message
-                    square_size=|| 80
-                />
+    view! {
+        {move || match board_state.get() {
+            Some(_) => {
+                wildchess_web::log("Spawning board!".to_string());
+                let handle_player_message = |message: PlayerMessage| {
+                    BEVY_WORKER
+                        .get()
+                        .expect("Bevy worker to be initialized before sending messages!")
+                        .send(message);
+                };
+                view! {
+                    <Board
+                        state=move || board_state.get().unwrap()
+                        my_team=my_team
+                        targets=board_targets
+                        send_player_message=move || handle_player_message
+                        square_size=|| 80
+                    />
+                }
             }
-        }
-        .into_view(),
-        None => {
-            wildchess_web::log("Loading game app!".to_string());
-            view! {
-                <h2>Loading game...</h2>
+            .into_view(),
+            None => {
+                wildchess_web::log("Loading game app!".to_string());
+                view! {
+                    <h2>Loading game...</h2>
+                }
             }
-        }
-        .into_view(),
+            .into_view(),
+        }}
     }
 }

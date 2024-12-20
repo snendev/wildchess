@@ -41,6 +41,30 @@ pub struct BevyWorker {
     subscriptions: HashSet<HandlerId>,
 }
 
+impl BevyWorker {
+    fn update_bevy_state(&mut self) -> Option<WorkerMessage> {
+        let Some(app) = self.game.as_mut() else {
+            return None;
+        };
+
+        app.update();
+
+        let Some((_, my_team)) = get_my_player(app.world_mut()) else {
+            return None;
+        };
+
+        let mut query = app
+            .world_mut()
+            .query_filtered::<&BoardState, With<Active>>();
+        let state = query.single(app.world());
+
+        Some(WorkerMessage::State {
+            state: state.clone(),
+            my_team,
+        })
+    }
+}
+
 impl Worker for BevyWorker {
     type Input = PlayerMessage;
     type Output = WorkerMessage;
@@ -48,15 +72,9 @@ impl Worker for BevyWorker {
 
     fn create(scope: &WorkerScope<Self>) -> Self {
         log("create");
-        scope.send_future(async {
-            WorkerUpdateMessage::Token(fetch_server_token().await.expect("to fetch server token"))
-        });
-        scope.send_future(async {
-            log("pls sleep");
-            sleep(10).await;
-            log("sending update");
-            WorkerUpdateMessage::Update
-        });
+        scope.send_message(
+            WorkerUpdateMessage::fetch_token().expect("to fetch a token successfully"),
+        );
 
         Self {
             game: None,
@@ -71,38 +89,21 @@ impl Worker for BevyWorker {
 
     fn update(&mut self, scope: &WorkerScope<Self>, message: Self::Message) {
         log("update");
-        scope.send_future(async {
-            sleep(10).await;
-            WorkerUpdateMessage::Update
-        });
 
-        if let Some(app) = self.game.as_mut() {
-            let WorkerUpdateMessage::Update = message else {
-                return;
-            };
-            app.update();
-
-            let Some((_, my_team)) = get_my_player(app.world_mut()) else {
-                return;
-            };
-
-            let mut query = app
-                .world_mut()
-                .query_filtered::<&BoardState, With<Active>>();
-            let state = query.single(app.world());
-            for id in &self.subscriptions {
-                scope.respond(
-                    *id,
-                    WorkerMessage::State {
-                        state: state.clone(),
-                        my_team,
-                    },
-                );
+        match message {
+            WorkerUpdateMessage::Token(token) => {
+                let app = build_app(token);
+                self.game = Some(app);
             }
-        } else if let WorkerUpdateMessage::Token(token) = message {
-            let app = build_app(token);
-            self.game = Some(app);
+            WorkerUpdateMessage::Update => {
+                if let Some(response) = self.update_bevy_state() {
+                    for id in &self.subscriptions {
+                        scope.respond(*id, response.clone());
+                    }
+                }
+            }
         }
+        scope.send_message(WorkerUpdateMessage::Update);
     }
 
     fn received(&mut self, scope: &WorkerScope<Self>, message: Self::Input, handler_id: HandlerId) {
@@ -147,6 +148,36 @@ pub enum WorkerUpdateMessage {
     Update,
 }
 
+impl WorkerUpdateMessage {
+    fn fetch_token() -> Result<Self, JsValue> {
+        let server_origin = SERVER_ORIGIN.unwrap_or(SERVER_DEFAULT_ORIGIN);
+        let server_token_port = SERVER_TOKENS_PORT.unwrap_or(SERVER_DEFAULT_TOKENS_PORT);
+        let server_url = format!("{server_origin}:{server_token_port}");
+        let opts = RequestInit::new();
+        opts.set_method("GET");
+        opts.set_mode(RequestMode::Cors);
+        let request = Request::new_with_str_and_init(&server_url, &opts)?;
+
+        let response = fetch(&request).then(&mut Closure::new(|js_value: JsValue| {
+            let response: Response = js_value.dyn_into().unwrap();
+            let text: String = response.text().unwrap();
+            text.as_string()
+        }));
+
+        assert!(response.is_instance_of::<Response>());
+        let response: Response = response.dyn_into().unwrap();
+
+        log("3");
+        let text =
+            futures_lite::future::block_on(async { JsFuture::from(response.text()?).await })?;
+        log("4");
+        let token = text.as_string().expect("Server token to be a string");
+
+        log(&token);
+        Ok(WorkerUpdateMessage::Token(token))
+    }
+}
+
 fn build_app(server_token: String) -> App {
     let mut app = App::new();
     log("Building app!");
@@ -181,25 +212,6 @@ fn get_my_player(world: &mut World) -> Option<(Entity, Team)> {
 extern "C" {
     #[wasm_bindgen]
     fn fetch(input: &Request) -> Promise;
-}
-
-async fn fetch_server_token() -> Result<String, JsValue> {
-    let server_origin = SERVER_ORIGIN.unwrap_or(SERVER_DEFAULT_ORIGIN);
-    let server_token_port = SERVER_TOKENS_PORT.unwrap_or(SERVER_DEFAULT_TOKENS_PORT);
-    let server_url = format!("{server_origin}:{server_token_port}");
-    let opts = RequestInit::new();
-    opts.set_method("GET");
-    opts.set_mode(RequestMode::Cors);
-    let request = Request::new_with_str_and_init(&server_url, &opts)?;
-
-    let response = JsFuture::from(fetch(&request)).await?;
-
-    assert!(response.is_instance_of::<Response>());
-    let response: Response = response.dyn_into().unwrap();
-    let text = JsFuture::from(response.text()?).await?;
-    let token = text.as_string().expect("Server token to be a string");
-    log(&token);
-    Ok(token)
 }
 
 fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
@@ -285,29 +297,4 @@ fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
         PlayerMessage::AcceptDraw => todo!(),
         PlayerMessage::Resign => todo!(),
     }
-}
-
-async fn sleep(millis: u32) {
-    #[wasm_bindgen]
-    unsafe extern "C" {
-        unsafe fn setTimeout(closure: &Closure<dyn FnMut()>, millis: u32) -> u64;
-    }
-
-    log("outside promise");
-    use js_sys::Function;
-    let mut promise_callback = move |resolve: Function, _: Function| unsafe {
-        log("inside promise");
-        let closure = Closure::new(move || {
-            log("inside closure!");
-            resolve
-                .call0(&JsValue::undefined())
-                .expect("resolve call0 ???");
-        });
-        log("closure created!");
-        setTimeout(&closure, millis);
-    };
-    JsFuture::from(js_sys::Promise::new(&mut promise_callback))
-        .await
-        .expect("PLS EXPLAIN SOMEWHERE");
-    log("Finish!");
 }

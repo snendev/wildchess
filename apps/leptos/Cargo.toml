@@ -44,4 +44,4 @@ web-sys = { version = "0.3", features = [
     "WorkerGlobalScope",
 ] }
 
-gloo-worker = { version = "0.5", features = ["futures"] }
+gloo-worker = { version = "0.5" }
