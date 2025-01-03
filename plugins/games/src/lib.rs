@@ -8,6 +8,7 @@ pub use matchmaking::*;
 
 pub mod components {
     pub use super::gameplay::components::*;
-    pub use super::gameplay::Clock;
     pub use super::matchmaking::components::*;
 }
+
+pub const PROTOCOL_ID: u64 = 7;

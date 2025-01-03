@@ -1,0 +1,90 @@
+:root {
+    /* Consider adjusting this color to match your splash screen! */
+    --loading-screen-bg-color: #282828;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+html,
+body,
+main {
+    width: 100%;
+    height: 100%;
+    background: #f2f2f2;
+}
+
+.center {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.board {
+    border: 2px solid #404040;
+    box-sizing: content-box;
+}
+
+.row {
+    display: flex;
+}
+
+.piece {
+    position: relative;
+    touch-action: none;
+    z-index: 1;
+}
+
+.square {
+    position: relative;
+
+    /* disable any native browser highlighting */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.light-square {
+    background-color: #f0d9b5;
+    color: #b58863;
+}
+
+.dark-square {
+    background-color: #b58863;
+    color: #f0d9b5;
+}
+
+.highlight {
+    box-shadow: inset 0 0 3px 3px yellow;
+}
+
+.notation {
+    cursor: default;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    position: absolute;
+}
+
+.alpha {
+    bottom: 1px;
+    right: 3px;
+}
+
+.numeric {
+    top: 2px;
+    left: 2px;
+}
+
+.hidden {
+    display: none;
+}

@@ -2,16 +2,13 @@ use layouts::{FeaturedWildLayout, RandomWildLayout};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use bevy_ecs::prelude::{Bundle, Component};
-#[cfg(feature = "reflect")]
-use bevy_reflect::prelude::Reflect;
+use bevy::prelude::{Bundle, Component, Reflect};
 
-use crate::components::{Clock, PieceSet};
+use crate::{components::PieceSet, Clock};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum GameRequestVariant {
     #[default]
     FeaturedGameOne,
@@ -33,9 +30,8 @@ impl GameRequestVariant {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum GameRequestClock {
     #[default]
     Bullet,
@@ -60,9 +56,8 @@ impl GameRequestClock {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct GameRequest;
 
 #[derive(Clone, Debug)]

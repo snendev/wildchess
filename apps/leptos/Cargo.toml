@@ -1,0 +1,49 @@
+[package]
+name = "wildchess-web"
+version = "0.1.0"
+edition = "2021"
+authors = ["Sean Sullivan <me@snen.dev>"]
+
+[dependencies]
+# workspace
+wildchess = { workspace = true, features = ["client"] }
+serde = { workspace = true }
+
+# leptos
+leptos = { version = "=0.6.14", features = ["csr"] }
+leptos_router = { version = "=0.6.14", features = ["csr"] }
+# leptos-use = { version = "0.13", default-features = false, features = [
+#     "use_draggable",
+#     "on_click_outside",
+# ] }
+
+# async
+gloo-worker = { version = "0.5", features = ["futures"] }
+
+# web
+console_error_panic_hook = "0.1"
+js-sys = "0.3"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Blob",
+    "BlobPropertyBag",
+    "console",
+    "DedicatedWorkerGlobalScope",
+    "Document",
+    "Headers",
+    "HtmlElement",
+    "Location",
+    "MessageEvent",
+    "KeyboardEvent",
+    "Node",
+    "Request",
+    "RequestInit",
+    "RequestMode",
+    "Response",
+    "Text",
+    "Url",
+    "Window",
+    "Worker",
+    "WorkerGlobalScope",
+] }

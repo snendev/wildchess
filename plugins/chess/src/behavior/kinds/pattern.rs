@@ -1,11 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::prelude::{Commands, Component, Entity, Query};
-#[cfg(feature = "reflect")]
-use bevy_reflect::prelude::Reflect;
-use bevy_utils::HashMap;
+use bevy::prelude::{Commands, Component, Entity, Query, Reflect};
+use bevy::utils::HashMap;
 
 use crate::{
     actions::{Action, Actions, LastAction},
@@ -19,10 +15,8 @@ use crate::{
 use crate::behavior::Behavior;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct PatternBehavior {
     // in practice, this should rarely be more than one or two Patterns
     pub patterns: Vec<Pattern>,
@@ -68,7 +62,7 @@ impl PatternBehavior {
 }
 
 #[derive(Clone, Debug)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct PatternActionsCache(Actions);
 
 impl From<Actions> for PatternActionsCache {

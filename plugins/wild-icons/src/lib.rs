@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
 use bevy::{
     prelude::{
-        App, Changed, Commands, Component, Entity, In, IntoSystem, Local, Or, Plugin, PreUpdate,
-        Query,
+        App, Changed, Commands, Component, Deref, DerefMut, Entity, In, IntoSystem, Local, Or,
+        Plugin, PreUpdate, Query, Reflect,
     },
     utils::HashMap,
 };
@@ -19,17 +20,23 @@ mod classical;
 mod wild;
 use wild::wild_behavior_icon;
 
-#[derive(Clone)]
-#[derive(Component)]
+#[derive(Clone, Debug)]
+#[derive(Component, Reflect)]
+#[derive(Deserialize, Serialize)]
 pub struct PieceIconSvg {
-    pub source: String,
+    pub source: PieceIconSource,
     pub bytes: Vec<u8>,
     pub uri: String,
     pub label: String,
 }
 
+#[derive(Clone, Debug)]
+#[derive(Deref, DerefMut, Reflect)]
+#[derive(Deserialize, Serialize)]
+pub struct PieceIconSource(pub String);
+
 #[derive(Clone)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct PieceIconCharacter {
     pub character: char,
 }
@@ -44,10 +51,6 @@ impl PieceIconSvg {
         board_orientation: Orientation,
         is_royal: bool,
     ) -> Self {
-        // let image = ImageSource::Bytes {
-        //     uri: format!("bytes://{}.svg", label).into(),
-        //     bytes: source.bytes().collect::<Vec<u8>>().into(),
-        // };
         let patterns = patterns
             .map(|behavior| &behavior.patterns)
             .or(relays.map(|behavior| &behavior.patterns));
@@ -59,9 +62,8 @@ impl PieceIconSvg {
         );
         let label = format!("{:?}-{}", identity, key.into());
         PieceIconSvg {
-            // image,
             bytes: icon_source.bytes().collect::<Vec<u8>>(),
-            source: icon_source,
+            source: PieceIconSource(icon_source),
             uri: format!("bytes://{}.svg", label),
             label,
         }
@@ -159,18 +161,7 @@ where
                 );
                 icons.insert(key.clone(), PieceIcon::Svg(icon.clone()));
                 icons.get(&key)
-            }
-            // else {
-            //     // if there is a known identity, use that as the icon
-            //     icons.insert(
-            //         key.clone(),
-            //         PieceIcon::Character(PieceIconCharacter {
-            //             character: classical::piece_unicode(identity, team),
-            //         }),
-            //     );
-            //     icons.get(&key)
-            // }
-            ;
+            };
             if let Some(icon) = icon {
                 match icon {
                     PieceIcon::Svg(icon) => commands.entity(entity).insert(icon.clone()),

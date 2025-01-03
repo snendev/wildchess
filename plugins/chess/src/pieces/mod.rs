@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_ecs::prelude::Bundle;
-#[cfg(feature = "reflect")]
-use bevy_reflect::Reflect;
+use bevy::{
+    ecs::entity::MapEntities,
+    prelude::{Bundle, Component, Entity, EntityMapper, Reflect},
+};
 
 use crate::{actions::Actions, behavior::PieceBehaviors, team::Team};
 
@@ -23,7 +24,6 @@ pub use royal::Royal;
 
 #[derive(Clone, Debug, Default)]
 #[derive(Bundle)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct PieceBundle {
     pub position: Position,
     pub orientation: Orientation,
@@ -43,8 +43,8 @@ impl PieceBundle {
 }
 
 #[derive(Clone, Debug, Default)]
+#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct PieceDefinition {
     pub behaviors: PieceBehaviors,
     pub identity: PieceIdentity,
@@ -59,5 +59,20 @@ impl PieceDefinition {
             identity,
             ..Default::default()
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[derive(Component, Reflect)]
+#[derive(Deserialize, Serialize)]
+pub struct HasPieces(pub Vec<Entity>);
+
+impl MapEntities for HasPieces {
+    fn map_entities<M: EntityMapper>(&mut self, mapper: &mut M) {
+        self.0 = self
+            .0
+            .iter()
+            .map(|entity| mapper.map_entity(*entity))
+            .collect();
     }
 }

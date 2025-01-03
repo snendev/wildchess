@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use bevy_ecs::prelude::{Bundle, Commands, Component, Entity, Query};
-#[cfg(feature = "reflect")]
-use bevy_reflect::Reflect;
+use bevy::prelude::{Bundle, Commands, Component, Entity, Query, Reflect};
 
 use crate::{
     actions::{Actions, LastAction},
@@ -79,8 +77,8 @@ pub trait Behavior {
 // ) {}
 
 #[derive(Clone, Debug, Default)]
+#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct PieceBehaviors {
     pub pattern: Option<PatternBehavior>,
     pub en_passant: Option<EnPassantBehavior>,
@@ -119,8 +117,8 @@ impl From<RelayBehavior> for PieceBehaviors {
 // Rarely will a piece need all these behaviors
 // However, this bundle is useful for calling EntityMut::remove()
 // to remove all behaviors at once
-#[derive(Clone, Debug, Default, Bundle)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[derive(Clone, Debug, Default)]
+#[derive(Bundle)]
 pub struct PieceBehaviorsBundle {
     pub pattern: PatternBehavior,
     pub en_passant: EnPassantBehavior,

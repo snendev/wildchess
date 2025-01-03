@@ -1,11 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::prelude::{Commands, Component, Entity, Query};
-#[cfg(feature = "reflect")]
-use bevy_reflect::prelude::Reflect;
-use bevy_utils::HashMap;
+use bevy::prelude::{Commands, Component, Entity, Query, Reflect};
+use bevy::utils::HashMap;
 
 use crate::{
     actions::{Action, Actions, LastAction},
@@ -19,14 +15,12 @@ use crate::{
 use crate::behavior::Behavior;
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct EnPassantBehavior;
 
 #[derive(Clone, Debug)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct EnPassantActionsCache(Actions);
 
 impl From<Actions> for EnPassantActionsCache {
@@ -134,7 +128,7 @@ impl Behavior for EnPassantBehavior {
 
 #[cfg(test)]
 mod tests {
-    use bevy_utils::HashSet;
+    use bevy::utils::HashSet;
 
     use crate::{
         actions::Movement,

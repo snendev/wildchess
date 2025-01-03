@@ -2,23 +2,19 @@ use chess::team::Team;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use bevy_app::{App, Plugin, Update};
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::prelude::{Commands, Component, Entity, IntoSystemConfigs, Query, Res, SystemSet};
-#[cfg(feature = "reflect")]
-use bevy_reflect::prelude::Reflect;
-use bevy_time::{Stopwatch, Time};
+use bevy::prelude::{
+    App, Commands, Component, Entity, IntoSystemConfigs, Plugin, Query, Reflect, Res, SystemSet,
+    Time, Update,
+};
+use bevy::time::Stopwatch;
 
 use bevy_replicon::prelude::AppRuleExt;
 
 use crate::components::{GameOver, InGame, IsActiveGame};
 
 #[derive(Clone, Debug, Default)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Clock {
     duration: Duration,
     increment: Duration,
@@ -70,7 +66,6 @@ impl Plugin for ClockPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, Self::tick.in_set(ClockSystems));
         app.replicate::<Clock>();
-        #[cfg(feature = "reflect")]
         app.register_type::<Clock>();
     }
 }

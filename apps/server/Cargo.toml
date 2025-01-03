@@ -1,22 +1,12 @@
 [package]
-name = "chess_app_server"
+name = "wildchess-server"
 version = "0.1.0"
 authors = ["Sean Sullivan <me@snen.dev>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
 
-[features]
-default = ["log"]
-log = ["games/log", "transport/log"]
-
 [dependencies]
-games = { workspace = true }
-replication = { workspace = true, features = ["server"] }
-transport = { workspace = true, features = [
-    # "server",
-    # "native_transport",
-    # "steam_transport",
-    "web_transport_server",
-] }
+wildchess = { workspace = true, features = ["server"] }
+
 bevy = { workspace = true }

@@ -1,20 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-use bevy_ecs::{
-    entity::{EntityMapper, MapEntities},
-    prelude::{Component, Entity},
-};
-#[cfg(feature = "reflect")]
-use bevy_reflect::prelude::Reflect;
-use bevy_utils::{HashMap, HashSet};
+use bevy::ecs::entity::MapEntities;
+use bevy::prelude::{Component, Entity, EntityMapper, Reflect};
+use bevy::utils::{HashMap, HashSet};
 
 use crate::{board::Square, pattern::Pattern, pieces::Orientation};
 
 #[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Movement {
     pub from: Square,
     pub to: Square,
@@ -44,8 +38,8 @@ impl Movement {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct Action {
     pub movement: Movement,
     pub side_effects: Vec<(Entity, Movement)>,
@@ -86,11 +80,14 @@ impl MapEntities for Action {
     }
 }
 
+// TODO: Refactor actions
+// There are a number of options to improve here:
+// - entity observers to control attaching actions
+// - Vec<Action> to account for multiple options
+// - additionally include promotions as unique options
 #[derive(Clone, Debug, Default)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Actions(pub HashMap<Square, Action>);
 
 impl Actions {
@@ -121,10 +118,8 @@ impl MapEntities for Actions {
 }
 
 #[derive(Clone, Debug)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct LastAction(pub Action);
 
 impl MapEntities for LastAction {

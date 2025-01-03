@@ -1,14 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
-use bevy_ecs::prelude::{Commands, Component, DetectChanges, Entity, Query, Ref, With};
-
-#[cfg(feature = "reflect")]
-use bevy_ecs::prelude::ReflectComponent;
-#[cfg(feature = "log")]
-use bevy_log::warn;
-#[cfg(feature = "reflect")]
-use bevy_reflect::Reflect;
+use bevy::prelude::{Commands, Component, DetectChanges, Entity, Query, Ref, Reflect, With};
 
 use crate::{
     actions::{Action, Actions, Movement},
@@ -32,17 +25,13 @@ pub(crate) fn disable_on_move<T: Component>(
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct CastlingTarget;
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[derive(Deserialize, Serialize)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct CastlingBehavior;
 
 // Enable performing whatever Pattern was executed in the last turn
@@ -80,8 +69,7 @@ impl CastlingBehavior {
                             (Square::new(position.file, Rank::TWO), false, true)
                         }
                         _ => {
-                            #[cfg(feature = "log")]
-                            warn!("Unexpected castling alignment detected. Castler square: {}, Target square: {}", position, target);
+                            bevy::log::warn!("Unexpected castling alignment detected. Castler square: {}, Target square: {}", position, target);
                             continue;
                         }
                     };
@@ -150,26 +138,24 @@ impl CastlingBehavior {
                         && pieces.teams.contains_key(&target_landing_square);
 
                     if !is_in_check && !is_forbidden_movement && !collides_rook {
-                        actions.0.insert(
-                            *target,
-                            Action {
-                                movement: Movement {
-                                    from: *position,
-                                    to: landing_square,
-                                    orientation: *orientation,
-                                },
-                                side_effects: vec![(
-                                    target_entity,
-                                    Movement {
-                                        from: *target,
-                                        to: target_landing_square,
-                                        orientation: *target_orientation,
-                                    },
-                                )],
-                                scanned_squares,
-                                ..Default::default()
+                        let action = Action {
+                            movement: Movement {
+                                from: *position,
+                                to: landing_square,
+                                orientation: *orientation,
                             },
-                        );
+                            side_effects: vec![(
+                                target_entity,
+                                Movement {
+                                    from: *target,
+                                    to: target_landing_square,
+                                    orientation: *target_orientation,
+                                },
+                            )],
+                            scanned_squares,
+                            ..Default::default()
+                        };
+                        actions.0.insert(*target, action);
                     }
                 }
             }
@@ -181,9 +167,9 @@ impl CastlingBehavior {
 mod tests {
     use anyhow::Result;
 
-    use bevy_app::prelude::{App, PostUpdate};
-    use bevy_ecs::prelude::{Entity, IntoSystemConfigs, World};
-    use bevy_utils::HashSet;
+    use bevy::app::prelude::{App, PostUpdate};
+    use bevy::ecs::prelude::{Entity, IntoSystemConfigs, World};
+    use bevy::utils::HashSet;
 
     use crate::{
         actions::{Action, Actions},

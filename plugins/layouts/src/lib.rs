@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use bevy::prelude::Reflect;
+
 use chess::{board::Square, pieces::PieceDefinition};
 
 mod classical;
@@ -13,6 +15,7 @@ pub use wild::{ClassicWildLayout, FeaturedWildLayout, RandomWildLayout, WildPiec
 
 // Defines how to position a piece relative to a player's starting orientation
 #[derive(Clone, Debug, Default)]
+#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct PieceSpecification {
     pub piece: PieceDefinition,
