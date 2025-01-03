@@ -27,7 +27,7 @@ impl Plugin for MatchmakingPlugin {
             .replicate::<components::GameRequestVariant>()
             .replicate::<components::GameRequestClock>()
             .replicate::<components::GameRequest>()
-            .configure_sets(Update, MatchmakingSystems.run_if(has_authority))
+            .configure_sets(Update, MatchmakingSystems.run_if(server_or_singleplayer))
             .add_systems(
                 Update,
                 (

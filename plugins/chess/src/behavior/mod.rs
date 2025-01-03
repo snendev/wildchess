@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Bundle, Commands, Component, Entity, Query, Reflect};
+use bevy::prelude::{Bundle, Commands, Component, Entity, Query};
 
 use crate::{
     actions::{Actions, LastAction},
@@ -77,7 +77,6 @@ pub trait Behavior {
 // ) {}
 
 #[derive(Clone, Debug, Default)]
-#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct PieceBehaviors {
     pub pattern: Option<PatternBehavior>,

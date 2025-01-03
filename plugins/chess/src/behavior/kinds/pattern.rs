@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Commands, Component, Entity, Query, Reflect};
+use bevy::prelude::{Commands, Component, Entity, Query};
 use bevy::utils::HashMap;
 
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
 use crate::behavior::Behavior;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct PatternBehavior {
     // in practice, this should rarely be more than one or two Patterns
@@ -62,7 +62,7 @@ impl PatternBehavior {
 }
 
 #[derive(Clone, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub struct PatternActionsCache(Actions);
 
 impl From<Actions> for PatternActionsCache {

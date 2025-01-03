@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Commands, Component, Entity, Query, Reflect};
+use bevy::prelude::{Commands, Component, Entity, Query};
 use bevy::utils::HashMap;
 
 use crate::{
@@ -15,12 +15,12 @@ use crate::{
 use crate::behavior::Behavior;
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct EnPassantBehavior;
 
 #[derive(Clone, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub struct EnPassantActionsCache(Actions);
 
 impl From<Actions> for EnPassantActionsCache {

@@ -2,12 +2,12 @@ use layouts::{FeaturedWildLayout, RandomWildLayout};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use bevy::prelude::{Bundle, Component, Reflect};
+use bevy::prelude::{Bundle, Component};
 
 use crate::{components::PieceSet, Clock};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub enum GameRequestVariant {
     #[default]
@@ -30,7 +30,7 @@ impl GameRequestVariant {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub enum GameRequestClock {
     #[default]
@@ -56,7 +56,7 @@ impl GameRequestClock {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct GameRequest;
 

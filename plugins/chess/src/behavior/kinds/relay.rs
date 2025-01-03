@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Commands, Component, Entity, Query, Reflect};
+use bevy::prelude::{Commands, Component, Entity, Query};
 use bevy::utils::HashMap;
 
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
 use crate::behavior::{Behavior, PatternBehavior};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 // A behavior that "relays" patterns to scanned ally pieces
 pub struct RelayBehavior {

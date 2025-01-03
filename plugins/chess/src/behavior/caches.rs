@@ -1,4 +1,4 @@
-use bevy::prelude::{Changed, Component, Entity, Query, Reflect, With};
+use bevy::prelude::{Changed, Component, Entity, Query, With};
 use bevy::utils::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct BoardPieceCache {
     entities: HashMap<Entity, Square>,
@@ -44,7 +44,6 @@ impl BoardPieceCache {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct BoardThreat {
     square: Square,
@@ -52,7 +51,7 @@ pub struct BoardThreat {
 }
 
 #[derive(Clone, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct BoardThreatsCache(HashSet<BoardThreat>);
 

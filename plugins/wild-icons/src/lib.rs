@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use bevy::{
     prelude::{
         App, Changed, Commands, Component, Deref, DerefMut, Entity, In, IntoSystem, Local, Or,
-        Plugin, PreUpdate, Query, Reflect,
+        Plugin, PreUpdate, Query,
     },
     utils::HashMap,
 };
@@ -21,7 +21,7 @@ mod wild;
 use wild::wild_behavior_icon;
 
 #[derive(Clone, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct PieceIconSvg {
     pub source: PieceIconSource,
@@ -31,12 +31,12 @@ pub struct PieceIconSvg {
 }
 
 #[derive(Clone, Debug)]
-#[derive(Deref, DerefMut, Reflect)]
+#[derive(Deref, DerefMut)]
 #[derive(Deserialize, Serialize)]
 pub struct PieceIconSource(pub String);
 
 #[derive(Clone)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub struct PieceIconCharacter {
     pub character: char,
 }

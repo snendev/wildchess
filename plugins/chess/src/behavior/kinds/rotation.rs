@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Component, In, Query, Reflect, ReflectComponent},
+    prelude::{Component, In, QueryComponent},
     utils::HashMap,
 };
 
@@ -10,7 +10,7 @@ use crate::{
 
 use super::Behavior;
 
-#[derive(Clone, Copy, Component, Debug, Default, Reflect)]
+#[derive(Clone, Copy, Component, Debug, Default)]
 #[reflect(Component)]
 // WIP: Too many problems around target squares right now
 // For example, RotationBehavior currently does not allow rotating towards the right

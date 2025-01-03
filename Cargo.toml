@@ -19,19 +19,16 @@ client = { path = "plugins/client" }
 server = { path = "plugins/server" }
 
 # bevy
-bevy = { version = "0.14" }
-bevy_prng = { version = "0.7", features = ["wyrand"] }
-bevy_rand = { version = "0.7", features = ["wyrand"] }
-bevy_reflect = { version = "0.14" }
-bevy_time = { version = "0.14" }
-bevy_utils = { version = "0.14" }
-bevy_renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "0.0.5" }
-renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "0.0.5", default-features = false, features = [
+bevy = { version = "0.15" }
+bevy_prng = { version = "0.9", features = ["wyrand"] }
+bevy_rand = { version = "0.9", features = ["wyrand"] }
+bevy_renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "0.0.7" }
+renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "0.0.7", default-features = false, features = [
     "bevy",
     "serde",
 ] }
-bevy_replicon = { version = "0.27" }
-bevy_replicon_renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "0.0.5" }
+bevy_replicon = { version = "0.29" }
+bevy_replicon_renet2 = { git = "https://github.com/UkoeHB/renet2", rev = "0.0.7" }
 
 # stdx
 anyhow = { version = "1.0" }

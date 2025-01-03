@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Commands, Component, Entity, Event, Name, Reflect, Trigger};
+use bevy::prelude::{Commands, Component, Entity, Event, Name, Trigger};
 
 use bevy_replicon::prelude::Replicated;
 
@@ -21,12 +21,12 @@ use super::{InGame, Player};
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub struct Game;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub enum GameBoard {
     #[default]
     Chess,
@@ -35,7 +35,7 @@ pub enum GameBoard {
 }
 
 #[derive(Clone, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct PieceSet(pub Vec<PieceSpecification>);
 
@@ -48,7 +48,7 @@ impl From<Vec<PieceSpecification>> for PieceSet {
 // A game rule specifying that captures result in an "explosion"
 // additionally capturing on all squares in the region of the capture.
 #[derive(Clone, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct Atomic;
 
@@ -56,20 +56,20 @@ pub struct Atomic;
 // on the board using a turn.
 #[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub struct Crazyhouse;
 
 // A game rule specifying that the typical win condition results in a loss;
 // Pieces must capture if they are able to.
 #[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub struct AntiGame;
 
 // The set of win conditions for the board
 #[derive(Clone, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub enum WinCondition {
     // The game is won once all enemy Royal pieces are captured.
     RoyalCaptureAll,
@@ -84,7 +84,7 @@ pub enum WinCondition {
 }
 
 #[derive(Clone, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct ClockConfiguration {
     pub clock: Clock,
@@ -92,7 +92,7 @@ pub struct ClockConfiguration {
 
 #[derive(Clone, Copy, Debug, Default)]
 #[derive(Deserialize, Serialize)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub struct CurrentTurn(pub Team);
 
 // TODO: revisit this API

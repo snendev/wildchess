@@ -1,13 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use bevy::ecs::entity::MapEntities;
-use bevy::prelude::{Component, Entity, EntityMapper, Reflect};
+use bevy::prelude::{Component, Entity, EntityMapper};
 use bevy::utils::{HashMap, HashSet};
 
 use crate::{board::Square, pattern::Pattern, pieces::Orientation};
 
 #[derive(Clone, Debug, Default, PartialEq)]
-#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct Movement {
     pub from: Square,
@@ -38,7 +37,6 @@ impl Movement {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct Action {
     pub movement: Movement,
@@ -86,7 +84,7 @@ impl MapEntities for Action {
 // - Vec<Action> to account for multiple options
 // - additionally include promotions as unique options
 #[derive(Clone, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct Actions(pub HashMap<Square, Action>);
 
@@ -118,7 +116,7 @@ impl MapEntities for Actions {
 }
 
 #[derive(Clone, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct LastAction(pub Action);
 

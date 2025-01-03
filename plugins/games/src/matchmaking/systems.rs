@@ -3,7 +3,7 @@ use itertools::Itertools;
 use bevy::prelude::{
     Commands, Entity, EventReader, Query, RemovedComponents, ResMut, With, Without,
 };
-use bevy_replicon::prelude::{ConnectedClients, FromClient};
+use bevy_replicon::prelude::{FromClient, ReplicatedClients};
 
 use crate::{
     components::{
@@ -209,7 +209,7 @@ pub(super) fn cleanup_game_entities(
 pub(super) fn handle_visibility(
     players: Query<(Entity, Option<&Client>, Option<&InGame>), With<Player>>,
     game_entities: Query<(Entity, &InGame), Without<Player>>,
-    mut connected_clients: ResMut<ConnectedClients>,
+    mut replicated_clients: ResMut<ReplicatedClients>,
 ) {
     // let players have visibility over all entities present in the same game
     for (entity, player, player_game) in players.iter().filter_map(|(entity, player, in_game)| {
@@ -217,7 +217,7 @@ pub(super) fn handle_visibility(
             .zip(in_game)
             .map(|(player, game)| (entity, player, game))
     }) {
-        let client = connected_clients.client_mut(player.id);
+        let client = replicated_clients.client_mut(player.id);
         let visibility = client.visibility_mut();
 
         let _client_id = player.id.get();
@@ -263,7 +263,7 @@ pub(super) fn handle_visibility(
             (None, None) => vec![],
         };
         for (client_id, _player_entity, target_entity) in visibility_tuples {
-            let Some(client) = connected_clients.get_client_mut(client_id) else {
+            let Some(client) = replicated_clients.get_client_mut(client_id) else {
                 bevy::log::warn!(
                     "Client ID {} not connected but tested for visibility",
                     client_id.get()

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use bevy::{
     ecs::entity::MapEntities,
-    prelude::{Bundle, Component, Entity, EntityMapper, Reflect},
+    prelude::{Bundle, Component, Entity, EntityMapper},
 };
 
 use crate::{actions::Actions, behavior::PieceBehaviors, team::Team};
@@ -43,7 +43,6 @@ impl PieceBundle {
 }
 
 #[derive(Clone, Debug, Default)]
-#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct PieceDefinition {
     pub behaviors: PieceBehaviors,
@@ -63,7 +62,7 @@ impl PieceDefinition {
 }
 
 #[derive(Clone, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct HasPieces(pub Vec<Entity>);
 

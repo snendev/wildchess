@@ -22,8 +22,8 @@ impl Plugin for ClientPlugin {
             server_ip: self.server_ip.clone(),
             server_port: self.server_port.clone(),
         });
-        app.observe(ConnectToServer::observer)
-            .observe(DisconnectFromServer::observer);
+        app.add_observer(ConnectToServer::observer)
+            .add_observer(DisconnectFromServer::observer);
 
         app.add_systems(
             Update,
@@ -59,7 +59,7 @@ impl ConnectToServer {
         let client = RenetClient::new(ConnectionConfig {
             server_channels_config,
             client_channels_config,
-            ..Default::default()
+            available_bytes_per_tick: 60_000,
         });
         commands.insert_resource(client);
         commands.trigger(transport::ConnectToSocket::WebTransport {

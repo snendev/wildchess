@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 use bevy::prelude::{
-    App, Commands, Component, Entity, IntoSystemConfigs, Plugin, Query, Reflect, Res, SystemSet,
-    Time, Update,
+    App, Commands, Component, Entity, IntoSystemConfigs, Plugin, Query, Res, SystemSet, Time,
+    Update,
 };
 use bevy::time::Stopwatch;
 
@@ -13,7 +13,7 @@ use bevy_replicon::prelude::AppRuleExt;
 use crate::components::{GameOver, InGame, IsActiveGame};
 
 #[derive(Clone, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct Clock {
     duration: Duration,
@@ -66,7 +66,6 @@ impl Plugin for ClockPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, Self::tick.in_set(ClockSystems));
         app.replicate::<Clock>();
-        app.register_type::<Clock>();
     }
 }
 

@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Component, Reflect};
+use bevy::prelude::{Component};
 
 // Once all Royal pieces are captured, a player loses the game.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub enum Orientation {
     #[default]

@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use bevy::{
     ecs::entity::MapEntities,
     prelude::{
-        Changed, Commands, Component, Entity, EntityMapper, Query, Reflect, RemovedComponents, With,
+        Changed, Commands, Component, Entity, EntityMapper, Query, RemovedComponents, With,
     },
 };
 
@@ -13,12 +13,12 @@ use chess::actions::Action;
 use super::{Game, InGame};
 
 #[derive(Clone, Copy, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct HasTurn;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct Ply(usize);
 
@@ -39,7 +39,7 @@ impl Ply {
 // A vector using Ply as an index.
 // It tracks the action made each ply.
 #[derive(Clone, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct ActionHistory(Vec<(Entity, Action)>);
 
@@ -82,7 +82,7 @@ impl MapEntities for ActionHistory {
 // A sparse vector using Ply as an index.
 // It is kept sparse in order to minimize cloning.
 #[derive(Clone, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct History<T>(BTreeMap<Ply, Option<T>>);
 

@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Component, Reflect};
+use bevy::prelude::Component;
 
 use crate::pieces::Orientation;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub enum Team {
     #[default]

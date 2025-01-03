@@ -27,7 +27,7 @@ impl ServerReplicationPlugin {
         let server = RenetServer::new(ConnectionConfig {
             server_channels_config,
             client_channels_config,
-            ..Default::default()
+            available_bytes_per_tick: 60_000,
         });
         commands.insert_resource(server);
     }

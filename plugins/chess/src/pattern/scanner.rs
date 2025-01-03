@@ -32,7 +32,6 @@ pub enum ScanMode {
 
 // The calculation type for board searches
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct Scanner {
     // the unit of "stepping" for searching the board

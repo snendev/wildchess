@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Component, Reflect};
+use bevy::prelude::{Component};
 
 use crate::board::{File, Rank, Square};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct Position(pub Square);
 

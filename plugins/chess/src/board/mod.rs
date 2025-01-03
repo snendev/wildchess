@@ -2,14 +2,14 @@ use serde::{Deserialize, Serialize};
 
 use bevy::{
     ecs::entity::MapEntities,
-    prelude::{Component, Entity, EntityMapper, Reflect},
+    prelude::{Component, Entity, EntityMapper},
 };
 
 mod square;
 pub use square::{File, Rank, Square};
 
 #[derive(Clone, Copy, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 
 pub struct OnBoard(pub Entity);
@@ -21,7 +21,7 @@ impl MapEntities for OnBoard {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct Board {
     pub size: Square,

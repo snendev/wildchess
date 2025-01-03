@@ -24,7 +24,6 @@ use self::capture::CaptureData;
 
 // The calculation type for board searches
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
 pub struct Pattern {
     // struct that defines how to walk the board space

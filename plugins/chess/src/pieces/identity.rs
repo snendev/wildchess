@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::{Component, Reflect};
+use bevy::prelude::{Component};
 
 // A name for the "kind" of piece this is. Usually relates to a specific set of behaviors,
 // but variants often change these.
 // It is mostly useful for supplying contextual information to users, such as displaying a
 // particular icon.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub enum PieceIdentity {
     // The default: implies that this piece does not fit an existing stereotype

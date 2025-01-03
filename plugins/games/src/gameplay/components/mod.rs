@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use bevy::{
     ecs::entity::MapEntities,
-    prelude::{Component, Entity, EntityMapper, Reflect, With, Without},
+    prelude::{Component, Entity, EntityMapper, With, Without},
 };
 
 use bevy_replicon::prelude::ClientId;
@@ -16,12 +16,12 @@ mod turns;
 pub use turns::{ActionHistory, History, Ply};
 
 #[derive(Clone, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct Player;
 
 #[derive(Clone, Debug)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct HasPlayers(pub Entity, pub Entity);
 
@@ -33,14 +33,14 @@ impl MapEntities for HasPlayers {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct Client {
     pub id: ClientId,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct InGame(pub Entity);
 
@@ -51,7 +51,7 @@ impl MapEntities for InGame {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct GameOver {
     winner: chess::team::Team,

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
-use bevy::prelude::{Commands, Component, DetectChanges, Entity, Query, Ref, Reflect, With};
+use bevy::prelude::{Commands, Component, DetectChanges, Entity, Query, Ref, With};
 
 use crate::{
     actions::{Action, Actions, Movement},
@@ -25,12 +25,12 @@ pub(crate) fn disable_on_move<T: Component>(
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct CastlingTarget;
 
 #[derive(Clone, Copy, Debug, Default)]
-#[derive(Component, Reflect)]
+#[derive(Component)]
 #[derive(Deserialize, Serialize)]
 pub struct CastlingBehavior;
 

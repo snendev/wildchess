@@ -12,7 +12,7 @@ pub struct ClientPlugin;
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
-        app.observe(ConnectToSocket::observer);
+        app.add_observer(ConnectToSocket::observer);
     }
 }
 

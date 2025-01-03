@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::Reflect;
-
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[derive(Reflect)]
 #[derive(Deserialize, Serialize)]
 pub enum Step {
     OneDim(i16, RSymmetry),
@@ -161,8 +158,6 @@ impl Default for Step {
 // ordinal directions to make the reasoning a little easier
 bitflags::bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-    #[derive(Reflect)]
-    #[reflect_value]
     #[derive(Deserialize, Serialize)]
     pub struct RSymmetry: u8 {
         const RIGHT = 0b00000001;
@@ -232,8 +227,6 @@ impl Default for RSymmetry {
 
 bitflags::bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-    #[derive(Reflect)]
-    #[reflect_value]
     #[derive(Deserialize, Serialize)]
     pub struct ABSymmetry: u8 {
         const FORWARD_RIGHT_RIGHT = 0b00000001;

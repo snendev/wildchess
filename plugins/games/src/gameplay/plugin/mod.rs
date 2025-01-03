@@ -44,7 +44,7 @@ impl Plugin for GameplayPlugin {
         app.add_plugins((ChessPlugin, BehaviorsPlugin, ClockPlugin))
             .configure_sets(
                 Update,
-                BehaviorsSystems.run_if(any_with_component_added::<Actions>().or_else(
+                BehaviorsSystems.run_if(any_with_component_added::<Actions>().or(
                     // TODO: do this some other way
                     any_with_component_changed::<CurrentTurn>(),
                 )),
@@ -81,7 +81,7 @@ impl Plugin for GameplayPlugin {
                     .chain()
                     .in_set(GameSystems::All),
             )
-            .configure_sets(Update, GameSystems::All.run_if(has_authority))
+            .configure_sets(Update, GameSystems::All.run_if(server_or_singleplayer))
             .add_systems(
                 Update,
                 (
@@ -103,15 +103,8 @@ impl Plugin for GameplayPlugin {
                 systems::detect_gameover.in_set(GameSystems::DetectGameover),
             );
 
-        app.observe(SpawnGame::observer);
-        app.observe(PlayTurn::observer);
-
-        app.register_type::<InGame>()
-            .register_type::<GameBoard>()
-            .register_type::<WinCondition>()
-            .register_type::<Ply>()
-            .register_type::<ClockConfiguration>()
-            .register_type::<ActionHistory>();
+        app.add_observer(SpawnGame::observer);
+        app.add_observer(PlayTurn::observer);
     }
 }
 
