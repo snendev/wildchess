@@ -5,21 +5,24 @@ edition = "2021"
 authors = ["Sean Sullivan <me@snen.dev>"]
 
 [dependencies]
-# plugins
+# workspace
 wildchess = { workspace = true, features = ["client"] }
-
-# bevy
 serde = { workspace = true }
+
+# leptos
 leptos = { version = "=0.6.14", features = ["csr"] }
 leptos_router = { version = "=0.6.14", features = ["csr"] }
-leptos-use = { version = "0.13", default-features = false, features = [
-    "use_draggable",
-    "on_click_outside",
-] }
+# leptos-use = { version = "0.13", default-features = false, features = [
+#     "use_draggable",
+#     "on_click_outside",
+# ] }
 
+# async
+gloo-worker = { version = "0.5", features = ["futures"] }
+
+# web
 console_error_panic_hook = "0.1"
 js-sys = "0.3"
-futures-lite = "2.3"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = [
@@ -34,6 +37,7 @@ web-sys = { version = "0.3", features = [
     "MessageEvent",
     "KeyboardEvent",
     "Node",
+    "Request",
     "RequestInit",
     "RequestMode",
     "Response",
@@ -43,5 +47,3 @@ web-sys = { version = "0.3", features = [
     "Worker",
     "WorkerGlobalScope",
 ] }
-
-gloo-worker = { version = "0.5" }

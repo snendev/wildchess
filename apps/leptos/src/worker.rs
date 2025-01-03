@@ -1,9 +1,7 @@
 use gloo_worker::{HandlerId, Worker, WorkerScope};
-use js_sys::Promise;
-use leptos::set_timeout;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use web_sys::{Response, WorkerGlobalScope};
 
 use wildchess::bevy::app::App;
 use wildchess::bevy::ecs::entity::Entity;
@@ -12,38 +10,27 @@ use wildchess::bevy::prelude::With;
 use wildchess::bevy::utils::{HashMap, HashSet};
 use wildchess::bevy_replicon::prelude::RepliconClient;
 use wildchess::bevy_replicon::prelude::RepliconClientStatus;
+use wildchess::client::ConnectToServer;
 use wildchess::games::chess::actions::Actions;
 use wildchess::games::chess::pieces::{Mutation, Position};
 use wildchess::games::chess::team::Team;
 use wildchess::games::components::Client;
 use wildchess::games::components::InGame;
 use wildchess::games::RequestTurnEvent;
-use wildchess::{Active, BoardState};
+use wildchess::{Active, BoardState, WildchessPlugins};
 
-use crate::{
-    BoardTargets, PlayerMessage, WorkerMessage, SERVER_DEFAULT_IP, SERVER_DEFAULT_ORIGIN,
-    SERVER_DEFAULT_PORT, SERVER_DEFAULT_TOKENS_PORT, SERVER_IP, SERVER_ORIGIN, SERVER_PORT,
-    SERVER_TOKENS_PORT,
-};
-
-// Use this to enable console logging
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-
-    #[wasm_bindgen(js_namespace = console)]
-    fn error(s: &str);
-}
+use crate::{error, log, warn, debug, BoardTargets, PlayerMessage, WorkerMessage};
 
 pub struct BevyWorker {
     game: Option<App>,
     subscriptions: HashSet<HandlerId>,
+    _update_interval: Interval,
 }
 
 impl BevyWorker {
     fn update_bevy_state(&mut self) -> Option<WorkerMessage> {
         let Some(app) = self.game.as_mut() else {
+            debug("No game - skipping update");
             return None;
         };
 
@@ -71,25 +58,27 @@ impl Worker for BevyWorker {
     type Message = WorkerUpdateMessage;
 
     fn create(scope: &WorkerScope<Self>) -> Self {
-        log("create");
-        scope.send_message(
-            WorkerUpdateMessage::fetch_token().expect("to fetch a token successfully"),
-        );
-
+        scope.send_future(async {
+            let token = fetch_server_token().await.unwrap();
+            WorkerUpdateMessage::Token(token.as_string().unwrap())
+        });
+        let scope = scope.clone();
+        let update_interval = Interval::new(10, move || {
+            scope.send_message(WorkerUpdateMessage::Update);
+        })
+        .unwrap();
         Self {
             game: None,
             subscriptions: HashSet::default(),
+            _update_interval: update_interval,
         }
     }
 
     fn connected(&mut self, _scope: &WorkerScope<Self>, id: HandlerId) {
-        log("connected");
         self.subscriptions.insert(id);
     }
 
     fn update(&mut self, scope: &WorkerScope<Self>, message: Self::Message) {
-        log("update");
-
         match message {
             WorkerUpdateMessage::Token(token) => {
                 let app = build_app(token);
@@ -103,13 +92,11 @@ impl Worker for BevyWorker {
                 }
             }
         }
-        scope.send_message(WorkerUpdateMessage::Update);
     }
 
     fn received(&mut self, scope: &WorkerScope<Self>, message: Self::Input, handler_id: HandlerId) {
-        log("received");
         let Some(app) = self.game.as_mut() else {
-            log(&format!(
+            warn(&format!(
                 "Discarding message received before app is ready: {:?}",
                 message
             ));
@@ -123,7 +110,7 @@ impl Worker for BevyWorker {
             client_id: Some(my_client_id),
         } = replicon_client.status()
         else {
-            log(&format!(
+            debug(&format!(
                 "Discarding message received before client is connected: {:?}",
                 message
             ));
@@ -148,44 +135,15 @@ pub enum WorkerUpdateMessage {
     Update,
 }
 
-impl WorkerUpdateMessage {
-    fn fetch_token() -> Result<Self, JsValue> {
-        let server_origin = SERVER_ORIGIN.unwrap_or(SERVER_DEFAULT_ORIGIN);
-        let server_token_port = SERVER_TOKENS_PORT.unwrap_or(SERVER_DEFAULT_TOKENS_PORT);
-        let server_url = format!("{server_origin}:{server_token_port}");
-        let opts = RequestInit::new();
-        opts.set_method("GET");
-        opts.set_mode(RequestMode::Cors);
-        let request = Request::new_with_str_and_init(&server_url, &opts)?;
-
-        let response = fetch(&request).then(&mut Closure::new(|js_value: JsValue| {
-            let response: Response = js_value.dyn_into().unwrap();
-            let text: String = response.text().unwrap();
-            text.as_string()
-        }));
-
-        assert!(response.is_instance_of::<Response>());
-        let response: Response = response.dyn_into().unwrap();
-
-        log("3");
-        let text =
-            futures_lite::future::block_on(async { JsFuture::from(response.text()?).await })?;
-        log("4");
-        let token = text.as_string().expect("Server token to be a string");
-
-        log(&token);
-        Ok(WorkerUpdateMessage::Token(token))
-    }
-}
-
 fn build_app(server_token: String) -> App {
+    use wildchess::bevy::MinimalPlugins;
+
     let mut app = App::new();
-    log("Building app!");
-    app.add_plugins(wildchess::WildchessPlugins::as_client(
-        SERVER_IP.unwrap_or(SERVER_DEFAULT_IP).to_string(),
-        SERVER_PORT.unwrap_or(SERVER_DEFAULT_PORT).to_string(),
-        server_token,
-    ));
+    app.add_plugins(MinimalPlugins);
+    app.add_plugins(WildchessPlugins);
+    app.world_mut().trigger(ConnectToServer {
+        token: server_token,
+    });
     app.update();
     app.update();
     app
@@ -193,12 +151,14 @@ fn build_app(server_token: String) -> App {
 
 fn get_my_player(world: &mut World) -> Option<(Entity, Team)> {
     let Some(replicon_client) = world.get_resource::<RepliconClient>() else {
+        warn("no replicon client found");
         return None;
     };
+    let status = replicon_client.status();
     let RepliconClientStatus::Connected {
         client_id: Some(my_client_id),
-    } = replicon_client.status()
-    else {
+    } = status else {
+        debug(&format!("client not yet connected; status: {:?}", status));
         return None;
     };
     let mut query = world.query::<(Entity, &Team, &Client)>();
@@ -206,12 +166,6 @@ fn get_my_player(world: &mut World) -> Option<(Entity, Team)> {
         .iter(world)
         .find(|(_, _, client)| client.id == my_client_id)?;
     Some((my_player, *my_side))
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen]
-    fn fetch(input: &Request) -> Promise;
 }
 
 fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
@@ -297,4 +251,62 @@ fn handle_message(app: &mut App, message: PlayerMessage) -> WorkerMessage {
         PlayerMessage::AcceptDraw => todo!(),
         PlayerMessage::Resign => todo!(),
     }
+}
+
+pub struct Interval {
+    _closure: Closure<dyn FnMut()>,
+    handle: i32,
+}
+
+impl Interval {
+    pub fn new<F: FnMut() + 'static>(millis: i32, f: F) -> Result<Interval, JsValue> {
+        log("new interval");
+        let closure: Closure<dyn FnMut()> = Closure::new(f);
+
+        let global = js_sys::global();
+        let global: WorkerGlobalScope = global.dyn_into()?;
+        let handle = global.set_interval_with_callback_and_timeout_and_arguments_0(
+            closure
+                .as_ref()
+                .dyn_ref()
+                .ok_or(JsValue::from_str("failed to cast closure"))?,
+            millis,
+        )?;
+
+        Ok(Interval {
+            _closure: closure,
+            handle,
+        })
+    }
+}
+
+// When the Interval is destroyed, clear its `setInterval` timer.
+impl Drop for Interval {
+    fn drop(&mut self) {
+        let global = js_sys::global();
+        let global: WorkerGlobalScope = global.dyn_into().unwrap();
+        global.clear_interval_with_handle(self.handle);
+    }
+}
+
+fn server_token_request() -> web_sys::Request {
+    use wildchess::network_constants::{
+        SERVER_DEFAULT_ORIGIN, SERVER_DEFAULT_TOKENS_PORT, SERVER_ORIGIN, SERVER_TOKENS_PORT,
+    };
+
+    let server_origin = SERVER_ORIGIN.unwrap_or(SERVER_DEFAULT_ORIGIN);
+    let server_token_port = SERVER_TOKENS_PORT.unwrap_or(SERVER_DEFAULT_TOKENS_PORT);
+    let server_url = format!("{server_origin}:{server_token_port}");
+
+    web_sys::Request::new_with_str(&server_url).expect("Request to have a valid URL")
+}
+
+async fn fetch_server_token() -> Result<JsValue, JsValue> {
+    let request = server_token_request();
+    let global = js_sys::global();
+    let global: WorkerGlobalScope = global.dyn_into()?;
+    let response = JsFuture::from(global.fetch_with_request(&request)).await?;
+    let response: Response = response.dyn_into()?;
+    let text_promise = response.text()?;
+    JsFuture::from(text_promise).await
 }

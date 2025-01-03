@@ -22,8 +22,7 @@ impl bevy::app::PluginGroup for WildchessPlugins {
         let builder = bevy::app::PluginGroupBuilder::start::<Self>();
 
         let builder = builder
-            .add(bevy_replicon::prelude::RepliconCorePlugin)
-            .add(bevy_replicon::prelude::ParentSyncPlugin)
+            .add_group(bevy_replicon::prelude::RepliconPlugins)
             .add(games::GameplayPlugin)
             .add(games::MatchmakingPlugin)
             // TODO: this isn't practically removeable from the PluginGroup.
@@ -31,72 +30,44 @@ impl bevy::app::PluginGroup for WildchessPlugins {
             // replication may also cause problems here
             .add(wild_icons::PieceIconPlugin::new(get_orientation));
 
+        #[cfg(feature = "client")]
+        let builder = builder.add(client::ClientPlugin {
+            server_origin: SERVER_ORIGIN.unwrap_or(SERVER_DEFAULT_ORIGIN).to_string(),
+            server_port: SERVER_PORT.unwrap_or(SERVER_DEFAULT_PORT).to_string(),
+        });
+        #[cfg(feature = "server")]
+        let builder = builder
+            .set(bevy_replicon::server::ServerPlugin {
+                visibility_policy: bevy_replicon::prelude::VisibilityPolicy::Whitelist,
+                ..Default::default()
+            })
+            .add_group(server::ServerPlugins {
+                port: SERVER_PORT.unwrap_or(SERVER_DEFAULT_PORT).to_string(),
+                wt_tokens_port: SERVER_TOKENS_PORT
+                    .unwrap_or(SERVER_DEFAULT_TOKENS_PORT)
+                    .to_string(),
+            });
+
         builder
     }
 }
 
-#[cfg(feature = "client")]
-pub struct WildchessClientPlugins {
-    pub server_origin: String,
-    pub server_port: String,
-    pub server_token: String,
-}
+#[cfg(any(feature = "client", feature = "server"))]
+pub mod network_constants {
+    pub const SERVER_IP: Option<&str> = option_env!("SERVER_IP");
+    pub const SERVER_DEFAULT_IP: &str = "127.0.0.1";
 
-#[cfg(feature = "client")]
-impl bevy::app::PluginGroup for WildchessClientPlugins {
-    fn build(self) -> bevy::app::PluginGroupBuilder {
-        bevy::app::PluginGroupBuilder::start::<Self>()
-            .add_group(WildchessPlugins)
-            .add(client::ClientPlugin {
-                server_origin: self.server_origin,
-                server_port: self.server_port,
-                server_token: self.server_token,
-            })
-    }
-}
+    pub const SERVER_ORIGIN: Option<&str> = option_env!("SERVER_ORIGIN");
+    pub const SERVER_DEFAULT_ORIGIN: &str = "http://localhost";
 
-#[cfg(feature = "client")]
-impl WildchessPlugins {
-    pub fn as_client(
-        server_origin: String,
-        server_port: String,
-        server_token: String,
-    ) -> WildchessClientPlugins {
-        WildchessClientPlugins {
-            server_origin,
-            server_port,
-            server_token,
-        }
-    }
-}
+    pub const SERVER_PORT: Option<&str> = option_env!("SERVER_PORT");
+    pub const SERVER_DEFAULT_PORT: &str = "7636";
 
-#[cfg(feature = "server")]
-pub struct WildchessServerPlugins {
-    pub port: String,
-    pub wt_tokens_port: String,
+    pub const SERVER_TOKENS_PORT: Option<&str> = option_env!("SERVER_TOKENS_PORT");
+    pub const SERVER_DEFAULT_TOKENS_PORT: &str = "7637";
 }
-
-#[cfg(feature = "server")]
-impl bevy::app::PluginGroup for WildchessServerPlugins {
-    fn build(self) -> bevy::app::PluginGroupBuilder {
-        bevy::app::PluginGroupBuilder::start::<Self>()
-            .add_group(WildchessPlugins)
-            .add(server::ServerPlugin {
-                port: self.port,
-                wt_tokens_port: self.wt_tokens_port,
-            })
-    }
-}
-
-#[cfg(feature = "server")]
-impl WildchessPlugins {
-    pub fn as_server(port: String, wt_tokens_port: String) -> WildchessServerPlugins {
-        WildchessServerPlugins {
-            port,
-            wt_tokens_port,
-        }
-    }
-}
+#[cfg(any(feature = "client", feature = "server"))]
+use network_constants::*;
 
 use bevy::prelude::{Query, Res};
 use bevy_replicon::prelude::{ClientId, RepliconClient};

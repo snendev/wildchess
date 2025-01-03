@@ -5,8 +5,6 @@ use bevy::prelude::{App, Plugin, Resource};
 
 use renet2::transport::WebServerDestination;
 
-use games::PROTOCOL_ID;
-
 pub struct ServerTransportPlugin {
     pub port: String,
     pub wt_tokens_port: String,
@@ -68,7 +66,8 @@ impl Plugin for NativeServerTransportPlugin {
         let server_config = ServerSetupConfig {
             current_time,
             max_clients: 64,
-            protocol_id: PROTOCOL_ID,
+            // TODO: unify
+            protocol_id: 7,
             socket_addresses: vec![vec![public_addr]],
             authentication: ServerAuthentication::Unsecure,
         };

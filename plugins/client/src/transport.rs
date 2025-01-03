@@ -12,13 +12,13 @@ pub struct ClientPlugin;
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut App) {
-        app.observe(ConnectToServer::observer);
+        app.observe(ConnectToSocket::observer);
     }
 }
 
 #[derive(Debug)]
 #[derive(Event)]
-pub enum ConnectToServer {
+pub enum ConnectToSocket {
     WebTransport {
         server_origin: String,
         server_port: String,
@@ -26,7 +26,7 @@ pub enum ConnectToServer {
     },
 }
 
-impl ConnectToServer {
+impl ConnectToSocket {
     fn observer(trigger: Trigger<Self>, mut commands: Commands) {
         match trigger.event().create_transport() {
             Ok(transport) => {
@@ -46,7 +46,7 @@ impl ConnectToServer {
         let authentication = Self::create_authentication(client_id, socket_addr);
 
         match self {
-            ConnectToServer::WebTransport {
+            ConnectToSocket::WebTransport {
                 wt_server_token, ..
             } => {
                 let server_address = WebServerDestination::Addr(socket_addr);
@@ -69,7 +69,7 @@ impl ConnectToServer {
 
     fn create_server_address(&self) -> Result<SocketAddr, AddrParseError> {
         match self {
-            ConnectToServer::WebTransport {
+            ConnectToSocket::WebTransport {
                 server_origin,
                 server_port,
                 ..

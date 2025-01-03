@@ -7,29 +7,23 @@ use wildchess::{
     BoardState,
 };
 
-mod interval;
-pub(crate) use interval::*;
-
 mod worker;
 pub use worker::*;
 
 #[wasm_bindgen]
-extern "C" {
+unsafe extern "C" {
     #[wasm_bindgen(js_namespace = console)]
-    pub fn log(s: String);
+    pub fn log(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn debug(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn warn(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn error(s: &str);
 }
-
-pub const SERVER_IP: Option<&str> = option_env!("SERVER_IP");
-pub const SERVER_DEFAULT_IP: &str = "127.0.0.1";
-
-pub const SERVER_ORIGIN: Option<&str> = option_env!("SERVER_ORIGIN");
-pub const SERVER_DEFAULT_ORIGIN: &str = "http://localhost";
-
-pub const SERVER_PORT: Option<&str> = option_env!("SERVER_PORT");
-pub const SERVER_DEFAULT_PORT: &str = "7636";
-
-pub const SERVER_TOKENS_PORT: Option<&str> = option_env!("SERVER_TOKENS_PORT");
-pub const SERVER_DEFAULT_TOKENS_PORT: &str = "7637";
 
 #[derive(Clone, Debug)]
 #[derive(Deserialize, Serialize)]

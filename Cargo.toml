@@ -48,8 +48,8 @@ edition = "2021"
 authors = ["Sean Sullivan <me@snen.dev>"]
 
 [features]
-client = ["dep:client"]
-server = ["dep:server"]
+client = ["dep:client", "bevy_replicon/client"]
+server = ["dep:server", "bevy_replicon/server"]
 
 [dependencies]
 games = { workspace = true }

@@ -1,4 +1,4 @@
-use gloo_worker::{Spawnable, WorkerBridge};
+use gloo_worker::Spawnable;
 use leptos::*;
 
 use wildchess::{games::chess::team::Team, BoardState};
@@ -10,20 +10,20 @@ mod grid;
 mod piece;
 mod square;
 
-const BEVY_WORKER: std::cell::OnceCell<WorkerBridge<BevyWorker>> = std::cell::OnceCell::new();
-
 #[component]
 pub fn Game() -> impl IntoView {
     let (board_state, set_board_state) = create_signal(None as Option<BoardState>);
     let (my_team, set_my_team) = create_signal(Team::White);
     let (board_targets, set_board_targets) = create_signal(None as Option<BoardTargets>);
-    wildchess_web::log("Game!".to_string());
+    wildchess_web::log("Game!");
 
-    create_effect(move |_| {
-        wildchess_web::log("Spawning worker!".to_string());
+    let bridge = create_memo(move |_| {
+        wildchess_web::log("Fetching server token and spawning worker...");
+
+        wildchess_web::log("Spawning worker!");
         let message_callback = move |message: WorkerMessage| {
-            wildchess_web::log(format!("Update from Bevy app: {:?}", message));
-            wildchess_web::log("Setting state...".to_string());
+            wildchess_web::log(&format!("Update from Bevy app: {:?}", message));
+            wildchess_web::log("Setting state...");
             match message {
                 WorkerMessage::State { state, my_team } => {
                     set_board_state.set(Some(state));
@@ -35,24 +35,17 @@ pub fn Game() -> impl IntoView {
                 }
             }
         };
-        BEVY_WORKER
-            .set(
-                BevyWorker::spawner()
-                    .callback(message_callback)
-                    .spawn("/worker.js"),
-            )
-            .unwrap();
+        BevyWorker::spawner()
+            .callback(message_callback)
+            .spawn("/worker.js")
     });
 
     view! {
         {move || match board_state.get() {
             Some(_) => {
-                wildchess_web::log("Spawning board!".to_string());
-                let handle_player_message = |message: PlayerMessage| {
-                    BEVY_WORKER
-                        .get()
-                        .expect("Bevy worker to be initialized before sending messages!")
-                        .send(message);
+                wildchess_web::log("Spawning board!");
+                let handle_player_message = move |message: PlayerMessage| {
+                    bridge.with(|bridge| bridge.send(message));
                 };
                 view! {
                     <Board
@@ -66,9 +59,10 @@ pub fn Game() -> impl IntoView {
             }
             .into_view(),
             None => {
-                wildchess_web::log("Loading game app!".to_string());
+                wildchess_web::log("Loading game app!");
                 view! {
                     <h2>Loading game...</h2>
+                    {bridge.with(|_| {})}
                 }
             }
             .into_view(),
