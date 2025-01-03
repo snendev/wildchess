@@ -20,7 +20,7 @@ impl Plugin for ClientPlugin {
 #[derive(Event)]
 pub enum ConnectToSocket {
     WebTransport {
-        server_origin: String,
+        server_ip: String,
         server_port: String,
         wt_server_token: String,
     },
@@ -70,10 +70,14 @@ impl ConnectToSocket {
     fn create_server_address(&self) -> Result<SocketAddr, AddrParseError> {
         match self {
             ConnectToSocket::WebTransport {
-                server_origin,
+                server_ip,
                 server_port,
                 ..
-            } => format!("{server_origin}:{server_port}").parse::<SocketAddr>(),
+            } => {
+                let addr = format!("{server_ip}:{server_port}");
+                bevy::log::info!("{addr}");
+                addr.parse::<SocketAddr>()
+            }
         }
     }
 

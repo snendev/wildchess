@@ -10,7 +10,7 @@ use bevy_replicon_renet2::{
 mod transport;
 
 pub struct ClientPlugin {
-    pub server_origin: String,
+    pub server_ip: String,
     pub server_port: String,
 }
 
@@ -19,7 +19,7 @@ impl Plugin for ClientPlugin {
         app.add_plugins(RepliconRenetClientPlugin);
         app.add_plugins(transport::ClientPlugin);
         app.insert_resource(ServerInfo {
-            server_origin: self.server_origin.clone(),
+            server_ip: self.server_ip.clone(),
             server_port: self.server_port.clone(),
         });
         app.observe(ConnectToServer::observer)
@@ -38,13 +38,13 @@ impl Plugin for ClientPlugin {
 
 #[derive(Resource)]
 pub struct ServerInfo {
-    server_origin: String,
+    server_ip: String,
     server_port: String,
 }
 
 #[derive(Event)]
 pub struct ConnectToServer {
-    pub token: String
+    pub token: String,
 }
 
 impl ConnectToServer {
@@ -63,7 +63,7 @@ impl ConnectToServer {
         });
         commands.insert_resource(client);
         commands.trigger(transport::ConnectToSocket::WebTransport {
-            server_origin: server_info.server_origin.clone(),
+            server_ip: server_info.server_ip.clone(),
             server_port: server_info.server_port.clone(),
             wt_server_token: event.event().token.clone(),
         });

@@ -10,6 +10,7 @@ impl Active {
         inactive_boards: Query<Entity, (With<Board>, Without<Active>)>,
         active_boards: Query<Entity, (With<Board>, With<Active>)>,
     ) {
+        log::info!("set_active running");
         if !active_boards.is_empty() {
             return;
         }

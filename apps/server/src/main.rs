@@ -18,7 +18,7 @@ fn main() {
             )),
             LogPlugin {
                 filter: "wgpu=error,naga=warn,h3=error".to_string(),
-                level: Level::INFO,
+                level: Level::DEBUG,
                 ..Default::default()
             },
             WildchessPlugins,

@@ -32,7 +32,7 @@ impl bevy::app::PluginGroup for WildchessPlugins {
 
         #[cfg(feature = "client")]
         let builder = builder.add(client::ClientPlugin {
-            server_origin: SERVER_ORIGIN.unwrap_or(SERVER_DEFAULT_ORIGIN).to_string(),
+            server_ip: SERVER_IP.unwrap_or(SERVER_DEFAULT_IP).to_string(),
             server_port: SERVER_PORT.unwrap_or(SERVER_DEFAULT_PORT).to_string(),
         });
         #[cfg(feature = "server")]

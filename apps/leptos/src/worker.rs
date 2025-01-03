@@ -3,10 +3,8 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Response, WorkerGlobalScope};
 
-use wildchess::bevy::app::App;
-use wildchess::bevy::ecs::entity::Entity;
-use wildchess::bevy::ecs::world::World;
-use wildchess::bevy::prelude::With;
+use wildchess::bevy::log::LogPlugin;
+use wildchess::bevy::prelude::{App, Entity, With, World};
 use wildchess::bevy::utils::{HashMap, HashSet};
 use wildchess::bevy_replicon::prelude::RepliconClient;
 use wildchess::bevy_replicon::prelude::RepliconClientStatus;
@@ -19,7 +17,7 @@ use wildchess::games::components::InGame;
 use wildchess::games::RequestTurnEvent;
 use wildchess::{Active, BoardState, WildchessPlugins};
 
-use crate::{error, log, warn, debug, BoardTargets, PlayerMessage, WorkerMessage};
+use crate::{debug, error, log, warn, BoardTargets, PlayerMessage, WorkerMessage};
 
 pub struct BevyWorker {
     game: Option<App>,
@@ -140,6 +138,7 @@ fn build_app(server_token: String) -> App {
 
     let mut app = App::new();
     app.add_plugins(MinimalPlugins);
+    app.add_plugins(LogPlugin::default());
     app.add_plugins(WildchessPlugins);
     app.world_mut().trigger(ConnectToServer {
         token: server_token,
@@ -157,7 +156,8 @@ fn get_my_player(world: &mut World) -> Option<(Entity, Team)> {
     let status = replicon_client.status();
     let RepliconClientStatus::Connected {
         client_id: Some(my_client_id),
-    } = status else {
+    } = status
+    else {
         debug(&format!("client not yet connected; status: {:?}", status));
         return None;
     };
@@ -260,7 +260,6 @@ pub struct Interval {
 
 impl Interval {
     pub fn new<F: FnMut() + 'static>(millis: i32, f: F) -> Result<Interval, JsValue> {
-        log("new interval");
         let closure: Closure<dyn FnMut()> = Closure::new(f);
 
         let global = js_sys::global();
